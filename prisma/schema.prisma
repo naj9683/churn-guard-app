@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  stripeCustomerId String?  @unique
+  stripeSubscriptionId String?
+  status          String    @default("ACTIVE")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+  lastActiveAt    DateTime?
+  
+  events          Event[]
+  playbookRuns    PlaybookRun[]
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  type        String
+  userId      String
+  metadata    String?
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model PlaybookRun {
+  id            String   @id @default(cuid())
+  userId        String
+  playbookType  String
+  status        String   @default("PENDING")
+  triggeredAt   DateTime @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  emailSent     Boolean  @default(false)
+  emailOpened   Boolean  @default(false)
+  emailClicked  Boolean  @default(false)
+  userResponded Boolean  @default(false)
+  
+  user          User     @relation(fields: [userId], references: [id])
+}
