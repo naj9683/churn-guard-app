@@ -3,47 +3,78 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  stripeCustomerId String?  @unique
-  stripeSubscriptionId String?
-  status          String    @default("ACTIVE")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  lastLoginAt     DateTime?
-  lastActiveAt    DateTime?
-  
-  events          Event[]
-  playbookRuns    PlaybookRun[]
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  name                 String?
+  status               String?       @default("ACTIVE")
+  stripeCustomerId     String?       @unique
+  stripeSubscriptionId String?       @unique
+  subscription         Subscription?
+  events               Event[]
+  playbookRuns         PlaybookRun[]
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  company     String?
+  riskScore   Int      @default(0)
+  lastActive  DateTime @default(now())
+  mrr         Float    @default(0)
+  status      String   @default("active")
+  playbook    String   @default("none")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Playbook {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  triggers    Int      @default(0)
+  rescues     Int      @default(0)
+  revenueSaved Float   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  clerkUserId   String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+  plan          String   @default("free")
+  status        String   @default("active")
+  customerLimit Int      @default(100)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Event {
-  id          String   @id @default(cuid())
-  type        String
-  userId      String
-  metadata    String?
-  createdAt   DateTime @default(now())
-  
-  user        User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  type      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  metadata  String?
+  createdAt DateTime @default(now())
 }
 
 model PlaybookRun {
-  id            String   @id @default(cuid())
-  userId        String
-  playbookType  String
-  status        String   @default("PENDING")
-  triggeredAt   DateTime @default(now())
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  emailSent     Boolean  @default(false)
-  emailOpened   Boolean  @default(false)
-  emailClicked  Boolean  @default(false)
-  userResponded Boolean  @default(false)
-  
-  user          User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  playbookType String
+  status       String
+  emailSent    Boolean?
+  metadata     String?
+  createdAt    DateTime @default(now())
 }
