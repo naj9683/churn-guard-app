@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail, emailTemplates } from '@/lib/email/resend';
 
-// This runs every hour via Vercel Cron
 export async function GET(req: Request) {
-  // Verify cron secret to prevent unauthorized access
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,7 +16,6 @@ export async function GET(req: Request) {
   };
 
   try {
-    // Get all active playbooks with their users
     const activePlaybooks = await prisma.playbookConfig.findMany({
       where: { active: true },
       include: { 
@@ -46,11 +43,9 @@ export async function GET(req: Request) {
             results.silentQuitter += await runSilentQuitter(playbook, triggerConfig);
             break;
           case 'PAYMENT_SAVER':
-            // Payment Saver is triggered by Stripe webhook, not cron
             break;
         }
 
-        // Update last run time
         await prisma.playbookConfig.update({
           where: { id: playbook.id },
           data: { 
@@ -77,7 +72,6 @@ export async function GET(req: Request) {
   }
 }
 
-// ONBOARDING RESCUE: User signed up 3 days ago but no core feature usage
 async function runOnboardingRescue(playbook: any, config: any) {
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - config.days);
@@ -85,7 +79,6 @@ async function runOnboardingRescue(playbook: any, config: any) {
   const dayAfter = new Date(threeDaysAgo);
   dayAfter.setDate(dayAfter.getDate() + 1);
 
-  // Find customers who signed up exactly 3 days ago
   const atRiskCustomers = playbook.user.customers.filter((customer: any) => {
     const signupDate = new Date(customer.signupAt);
     const hasFeatureUsage = playbook.user.activities.some((a: any) => 
@@ -99,7 +92,6 @@ async function runOnboardingRescue(playbook: any, config: any) {
   });
 
   for (const customer of atRiskCustomers) {
-    // Log the event
     const event = await prisma.playbookEvent.create({
       data: {
         userId: playbook.userId,
@@ -110,7 +102,6 @@ async function runOnboardingRescue(playbook: any, config: any) {
       }
     });
 
-    // Send onboarding rescue email
     const template = emailTemplates.onboardingRescue(customer.name || 'there');
     const result = await sendEmail(customer.email, template.subject, template.html);
     
@@ -121,4 +112,49 @@ async function runOnboardingRescue(playbook: any, config: any) {
       });
     }
     
-    console.log(`🚨 ONBOARDING RESCUE: ${customer.email} -
+    console.log(`ONBOARDING RESCUE: ${customer.email} - Email ${result.success ? 'sent' : 'failed'}`);
+  }
+
+  return atRiskCustomers.length;
+}
+
+async function runSilentQuitter(playbook: any, config: any) {
+  const fiveDaysAgo = new Date();
+  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - config.absentDays);
+
+  const atRiskCustomers = playbook.user.customers.filter((customer: any) => {
+    if (!customer.lastLoginAt) return false;
+    
+    const lastLogin = new Date(customer.lastLoginAt);
+    const daysSinceLogin = Math.floor((Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysSinceLogin >= config.absentDays && 
+           customer.status === 'active';
+  });
+
+  for (const customer of atRiskCustomers) {
+    const event = await prisma.playbookEvent.create({
+      data: {
+        userId: playbook.userId,
+        playbookType: 'SILENT_QUITTER',
+        status: 'triggered',
+        customerId: customer.id,
+        message: `Silent quitter detected: ${customer.email} absent for ${config.absentDays}+ days`
+      }
+    });
+
+    const template = emailTemplates.silentQuitter(customer.name || 'there', config.absentDays);
+    const result = await sendEmail(customer.email, template.subject, template.html);
+    
+    if (result.success) {
+      await prisma.playbookEvent.update({
+        where: { id: event.id },
+        data: { status: 'action_sent', message: `Email sent to ${customer.email}` }
+      });
+    }
+    
+    console.log(`SILENT QUITTER: ${customer.email} - Email ${result.success ? 'sent' : 'failed'}`);
+  }
+
+  return atRiskCustomers.length;
+}
