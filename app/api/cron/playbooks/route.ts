@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail, emailTemplates } from '@/lib/email/resend';
 
 // This runs every hour via Vercel Cron
 export async function GET(req: Request) {
@@ -99,7 +100,7 @@ async function runOnboardingRescue(playbook: any, config: any) {
 
   for (const customer of atRiskCustomers) {
     // Log the event
-    await prisma.playbookEvent.create({
+    const event = await prisma.playbookEvent.create({
       data: {
         userId: playbook.userId,
         playbookType: 'ONBOARDING_RESCUE',
@@ -109,43 +110,15 @@ async function runOnboardingRescue(playbook: any, config: any) {
       }
     });
 
-    // TODO: Send email (Step 5)
-    console.log(`🚨 ONBOARDING RESCUE: ${customer.email} - Send rescue email`);
-  }
-
-  return atRiskCustomers.length;
-}
-
-// SILENT QUITTER: User hasn't logged in for 5+ days
-async function runSilentQuitter(playbook: any, config: any) {
-  const fiveDaysAgo = new Date();
-  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - config.absentDays);
-
-  const atRiskCustomers = playbook.user.customers.filter((customer: any) => {
-    if (!customer.lastLoginAt) return false;
+    // Send onboarding rescue email
+    const template = emailTemplates.onboardingRescue(customer.name || 'there');
+    const result = await sendEmail(customer.email, template.subject, template.html);
     
-    const lastLogin = new Date(customer.lastLoginAt);
-    const daysSinceLogin = Math.floor((Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
+    if (result.success) {
+      await prisma.playbookEvent.update({
+        where: { id: event.id },
+        data: { status: 'action_sent', message: `Email sent to ${customer.email}` }
+      });
+    }
     
-    return daysSinceLogin >= config.absentDays && 
-           customer.status === 'active';
-  });
-
-  for (const customer of atRiskCustomers) {
-    // Log the event
-    await prisma.playbookEvent.create({
-      data: {
-        userId: playbook.userId,
-        playbookType: 'SILENT_QUITTER',
-        status: 'triggered',
-        customerId: customer.id,
-        message: `Silent quitter detected: ${customer.email} absent for ${config.absentDays}+ days`
-      }
-    });
-
-    // TODO: Send Slack alert + email (Step 5 & 6)
-    console.log(`🚨 SILENT QUITTER: ${customer.email} - Send Slack alert + email`);
-  }
-
-  return atRiskCustomers.length;
-}
+    console.log(`🚨 ONBOARDING RESCUE: ${customer.email} -
