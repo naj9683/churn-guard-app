@@ -18,6 +18,7 @@ model User {
   playbooks     PlaybookConfig[]
   activities    UserActivity[]
   events        PlaybookEvent[]
+  customers     Customer[]     // Added: relation to customers
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -61,8 +62,9 @@ model PlaybookEvent {
 model Customer {
   id           String   @id @default(cuid())
   userId       String
+  user         User     @relation(fields: [userId], references: [id])  // Added: relation to user
   email        String
-  name         String
+  name         String?
   status       String   @default("active") // active, at_risk, rescued, churned
   riskScore    Int      @default(0)
   lastLoginAt  DateTime?

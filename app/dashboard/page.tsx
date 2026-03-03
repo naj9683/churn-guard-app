@@ -1,127 +1,168 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
+import Link from 'next/link';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
-  const user = await currentUser();
   
   if (!userId) {
-    return null;
+    redirect('/sign-in');
   }
 
-  // Fetch real data from database
-  const customers = await prisma.customer.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 5,
+  const user = await prisma.user.findUnique({
+    where: { email: 'user@example.com' },
+    include: { 
+      customers: true,
+      playbooks: true 
+    }
   });
 
-  const totalCustomers = await prisma.customer.count();
-  const atRiskCustomers = await prisma.customer.count({
-    where: { riskScore: { gt: 70 } },
-  });
-  
-  // Calculate revenue saved (mock calculation for now)
-  const revenueSaved = 4250;
+  if (!user) {
+    return <div>User not found</div>;
+  }
 
-  const chartData = [40, 30, 45, 35, 50, 45, 60];
-  
+  const customers = user.customers || [];
+  const activePlaybooks = user.playbooks?.filter(p => p.active).length || 0;
+
   return (
-    <div style={{padding: '2rem'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Header */}
+      <div style={{borderBottom: '1px solid #1e293b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         <div>
-          <h1 style={{fontSize: '1.875rem', fontWeight: 'bold', color: 'white'}}>Dashboard</h1>
-          <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Welcome back, {user?.firstName || 'Admin'}</p>
+          <h1 style={{fontSize: '1.5rem', fontWeight: 'bold', margin: 0}}>ChurnGuard</h1>
+          <p style={{color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.875rem'}}>Retention Playbook System</p>
         </div>
-        <div style={{display: 'flex', gap: '1rem'}}>
-          <a href="/dashboard/customers/new" style={{padding: '0.5rem 1rem', backgroundColor: '#6366f1', color: 'white', textDecoration: 'none', borderRadius: '0.5rem'}}>+ Add Customer</a>
-        </div>
-      </div>
-      
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem'}}>
-        <div style={{backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-          <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Total Customers</p>
-          <p style={{fontSize: '1.875rem', fontWeight: 'bold', color: 'white'}}>{totalCustomers}</p>
-          <p style={{fontSize: '0.75rem', color: '#4ade80'}}>+{totalCustomers > 0 ? totalCustomers : 0} this week</p>
-        </div>
-        <div style={{backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-          <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>At Risk</p>
-          <p style={{fontSize: '1.875rem', fontWeight: 'bold', color: '#f87171'}}>{atRiskCustomers}</p>
-          <p style={{fontSize: '0.75rem', color: '#f87171'}}>{atRiskCustomers > 0 ? 'Needs attention' : 'All good'}</p>
-        </div>
-        <div style={{backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-          <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Revenue Saved</p>
-          <p style={{fontSize: '1.875rem', fontWeight: 'bold', color: '#4ade80'}}>${revenueSaved.toLocaleString()}</p>
-          <p style={{fontSize: '0.75rem', color: '#4ade80'}}>+18% vs last month</p>
-        </div>
-        <div style={{backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-          <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Active Playbooks</p>
-          <p style={{fontSize: '1.875rem', fontWeight: 'bold', color: '#818cf8'}}>3/3</p>
-          <p style={{fontSize: '0.75rem', color: '#818cf8'}}>All running</p>
+        <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+          <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>{activePlaybooks} Playbooks Active</span>
+          <div style={{width: '40px', height: '40px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            {user.name?.[0] || 'U'}
+          </div>
         </div>
       </div>
 
-      {/* Customer Table with Real Data */}
-      <div style={{backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-          <h3 style={{fontSize: '1.125rem', fontWeight: '600', color: 'white'}}>Recent Customers</h3>
-          <a href="/dashboard/customers" style={{color: '#6366f1', fontSize: '0.875rem', textDecoration: 'none'}}>View All</a>
-        </div>
-        
-        {customers.length === 0 ? (
-          <div style={{textAlign: 'center', padding: '3rem', color: '#94a3b8'}}>
-            <p>No customers yet. Add your first customer to get started!</p>
-            <a href="/dashboard/customers/new" style={{display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', backgroundColor: '#6366f1', color: 'white', textDecoration: 'none', borderRadius: '0.5rem'}}>Add Customer</a>
+      <div style={{padding: '2rem', maxWidth: '1200px', margin: '0 auto'}}>
+        {/* Stats */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem'}}>
+          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
+            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>Total Customers</p>
+            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0}}>{customers.length}</p>
           </div>
-        ) : (
-          <div style={{overflow: 'auto'}}>
+          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
+            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>At Risk</p>
+            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#f59e0b'}}>
+              {customers.filter(c => c.status === 'at_risk').length}
+            </p>
+          </div>
+          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
+            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>Monthly Revenue</p>
+            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#10b981'}}>
+              ${customers.reduce((sum, c) => sum + c.mrr, 0).toFixed(0)}
+            </p>
+          </div>
+        </div>
+
+        {/* Playbooks Status */}
+        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
+          <h2 style={{margin: '0 0 1rem 0', fontSize: '1.25rem'}}>Active Playbooks</h2>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem'}}>
+            {user.playbooks?.map((playbook) => (
+              <div key={playbook.id} style={{
+                padding: '1rem', 
+                borderRadius: '0.5rem', 
+                background: playbook.active ? '#059669' : '#374151',
+                border: '1px solid',
+                borderColor: playbook.active ? '#10b981' : '#4b5563'
+              }}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <span style={{fontWeight: '600'}}>{playbook.type.replace(/_/g, ' ')}</span>
+                  <span style={{
+                    fontSize: '0.75rem', 
+                    padding: '0.25rem 0.75rem', 
+                    borderRadius: '9999px',
+                    background: playbook.active ? '#10b981' : '#6b7280'
+                  }}>
+                    {playbook.active ? 'ACTIVE' : 'OFF'}
+                  </span>
+                </div>
+                <p style={{fontSize: '0.875rem', color: '#d1d5db', margin: '0.5rem 0 0 0'}}>
+                  Runs: {playbook.runCount} | Last: {playbook.lastRunAt ? new Date(playbook.lastRunAt).toLocaleDateString() : 'Never'}
+                </p>
+              </div>
+            )) || <p>No playbooks configured</p>}
+          </div>
+        </div>
+
+        {/* Customers Table */}
+        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', overflow: 'hidden'}}>
+          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <h2 style={{margin: 0, fontSize: '1.25rem'}}>Customers</h2>
+            <Link href="/playbooks" style={{
+              padding: '0.5rem 1rem',
+              background: '#3b82f6',
+              color: 'white',
+              borderRadius: '0.375rem',
+              textDecoration: 'none',
+              fontSize: '0.875rem'
+            }}>
+              Configure Playbooks
+            </Link>
+          </div>
+          
+          <div style={{overflowX: 'auto'}}>
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr style={{borderBottom: '1px solid #334155', textAlign: 'left'}}>
-                  <th style={{padding: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', fontWeight: '500'}}>Customer</th>
-                  <th style={{padding: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', fontWeight: '500'}}>Risk Score</th>
-                  <th style={{padding: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', fontWeight: '500'}}>Last Active</th>
-                  <th style={{padding: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', fontWeight: '500'}}>MRR</th>
-                  <th style={{padding: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', fontWeight: '500'}}>Status</th>
+              <thead style={{background: '#0f172a'}}>
+                <tr>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Customer</th>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Status</th>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Last Login</th>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>MRR</th>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Risk Score</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((customer) => (
-                  <tr key={customer.id} style={{borderBottom: '1px solid #334155'}}>
+                  <tr key={customer.id} style={{borderTop: '1px solid #334155'}}>
                     <td style={{padding: '0.75rem'}}>
-                      <div>
-                        <p style={{fontWeight: '500', color: 'white'}}>{customer.name}</p>
-                        <p style={{fontSize: '0.75rem', color: '#64748b'}}>{customer.email}</p>
-                      </div>
+                      <div style={{fontWeight: '500'}}>{customer.name || 'Unknown'}</div>
+                      <div style={{fontSize: '0.875rem', color: '#94a3b8'}}>{customer.email}</div>
                     </td>
                     <td style={{padding: '0.75rem'}}>
                       <span style={{
                         padding: '0.25rem 0.75rem',
-                        backgroundColor: customer.riskScore > 70 ? '#f8717133' : customer.riskScore > 40 ? '#fbbf2433' : '#22c55e33',
-                        color: customer.riskScore > 70 ? '#f87171' : customer.riskScore > 40 ? '#fbbf24' : '#4ade80',
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
-                        fontWeight: '600'
-                      }}>{customer.riskScore}%</span>
+                        background: customer.status === 'active' ? '#059669' : customer.status === 'at_risk' ? '#d97706' : '#dc2626',
+                        color: 'white'
+                      }}>
+                        {customer.status}
+                      </span>
                     </td>
                     <td style={{padding: '0.75rem', color: '#94a3b8', fontSize: '0.875rem'}}>
-                      {new Date(customer.lastActive).toLocaleDateString()}
+                      {customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'}
                     </td>
                     <td style={{padding: '0.75rem', fontWeight: '500', color: 'white'}}>${customer.mrr}</td>
                     <td style={{padding: '0.75rem'}}>
-                      <span style={{
-                        padding: '0.25rem 0.75rem',
-                        backgroundColor: customer.status === 'active' ? '#22c55e33' : '#ef444433',
-                        color: customer.status === 'active' ? '#4ade80' : '#f87171',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem'
-                      }}>{customer.status}</span>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        background: customer.riskScore > 70 ? '#dc2626' : customer.riskScore > 40 ? '#d97706' : '#059669'
+                      }}>
+                        {customer.riskScore}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
