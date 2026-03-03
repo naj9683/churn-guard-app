@@ -105,3 +105,103 @@ export const emailTemplates = {
     `
   })
 };
+// Slack webhook integration for playbook alerts
+export async function sendSlackAlert(channel: string, message: string, details?: any) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  
+  if (!webhookUrl) {
+    console.log('🔔 SLACK ALERT WOULD BE SENT:');
+    console.log('Channel:', channel);
+    console.log('Message:', message);
+    console.log('Details:', details);
+    console.log('---');
+    return { success: true };
+  }
+
+  try {
+    const payload = {
+      channel: channel || '#retention',
+      username: 'ChurnGuard Bot',
+      icon_emoji: ':warning:',
+      text: message,
+      attachments: details ? [{
+        color: details.riskScore > 70 ? 'danger' : 'warning',
+        fields: [
+          {
+            title: 'Customer',
+            value: details.customerEmail || 'Unknown',
+            short: true
+          },
+          {
+            title: 'Risk Score',
+            value: details.riskScore || 'N/A',
+            short: true
+          },
+          {
+            title: 'MRR',
+            value: `$${details.mrr || 0}`,
+            short: true
+          },
+          {
+            title: 'Last Login',
+            value: details.lastLogin || 'Never',
+            short: true
+          }
+        ]
+      }] : undefined
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Slack API error: ${response.status}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Slack alert failed:', error);
+    return { success: false, error };
+  }
+}
+
+// Specific alert templates
+export const slackAlerts = {
+  silentQuitter: (customer: any, days: number) => ({
+    channel: '#retention',
+    message: `🚨 *Silent Quitter Alert* - User hasn't logged in for ${days} days!`,
+    details: {
+      customerEmail: customer.email,
+      customerName: customer.name,
+      riskScore: customer.riskScore,
+      mrr: customer.mrr,
+      lastLogin: customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'
+    }
+  }),
+  
+  onboardingRescue: (customer: any) => ({
+    channel: '#onboarding',
+    message: `📧 *Onboarding Rescue* - Day 3 user needs help!`,
+    details: {
+      customerEmail: customer.email,
+      customerName: customer.name,
+      riskScore: customer.riskScore,
+      mrr: customer.mrr,
+      signupDate: new Date(customer.signupAt).toLocaleDateString()
+    }
+  }),
+  
+  paymentFailed: (customer: any) => ({
+    channel: '#finance',
+    message: `💳 *Payment Failed* - Immediate attention required!`,
+    details: {
+      customerEmail: customer.email,
+      customerName: customer.name,
+      riskScore: customer.riskScore,
+      mrr: customer.mrr
+    }
+  })
+};
