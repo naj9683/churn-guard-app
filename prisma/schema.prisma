@@ -8,73 +8,67 @@ datasource db {
 }
 
 model User {
-  id                   String        @id @default(cuid())
-  email                String        @unique
-  name                 String?
-  status               String?       @default("ACTIVE")
-  stripeCustomerId     String?       @unique
-  stripeSubscriptionId String?       @unique
-  subscription         Subscription?
-  events               Event[]
-  playbookRuns         PlaybookRun[]
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  status        String         @default("active")
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  plan          String         @default("free")
+  playbooks     PlaybookConfig[]
+  activities    UserActivity[]
+  events        PlaybookEvent[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
-model Customer {
+model PlaybookConfig {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  type            String   // ONBOARDING_RESCUE, SILENT_QUITTER, PAYMENT_SAVER
+  active          Boolean  @default(false)
+  triggerConfig   String   @default("{}") // JSON config for triggers
+  actionConfig    String   @default("{}") // JSON config for actions
+  lastRunAt       DateTime?
+  runCount        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, type])
+}
+
+model UserActivity {
   id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  company     String?
-  riskScore   Int      @default(0)
-  lastActive  DateTime @default(now())
-  mrr         Float    @default(0)
-  status      String   @default("active")
-  playbook    String   @default("none")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // signup, login, feature_usage, payment
+  metadata    String   @default("{}")
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
-model Playbook {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  active      Boolean  @default(true)
-  triggers    Int      @default(0)
-  rescues     Int      @default(0)
-  revenueSaved Float   @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Subscription {
-  id            String   @id @default(cuid())
-  clerkUserId   String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  userId        String   @unique
-  plan          String   @default("free")
-  status        String   @default("active")
-  customerLimit Int      @default(100)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model Event {
-  id        String   @id @default(cuid())
-  type      String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  metadata  String?
-  createdAt DateTime @default(now())
-}
-
-model PlaybookRun {
+model PlaybookEvent {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   playbookType String
-  status       String
-  emailSent    Boolean?
-  metadata     String?
+  status       String   // triggered, action_sent, completed, failed
+  customerId   String?
+  message      String?
   createdAt    DateTime @default(now())
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  userId       String
+  email        String
+  name         String
+  status       String   @default("active") // active, at_risk, rescued, churned
+  riskScore    Int      @default(0)
+  lastLoginAt  DateTime?
+  signupAt     DateTime @default(now())
+  mrr          Float    @default(0)
+  playbookStatus String @default("{}") // Track which playbooks ran
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
