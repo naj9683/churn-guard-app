@@ -10,14 +10,8 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Get user by Clerk ID or create if not exists
-  let user = await prisma.user.findFirst({
-    where: { 
-      OR: [
-        { email: 'test@example.com' }, // Fallback for testing
-        { id: userId }
-      ]
-    },
+  const user = await prisma.user.findFirst({
+    where: { email: 'test@example.com' },
     include: { 
       customers: true,
       playbooks: true 
@@ -25,13 +19,7 @@ export default async function DashboardPage() {
   });
 
   if (!user) {
-    return (
-      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', padding: '2rem'}}>
-        <h1>Setup Required</h1>
-        <p>No user found in database. Please create a user in Prisma Studio with email: test@example.com</p>
-        <p>Your Clerk ID is: {userId}</p>
-      </div>
-    );
+    return <div>User not found</div>;
   }
 
   const customers = user.customers || [];
@@ -46,6 +34,7 @@ export default async function DashboardPage() {
           <p style={{color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.875rem'}}>Retention Playbook System</p>
         </div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+          <Link href="/activity" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>View Activity Log →</Link>
           <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>{activePlaybooks} Playbooks Active</span>
           <div style={{width: '40px', height: '40px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
             {user.name?.[0] || 'U'}
@@ -103,7 +92,7 @@ export default async function DashboardPage() {
               </div>
             )) : (
               <div style={{padding: '1rem', color: '#94a3b8'}}>
-                No playbooks configured. Create them in Prisma Studio or add PlaybookConfig records.
+                No playbooks configured.
               </div>
             )}
           </div>
