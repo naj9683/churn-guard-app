@@ -10,8 +10,14 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: 'user@example.com' },
+  // Get user by Clerk ID or create if not exists
+  let user = await prisma.user.findFirst({
+    where: { 
+      OR: [
+        { email: 'test@example.com' }, // Fallback for testing
+        { id: userId }
+      ]
+    },
     include: { 
       customers: true,
       playbooks: true 
@@ -19,7 +25,13 @@ export default async function DashboardPage() {
   });
 
   if (!user) {
-    return <div>User not found</div>;
+    return (
+      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', padding: '2rem'}}>
+        <h1>Setup Required</h1>
+        <p>No user found in database. Please create a user in Prisma Studio with email: test@example.com</p>
+        <p>Your Clerk ID is: {userId}</p>
+      </div>
+    );
   }
 
   const customers = user.customers || [];
@@ -66,7 +78,7 @@ export default async function DashboardPage() {
         <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
           <h2 style={{margin: '0 0 1rem 0', fontSize: '1.25rem'}}>Active Playbooks</h2>
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem'}}>
-            {user.playbooks?.map((playbook) => (
+            {user.playbooks?.length > 0 ? user.playbooks.map((playbook) => (
               <div key={playbook.id} style={{
                 padding: '1rem', 
                 borderRadius: '0.5rem', 
@@ -89,7 +101,11 @@ export default async function DashboardPage() {
                   Runs: {playbook.runCount} | Last: {playbook.lastRunAt ? new Date(playbook.lastRunAt).toLocaleDateString() : 'Never'}
                 </p>
               </div>
-            )) || <p>No playbooks configured</p>}
+            )) : (
+              <div style={{padding: '1rem', color: '#94a3b8'}}>
+                No playbooks configured. Create them in Prisma Studio or add PlaybookConfig records.
+              </div>
+            )}
           </div>
         </div>
 
@@ -97,16 +113,9 @@ export default async function DashboardPage() {
         <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', overflow: 'hidden'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h2 style={{margin: 0, fontSize: '1.25rem'}}>Customers</h2>
-            <Link href="/playbooks" style={{
-              padding: '0.5rem 1rem',
-              background: '#3b82f6',
-              color: 'white',
-              borderRadius: '0.375rem',
-              textDecoration: 'none',
-              fontSize: '0.875rem'
-            }}>
-              Configure Playbooks
-            </Link>
+            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>
+              {customers.length} total
+            </span>
           </div>
           
           <div style={{overflowX: 'auto'}}>
@@ -121,7 +130,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((customer) => (
+                {customers.length > 0 ? customers.map((customer) => (
                   <tr key={customer.id} style={{borderTop: '1px solid #334155'}}>
                     <td style={{padding: '0.75rem'}}>
                       <div style={{fontWeight: '500'}}>{customer.name || 'Unknown'}</div>
@@ -158,7 +167,13 @@ export default async function DashboardPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} style={{padding: '2rem', textAlign: 'center', color: '#94a3b8'}}>
+                      No customers yet. Add them in Prisma Studio.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
