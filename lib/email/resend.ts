@@ -1,10 +1,34 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization - only create client when needed
+let resend: Resend | null = null;
+
+function getResend() {
+  if (!resend) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn('RESEND_API_KEY not set - emails will be logged but not sent');
+      return null;
+    }
+    resend = new Resend(apiKey);
+  }
+  return resend;
+}
 
 export async function sendEmail(to: string, subject: string, html: string) {
+  const client = getResend();
+  
+  if (!client) {
+    // Log email for testing when API key is missing
+    console.log('📧 EMAIL WOULD BE SENT:');
+    console.log('To:', to);
+    console.log('Subject:', subject);
+    console.log('---');
+    return { success: true, data: { id: 'mock-email-id' } };
+  }
+
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await client.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'ChurnGuard <noreply@churnguard.io>',
       to,
       subject,
@@ -23,7 +47,6 @@ export async function sendEmail(to: string, subject: string, html: string) {
   }
 }
 
-// Email templates for each playbook
 export const emailTemplates = {
   onboardingRescue: (name: string) => ({
     subject: "Need help getting started?",
