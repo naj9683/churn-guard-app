@@ -1,5 +1,5 @@
 
-    'use client';
+   'use client';
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
@@ -123,150 +123,6 @@ export default function DashboardPage() {
 
   return (
     <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
-      {/* Header */}
-      <div style={{borderBottom: '1px solid #1e293b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-        <div>
-          <h1 style={{margin: 0, fontSize: '1.5rem', fontWeight: 'bold'}}>ChurnGuard</h1>
-          <p style={{margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.875rem'}}>Customer Retention Automation</p>
-        </div>
-        <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-          <Link href="/activity" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>
-            Activity Log →
-          </Link>
-          <Link href="/docs" style={{color: '#3b82f6', textDecoration: 'none', fontSize: '0.875rem'}}>
-            Integration Guide →
-          </Link>
-          <div style={{width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold'}}>
-            {user.firstName?.[0] || user.emailAddresses[0].emailAddress[0].toUpperCase()}
-          </div>
-        </div>
-      </div>
-
-    'use client';
-
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import Link from 'next/link';
-
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-  riskScore: number;
-  mrr: number;
-  lastLoginAt: string | null;
-  signupAt: string;
-}
-
-interface PlaybookConfig {
-  id: string;
-  type: string;
-  active: boolean;
-  runCount: number;
-  lastRunAt: string | null;
-}
-
-interface Stats {
-  totalCustomers: number;
-  atRisk: number;
-  activePlaybooks: number;
-  monthlyRevenue: number;
-}
-
-export default function DashboardPage() {
-  const { user, isLoaded } = useUser();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [runningPlaybook, setRunningPlaybook] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      fetchDashboardData();
-    }
-  }, [isLoaded, user]);
-
-  async function fetchDashboardData() {
-    try {
-      const response = await fetch('/api/dashboard');
-      if (response.ok) {
-        const data = await response.json();
-        setCustomers(data.customers || []);
-        setPlaybooks(data.playbooks || []);
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function togglePlaybook(playbookId: string, currentStatus: boolean) {
-    try {
-      const response = await fetch('/api/playbooks/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playbookId, active: !currentStatus })
-      });
-
-      if (response.ok) {
-        setPlaybooks(prev => prev.map(pb => 
-          pb.id === playbookId ? { ...pb, active: !currentStatus } : pb
-        ));
-      }
-    } catch (error) {
-      console.error('Error toggling playbook:', error);
-      alert('Failed to toggle playbook');
-    }
-  }
-
-  async function runPlaybookNow(playbookType: string) {
-    setRunningPlaybook(playbookType);
-    try {
-      const response = await fetch('/api/playbooks/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playbookType: playbookType === 'ALL' ? 'ALL' : playbookType })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert(`✅ ${result.message}\nExecuted: ${result.executed} actions`);
-        fetchDashboardData();
-      } else {
-        alert(`❌ Error: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error running playbook:', error);
-      alert('Failed to run playbook');
-    } finally {
-      setRunningPlaybook(null);
-    }
-  }
-
-  if (!isLoaded || loading) {
-    return (
-      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-        <div>Loading ChurnGuard...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-        <div>Please sign in to access the dashboard</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
-      {/* Header */}
       <div style={{borderBottom: '1px solid #1e293b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         <div>
           <h1 style={{margin: 0, fontSize: '1.5rem', fontWeight: 'bold'}}>ChurnGuard</h1>
@@ -286,7 +142,6 @@ export default function DashboardPage() {
       </div>
 
       <div style={{padding: '2rem', maxWidth: '1200px', margin: '0 auto'}}>
-        {/* Stats */}
         {stats && (
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem'}}>
             <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155'}}>
@@ -308,7 +163,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Playbooks Section */}
         <div style={{background: '#1e293b', borderRadius: '0.5rem', border: '1px solid #334155', marginBottom: '2rem'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <div>
@@ -382,7 +236,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Customers Table */}
         <div style={{background: '#1e293b', borderRadius: '0.5rem', border: '1px solid #334155'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155'}}>
             <h2 style={{margin: 0, fontSize: '1.25rem'}}>Customers</h2>
@@ -439,4 +292,17 @@ export default function DashboardPage() {
                         </div>
                       </td>
                       <td style={{padding: '1rem'}}>${customer.mrr}</td>
-                      <td style={{padding:      
+                      <td style={{padding: '1rem', color: '#94a3b8', fontSize: '0.875rem'}}>
+                        {customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+} 
