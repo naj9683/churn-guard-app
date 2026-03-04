@@ -1,177 +1,167 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail, emailTemplates } from '@/lib/email/resend';
-import { sendSlackAlert, slackAlerts } from '@/lib/slack/webhook';
+import { Resend } from 'resend';
+import { emailTemplates } from '@/lib/email/templates';
 
-export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+const resend = new Resend(process.env.RESEND_API_KEY || 'mock-key');
 
-  const results = {
-    onboardingRescue: 0,
-    silentQuitter: 0,
-    paymentSaver: 0,
-    errors: [] as string[]
-  };
-
+// This runs automatically every hour via Vercel Cron
+export async function GET(request: Request) {
   try {
-    const activePlaybooks = await prisma.playbookConfig.findMany({
-      where: { active: true },
-      include: { 
-        user: {
-          include: {
-            customers: true,
-            activities: {
-              orderBy: { createdAt: 'desc' },
-              take: 10
-            }
-          }
-        }
+    // Verify cron secret to prevent unauthorized access
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const results = [];
+    const now = new Date();
+
+    // Get all users with their customers and playbooks
+    const users = await prisma.user.findMany({
+      include: {
+        customers: true,
+        playbooks: true
       }
     });
 
-    for (const playbook of activePlaybooks) {
-      try {
-        const triggerConfig = JSON.parse(playbook.triggerConfig);
-        const actionConfig = JSON.parse(playbook.actionConfig);
-        
-        switch (playbook.type) {
-          case 'ONBOARDING_RESCUE':
-            results.onboardingRescue += await runOnboardingRescue(playbook, triggerConfig, actionConfig);
-            break;
-          case 'SILENT_QUITTER':
-            results.silentQuitter += await runSilentQuitter(playbook, triggerConfig, actionConfig);
-            break;
-          case 'PAYMENT_SAVER':
-            break;
-        }
+    console.log(`[Cron] Checking ${users.length} users for automated playbooks`);
 
-        await prisma.playbookConfig.update({
-          where: { id: playbook.id },
-          data: { 
-            lastRunAt: new Date(),
-            runCount: { increment: 1 }
+    for (const user of users) {
+      const activePlaybooks = user.playbooks?.filter(p => p.active) || [];
+      
+      if (activePlaybooks.length === 0) continue;
+
+      for (const playbook of activePlaybooks) {
+        try {
+          let customersToProcess = [];
+
+          // ONBOARDING RESCUE: Day 3, no activity
+          if (playbook.type === 'ONBOARDING_RESCUE') {
+            customersToProcess = user.customers.filter(c => {
+              const daysSinceSignup = Math.floor((now.getTime() - new Date(c.signupAt).getTime()) / (1000 * 60 * 60 * 24));
+              const hasLoggedIn = c.lastLoginAt && new Date(c.lastLoginAt).getTime() > new Date(c.signupAt).getTime();
+              return daysSinceSignup === 3 && !hasLoggedIn && c.status !== 'churned';
+            });
           }
-        });
 
-      } catch (error) {
-        results.errors.push(`${playbook.type}: ${error}`);
-        console.error(`Playbook ${playbook.type} failed:`, error);
+          // SILENT QUITTER: 5+ days absent
+          else if (playbook.type === 'SILENT_QUITTER') {
+            customersToProcess = user.customers.filter(c => {
+              if (!c.lastLoginAt) return false;
+              const daysAbsent = Math.floor((now.getTime() - new Date(c.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24));
+              return daysAbsent >= 5 && c.status === 'active';
+            });
+          }
+
+          // PAYMENT SAVER: Failed payment or high risk
+          else if (playbook.type === 'PAYMENT_SAVER') {
+            customersToProcess = user.customers.filter(c => {
+              return c.status === 'payment_failed' || (c.riskScore > 70 && c.status === 'active');
+            });
+          }
+
+          // Process each customer
+          for (const customer of customersToProcess) {
+            try {
+              // Send appropriate email
+              if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
+                let template;
+                
+                if (playbook.type === 'ONBOARDING_RESCUE') {
+                  template = emailTemplates.onboardingRescue(customer.name || 'there');
+                } else if (playbook.type === 'SILENT_QUITTER') {
+                  const daysAbsent = Math.floor((now.getTime() - new Date(customer.lastLoginAt!).getTime()) / (1000 * 60 * 60 * 24));
+                  template = emailTemplates.silentQuitter(customer.name || 'there', daysAbsent);
+                } else {
+                  template = emailTemplates.paymentSaver(customer.name || 'there');
+                }
+
+                await resend.emails.send({
+                  from: 'onboarding@resend.dev',
+                  to: customer.email,
+                  subject: template.subject,
+                  html: template.html
+                });
+              }
+
+              // Send Slack alert for Silent Quitter and Payment Saver
+              if ((playbook.type === 'SILENT_QUITTER' || playbook.type === 'PAYMENT_SAVER') && 
+                  process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== 'mock-key') {
+                await fetch(process.env.SLACK_WEBHOOK_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    text: `🤖 Automated ${playbook.type}: ${customer.name} (${customer.email})`
+                  })
+                });
+              }
+
+              // Log the event
+              await prisma.playbookEvent.create({
+                data: {
+                  userId: user.id,
+                  customerId: customer.id,
+                  playbookType: playbook.type,
+                  status: 'EXECUTED',
+                  message: `Auto-sent ${playbook.type} email to ${customer.email}`
+                }
+              });
+
+              results.push({
+                user: user.email,
+                customer: customer.email,
+                playbook: playbook.type,
+                status: 'success',
+                time: now.toISOString()
+              });
+
+            } catch (error) {
+              console.error(`[Cron] Failed to process ${customer.email}:`, error);
+              results.push({
+                user: user.email,
+                customer: customer.email,
+                playbook: playbook.type,
+                status: 'error',
+                error: String(error)
+              });
+            }
+          }
+
+          // Update playbook stats
+          if (customersToProcess.length > 0) {
+            await prisma.playbookConfig.update({
+              where: { id: playbook.id },
+              data: {
+                runCount: { increment: customersToProcess.length },
+                lastRunAt: now
+              }
+            });
+          }
+
+        } catch (error) {
+          console.error(`[Cron] Playbook ${playbook.type} failed for user ${user.email}:`, error);
+        }
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      executed: new Date().toISOString(),
-      results 
+    console.log(`[Cron] Completed. Processed ${results.length} actions`);
+
+    return NextResponse.json({
+      success: true,
+      message: "Automated playbook execution completed",
+      executed: results.length,
+      timestamp: now.toISOString(),
+      results
     });
 
   } catch (error) {
-    console.error('Cron job failed:', error);
-    return NextResponse.json({ error: 'Cron failed' }, { status: 500 });
+    console.error("[Cron] Fatal error:", error);
+    return NextResponse.json({
+      error: "Cron job failed",
+      details: String(error)
+    }, { status: 500 });
   }
-}
-
-async function runOnboardingRescue(playbook: any, triggerConfig: any, actionConfig: any) {
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - triggerConfig.days);
-
-  const dayAfter = new Date(threeDaysAgo);
-  dayAfter.setDate(dayAfter.getDate() + 1);
-
-  const atRiskCustomers = playbook.user.customers.filter((customer: any) => {
-    const signupDate = new Date(customer.signupAt);
-    const hasFeatureUsage = playbook.user.activities.some((a: any) => 
-      a.type === 'feature_usage' && a.userId === customer.userId
-    );
-    
-    return signupDate >= threeDaysAgo && 
-           signupDate < dayAfter && 
-           !hasFeatureUsage &&
-           customer.status === 'active';
-  });
-
-  for (const customer of atRiskCustomers) {
-    const event = await prisma.playbookEvent.create({
-      data: {
-        userId: playbook.userId,
-        playbookType: 'ONBOARDING_RESCUE',
-        status: 'triggered',
-        customerId: customer.id,
-        message: `Day 3 onboarding rescue triggered for ${customer.email}`
-      }
-    });
-
-    // Send email
-    const template = emailTemplates.onboardingRescue(customer.name || 'there');
-    const emailResult = await sendEmail(customer.email, template.subject, template.html);
-    
-    // Send Slack alert if configured
-    if (actionConfig.slackAlert !== false) {
-      const alert = slackAlerts.onboardingRescue(customer);
-      await sendSlackAlert(alert.channel, alert.message, alert.details);
-    }
-
-    if (emailResult.success) {
-      await prisma.playbookEvent.update({
-        where: { id: event.id },
-        data: { status: 'action_sent', message: `Email sent to ${customer.email}` }
-      });
-    }
-    
-    console.log(`ONBOARDING RESCUE: ${customer.email} - Email ${emailResult.success ? 'sent' : 'failed'}`);
-  }
-
-  return atRiskCustomers.length;
-}
-
-async function runSilentQuitter(playbook: any, triggerConfig: any, actionConfig: any) {
-  const absentDays = triggerConfig.absentDays || 5;
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - absentDays);
-
-  const atRiskCustomers = playbook.user.customers.filter((customer: any) => {
-    if (!customer.lastLoginAt) return false;
-    
-    const lastLogin = new Date(customer.lastLoginAt);
-    const daysSinceLogin = Math.floor((Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
-    
-    return daysSinceLogin >= absentDays && 
-           customer.status === 'active';
-  });
-
-  for (const customer of atRiskCustomers) {
-    const event = await prisma.playbookEvent.create({
-      data: {
-        userId: playbook.userId,
-        playbookType: 'SILENT_QUITTER',
-        status: 'triggered',
-        customerId: customer.id,
-        message: `Silent quitter detected: ${customer.email} absent for ${absentDays}+ days`
-      }
-    });
-
-    // Send email
-    const template = emailTemplates.silentQuitter(customer.name || 'there', absentDays);
-    const emailResult = await sendEmail(customer.email, template.subject, template.html);
-    
-    // Send Slack alert if configured
-    if (actionConfig.slackAlert !== false) {
-      const alert = slackAlerts.silentQuitter(customer, absentDays);
-      await sendSlackAlert(alert.channel, alert.message, alert.details);
-    }
-
-    if (emailResult.success) {
-      await prisma.playbookEvent.update({
-        where: { id: event.id },
-        data: { status: 'action_sent', message: `Email + Slack sent for ${customer.email}` }
-      });
-    }
-    
-    console.log(`SILENT QUITTER: ${customer.email} - Email ${emailResult.success ? 'sent' : 'failed'}`);
-  }
-
-  return atRiskCustomers.length;
 }
