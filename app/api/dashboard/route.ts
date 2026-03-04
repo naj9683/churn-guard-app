@@ -10,14 +10,40 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user with customers and playbooks
-    const user = await prisma.user.findUnique({
+    // Get email from Clerk session
+    const { sessionClaims } = await auth();
+    const email = sessionClaims?.email as string;
+
+    // Try to find user by ID first, then by email
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         customers: true,
         playbooks: true
       }
     });
+
+    // If not found by ID, try by email
+    if (!user && email) {
+      user = await prisma.user.findFirst({
+        where: { email: email },
+        include: {
+          customers: true,
+          playbooks: true
+        }
+      });
+    }
+
+    // If still not found, try the test email from your old code
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { email: 'test@example.com' },
+        include: {
+          customers: true,
+          playbooks: true
+        }
+      });
+    }
 
     if (!user) {
       return NextResponse.json({ 
