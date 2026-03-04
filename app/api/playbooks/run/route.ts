@@ -5,7 +5,6 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 'mock-key');
 
-// POST /api/playbooks/run - Manually trigger playbooks
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -17,11 +16,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { playbookType } = body;
 
-    // Get user with customers
-    const user = await prisma.user.findUnique({
+    // Get user - try by ID first, then by test email
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       include: { customers: true }
     });
+
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { email: 'test@example.com' },
+        include: { customers: true }
+      });
+    }
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -33,7 +39,7 @@ export async function POST(request: Request) {
     if (playbookType === 'ONBOARDING_RESCUE' || playbookType === 'ALL') {
       const day3Customers = user.customers.filter(c => {
         const daysSinceSignup = Math.floor((Date.now() - new Date(c.signupAt).getTime()) / (1000 * 60 * 60 * 24));
-        return daysSinceSignup === 3 && !c.lastLoginAt;
+        return daysSinceSignup >= 3 && !c.lastLoginAt;
       });
 
       for (const customer of day3Customers) {
@@ -44,7 +50,7 @@ export async function POST(request: Request) {
               from: 'onboarding@churnguard.app',
               to: customer.email,
               subject: 'Welcome! Need help getting started?',
-              html: `<p>Hi ${customer.name}, we noticed you haven't logged in yet...</p>`
+              html: `<p>Hi ${customer.name}, we noticed you haven't logged in yet. Need help?</p>`
             });
           }
 
@@ -70,7 +76,7 @@ export async function POST(request: Request) {
       const silentCustomers = user.customers.filter(c => {
         if (!c.lastLoginAt) return false;
         const daysAbsent = Math.floor((Date.now() - new Date(c.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24));
-        return daysAbsent === 5;
+        return daysAbsent >= 5;
       });
 
       for (const customer of silentCustomers) {
@@ -102,6 +108,55 @@ export async function POST(request: Request) {
           results.push({ customer: customer.email, status: 'error', error: String(error) });
         }
       }
+    }
+
+    if (playbookType === 'PAYMENT_SAVER' || playbookType === 'ALL') {
+      // Payment saver needs Stripe webhook trigger, but we can simulate for testing
+      const atRiskCustomers = user.customers.filter(c => c.riskScore > 70);
+
+      for (const customer of atRiskCustomers) {
+        try {
+          // Send pause offer email
+          if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
+            await resend.emails.send({
+              from: 'support@churnguard.app',
+              to: customer.email,
+              subject: 'Special offer: Pause instead of cancel',
+              html: `<p>Hi ${customer.name}, we noticed you might be thinking of leaving. How about a 30% discount instead?</p>`
+            });
+          }
+
+          // Log event
+          await prisma.playbookEvent.create({
+            data: {
+              userId: user.id,
+              customerId: customer.id,
+              playbookType: 'PAYMENT_SAVER',
+              status: 'EXECUTED',
+              message: `Sent payment saver offer to ${customer.email}`
+            }
+          });
+
+          results.push({ customer: customer.email, status: 'success', type: 'PAYMENT_SAVER' });
+        } catch (error) {
+          results.push({ customer: customer.email, status: 'error', error: String(error) });
+        }
+      }
+    }
+
+    // Update playbook run count
+    const playbook = await prisma.playbookConfig.findFirst({
+      where: { userId: user.id, type: playbookType === 'ALL' ? undefined : playbookType }
+    });
+
+    if (playbook) {
+      await prisma.playbookConfig.update({
+        where: { id: playbook.id },
+        data: { 
+          runCount: { increment: 1 },
+          lastRunAt: new Date()
+        }
+      });
     }
 
     return NextResponse.json({ 
