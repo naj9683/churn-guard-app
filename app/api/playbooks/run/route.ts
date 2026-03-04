@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
+import { emailTemplates } from '@/lib/email/templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 'mock-key');
 
@@ -34,23 +35,25 @@ export async function POST(request: Request) {
     }
 
     const results = [];
+    const now = new Date();
 
     // Run playbook logic based on type
     if (playbookType === 'ONBOARDING_RESCUE' || playbookType === 'ALL') {
       const day3Customers = user.customers.filter(c => {
-        const daysSinceSignup = Math.floor((Date.now() - new Date(c.signupAt).getTime()) / (1000 * 60 * 60 * 24));
-        return daysSinceSignup >= 3 && !c.lastLoginAt;
+        const daysSinceSignup = Math.floor((now.getTime() - new Date(c.signupAt).getTime()) / (1000 * 60 * 60 * 24));
+        return daysSinceSignup >= 3 && (!c.lastLoginAt || daysSinceSignup <= 5);
       });
 
       for (const customer of day3Customers) {
         try {
-          // Send email using Resend test domain
+          // Send professional HTML email
           if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
+            const template = emailTemplates.onboardingRescue(customer.name || 'there');
             await resend.emails.send({
               from: 'onboarding@resend.dev',
               to: customer.email,
-              subject: 'Welcome! Need help getting started?',
-              html: `<p>Hi ${customer.name}, we noticed you haven't logged in yet. Need help?</p>`
+              subject: template.subject,
+              html: template.html
             });
           }
 
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
               customerId: customer.id,
               playbookType: 'ONBOARDING_RESCUE',
               status: 'EXECUTED',
-              message: `Sent onboarding rescue email to ${customer.email}`
+              message: `Sent professional onboarding email to ${customer.email}`
             }
           });
 
@@ -75,19 +78,41 @@ export async function POST(request: Request) {
     if (playbookType === 'SILENT_QUITTER' || playbookType === 'ALL') {
       const silentCustomers = user.customers.filter(c => {
         if (!c.lastLoginAt) return false;
-        const daysAbsent = Math.floor((Date.now() - new Date(c.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAbsent = Math.floor((now.getTime() - new Date(c.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24));
         return daysAbsent >= 5;
       });
 
       for (const customer of silentCustomers) {
         try {
+          const daysAbsent = Math.floor((now.getTime() - new Date(customer.lastLoginAt!).getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Send professional HTML email
+          if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
+            const template = emailTemplates.silentQuitter(customer.name || 'there', daysAbsent);
+            await resend.emails.send({
+              from: 'onboarding@resend.dev',
+              to: customer.email,
+              subject: template.subject,
+              html: template.html
+            });
+          }
+
           // Slack alert
           if (process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== 'mock-key') {
             await fetch(process.env.SLACK_WEBHOOK_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                text: `🚨 Silent Quitter Alert: ${customer.name} (${customer.email}) hasn't logged in for 5 days`
+                text: `🚨 Silent Quitter Alert: ${customer.name} (${customer.email}) hasn't logged in for ${daysAbsent} days`,
+                blocks: [
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: `*🚨 Silent Quitter Detected*\n• Customer: ${customer.name}\n• Email: ${customer.email}\n• Days Absent: ${daysAbsent}\n• Risk Score: ${customer.riskScore}\n• MRR: $${customer.mrr}`
+                    }
+                  }
+                ]
               })
             });
           }
@@ -99,7 +124,7 @@ export async function POST(request: Request) {
               customerId: customer.id,
               playbookType: 'SILENT_QUITTER',
               status: 'EXECUTED',
-              message: `Alerted about silent quitter ${customer.email}`
+              message: `Sent we-miss-you email to ${customer.email} (${daysAbsent} days absent)`
             }
           });
 
@@ -111,18 +136,39 @@ export async function POST(request: Request) {
     }
 
     if (playbookType === 'PAYMENT_SAVER' || playbookType === 'ALL') {
-      // Payment saver - targets at-risk customers
-      const atRiskCustomers = user.customers.filter(c => c.riskScore > 70);
+      // Payment saver - targets at-risk customers OR failed payments
+      const atRiskCustomers = user.customers.filter(c => c.riskScore > 70 || c.status === 'payment_failed');
 
       for (const customer of atRiskCustomers) {
         try {
-          // Send pause offer email using Resend test domain
+          // Send professional HTML email
           if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
+            const template = emailTemplates.paymentSaver(customer.name || 'there');
             await resend.emails.send({
               from: 'onboarding@resend.dev',
               to: customer.email,
-              subject: 'Special offer: Pause instead of cancel',
-              html: `<p>Hi ${customer.name}, we noticed you might be thinking of leaving. How about a 30% discount instead?</p>`
+              subject: template.subject,
+              html: template.html
+            });
+          }
+
+          // Slack alert
+          if (process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== 'mock-key') {
+            await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: `💳 Payment Saver Activated: ${customer.name} (${customer.email}) - Risk Score: ${customer.riskScore}`,
+                blocks: [
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: `*💳 Payment Saver Campaign*\n• Customer: ${customer.name}\n• Email: ${customer.email}\n• Risk Score: ${customer.riskScore}/100\n• Status: ${customer.status}\n• MRR: $${customer.mrr}\n• Action: 30% discount offer sent`
+                    }
+                  }
+                ]
+              })
             });
           }
 
@@ -133,7 +179,7 @@ export async function POST(request: Request) {
               customerId: customer.id,
               playbookType: 'PAYMENT_SAVER',
               status: 'EXECUTED',
-              message: `Sent payment saver offer to ${customer.email}`
+              message: `Sent payment saver offer (30% off) to ${customer.email}`
             }
           });
 
@@ -144,17 +190,28 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update playbook run count
-    const playbook = await prisma.playbookConfig.findFirst({
-      where: { userId: user.id, type: playbookType === 'ALL' ? undefined : playbookType }
-    });
+    // Update playbook run count for each playbook type
+    if (playbookType !== 'ALL') {
+      const playbook = await prisma.playbookConfig.findFirst({
+        where: { userId: user.id, type: playbookType }
+      });
 
-    if (playbook) {
-      await prisma.playbookConfig.update({
-        where: { id: playbook.id },
+      if (playbook) {
+        await prisma.playbookConfig.update({
+          where: { id: playbook.id },
+          data: { 
+            runCount: { increment: 1 },
+            lastRunAt: now
+          }
+        });
+      }
+    } else {
+      // Update all playbooks if ALL was run
+      await prisma.playbookConfig.updateMany({
+        where: { userId: user.id },
         data: { 
           runCount: { increment: 1 },
-          lastRunAt: new Date()
+          lastRunAt: now
         }
       });
     }
@@ -163,7 +220,8 @@ export async function POST(request: Request) {
       success: true, 
       message: `Playbook execution completed`,
       executed: results.length,
-      results 
+      results,
+      timestamp: now.toISOString()
     });
 
   } catch (error) {
