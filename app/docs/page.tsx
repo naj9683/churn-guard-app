@@ -13,7 +13,7 @@ export default function DocsPage() {
         <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
           <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 1: Add the Script</h2>
           <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
-            Add this to your website's &lt;head&gt; or before closing &lt;/body&gt; tag:
+            Add this to your website&apos;s &lt;head&gt; or before closing &lt;/body&gt; tag:
           </p>
           <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
             <code style={{color: '#10b981', fontSize: '0.875rem'}}>
@@ -108,7 +108,7 @@ ChurnGuard.trackChurnSignal('viewed_cancellation_help');`}
           <h2 style={{marginTop: 0}}>✨ What Happens Automatically?</h2>
           <ul style={{lineHeight: '2', margin: 0, paddingLeft: '1.5rem'}}>
             <li><strong>Day 3 No Login:</strong> Onboarding rescue email sent</li>
-            <li><strong>5 Days Absent:</strong> "We miss you" email + Slack alert</li>
+            <li><strong>5 Days Absent:</strong> &quot;We miss you&quot; email + Slack alert</li>
             <li><strong>Payment Failed:</strong> 30% discount offer sent</li>
             <li><strong>High Risk Score:</strong> Automatic retention campaign</li>
             <li><strong>Churn Signal:</strong> Immediate intervention email</li>
