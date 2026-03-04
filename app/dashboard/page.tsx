@@ -1,42 +1,123 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
-import Link from 'next/link';
-import { revalidatePath } from 'next/cache';
+'use client';
 
-export default async function DashboardPage() {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    redirect('/sign-in');
+import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
+
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  riskScore: number;
+  mrr: number;
+  lastLoginAt: string | null;
+  signupAt: string;
+}
+
+interface PlaybookConfig {
+  id: string;
+  type: string;
+  active: boolean;
+  runCount: number;
+  lastRunAt: string | null;
+}
+
+interface Stats {
+  totalCustomers: number;
+  atRisk: number;
+  activePlaybooks: number;
+  monthlyRevenue: number;
+}
+
+export default function DashboardPage() {
+  const { user, isLoaded } = useUser();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [runningPlaybook, setRunningPlaybook] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchDashboardData();
+    }
+  }, [isLoaded, user]);
+
+  async function fetchDashboardData() {
+    try {
+      const response = await fetch('/api/dashboard');
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data.customers || []);
+        setPlaybooks(data.playbooks || []);
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const user = await prisma.user.findFirst({
-    where: { email: 'test@example.com' },
-    include: { 
-      customers: true,
-      playbooks: true 
+  async function togglePlaybook(playbookId: string, currentStatus: boolean) {
+    try {
+      const response = await fetch('/api/playbooks/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playbookId, active: !currentStatus })
+      });
+
+      if (response.ok) {
+        setPlaybooks(prev => prev.map(pb => 
+          pb.id === playbookId ? { ...pb, active: !currentStatus } : pb
+        ));
+      }
+    } catch (error) {
+      console.error('Error toggling playbook:', error);
+      alert('Failed to toggle playbook');
     }
-  });
+  }
+
+  async function runPlaybookNow(playbookType: string) {
+    setRunningPlaybook(playbookType);
+    try {
+      const response = await fetch('/api/playbooks/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playbookType: playbookType === 'ALL' ? 'ALL' : playbookType })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`✅ ${result.message}\nExecuted: ${result.executed} actions`);
+        fetchDashboardData(); // Refresh stats
+      } else {
+        alert(`❌ Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error running playbook:', error);
+      alert('Failed to run playbook');
+    } finally {
+      setRunningPlaybook(null);
+    }
+  }
+
+  if (!isLoaded || loading) {
+    return (
+      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div>Loading ChurnGuard...</div>
+      </div>
+    );
+  }
 
   if (!user) {
-    return <div>User not found</div>;
-  }
-
-  const customers = user.customers || [];
-  const activePlaybooks = user.playbooks?.filter(p => p.active).length || 0;
-
-  async function togglePlaybook(formData: FormData) {
-    'use server';
-    const playbookId = formData.get('playbookId') as string;
-    const currentStatus = formData.get('currentStatus') === 'true';
-    
-    await prisma.playbookConfig.update({
-      where: { id: playbookId },
-      data: { active: !currentStatus }
-    });
-    
-    revalidatePath('/dashboard');
+    return (
+      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div>Please sign in to access the dashboard</div>
+      </div>
+    );
   }
 
   return (
@@ -44,175 +125,185 @@ export default async function DashboardPage() {
       {/* Header */}
       <div style={{borderBottom: '1px solid #1e293b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         <div>
-          <h1 style={{fontSize: '1.5rem', fontWeight: 'bold', margin: 0}}>ChurnGuard</h1>
-          <p style={{color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.875rem'}}>Retention Playbook System</p>
+          <h1 style={{margin: 0, fontSize: '1.5rem', fontWeight: 'bold'}}>ChurnGuard</h1>
+          <p style={{margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.875rem'}}>Customer Retention Automation</p>
         </div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-          <Link href="/activity" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>View Activity Log →</Link>
-          <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>{activePlaybooks} Playbooks Active</span>
-          <div style={{width: '40px', height: '40px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            {user.name?.[0] || 'U'}
+          <Link href="/activity" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>
+            Activity Log →
+          </Link>
+          <div style={{width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold'}}>
+            {user.firstName?.[0] || user.emailAddresses[0].emailAddress[0].toUpperCase()}
           </div>
         </div>
       </div>
 
       <div style={{padding: '2rem', maxWidth: '1200px', margin: '0 auto'}}>
         {/* Stats */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem'}}>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>Total Customers</p>
-            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0}}>{customers.length}</p>
+        {stats && (
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem'}}>
+            <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155'}}>
+              <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Total Customers</div>
+              <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{stats.totalCustomers}</div>
+            </div>
+            <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155'}}>
+              <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>At Risk</div>
+              <div style={{fontSize: '2rem', fontWeight: 'bold', color: '#ef4444'}}>{stats.atRisk}</div>
+            </div>
+            <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155'}}>
+              <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Active Playbooks</div>
+              <div style={{fontSize: '2rem', fontWeight: 'bold', color: '#22c55e'}}>{stats.activePlaybooks}</div>
+            </div>
+            <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155'}}>
+              <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>MRR</div>
+              <div style={{fontSize: '2rem', fontWeight: 'bold'}}>${stats.monthlyRevenue.toLocaleString()}</div>
+            </div>
           </div>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>At Risk</p>
-            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#f59e0b'}}>
-              {customers.filter(c => c.status === 'at_risk').length}
-            </p>
-          </div>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <p style={{color: '#94a3b8', fontSize: '0.875rem', margin: '0 0 0.5rem 0'}}>Monthly Revenue</p>
-            <p style={{fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#10b981'}}>
-              ${customers.reduce((sum, c) => sum + c.mrr, 0).toFixed(0)}
-            </p>
-          </div>
-        </div>
+        )}
 
-        {/* Playbooks Control Center */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
-            <h2 style={{margin: 0, fontSize: '1.25rem'}}>Playbook Control Center</h2>
-            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>Toggle ON/OFF to enable</span>
+        {/* Playbooks Section */}
+        <div style={{background: '#1e293b', borderRadius: '0.5rem', border: '1px solid #334155', marginBottom: '2rem'}}>
+          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div>
+              <h2 style={{margin: 0, fontSize: '1.25rem'}}>Active Playbooks</h2>
+              <p style={{margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.875rem'}}>Automated retention campaigns</p>
+            </div>
+            <button
+              onClick={() => runPlaybookNow('ALL')}
+              disabled={runningPlaybook === 'ALL'}
+              style={{
+                background: runningPlaybook === 'ALL' ? '#475569' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                cursor: runningPlaybook === 'ALL' ? 'not-allowed' : 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              {runningPlaybook === 'ALL' ? 'Running...' : 'Run All Now'}
+            </button>
           </div>
           
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem'}}>
-            {user.playbooks?.length > 0 ? user.playbooks.map((playbook) => (
-              <div key={playbook.id} style={{
-                padding: '1.5rem', 
-                borderRadius: '0.5rem', 
-                background: playbook.active ? '#064e3b' : '#1f2937',
-                border: '2px solid',
-                borderColor: playbook.active ? '#10b981' : '#374151'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem'}}>
-                  <div>
-                    <h3 style={{margin: '0 0 0.5rem 0', fontSize: '1.1rem'}}>{playbook.type.replace(/_/g, ' ')}</h3>
-                    <p style={{margin: 0, color: '#9ca3af', fontSize: '0.875rem'}}>
-                      {playbook.type === 'ONBOARDING_RESCUE' && 'Day 3 no activity → Email'}
-                      {playbook.type === 'SILENT_QUITTER' && '5 days absent → Email + Slack'}
-                      {playbook.type === 'PAYMENT_SAVER' && 'Payment fails → Email + Slack'}
-                    </p>
-                  </div>
-                  <form action={togglePlaybook}>
-                    <input type="hidden" name="playbookId" value={playbook.id} />
-                    <input type="hidden" name="currentStatus" value={playbook.active.toString()} />
-                    <button 
-                      type="submit"
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '9999px',
-                        border: 'none',
-                        background: playbook.active ? '#10b981' : '#6b7280',
-                        color: 'white',
-                        fontWeight: '600',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {playbook.active ? 'ACTIVE' : 'OFF'}
-                    </button>
-                  </form>
-                </div>
-
-                <div style={{display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem'}}>
-                  <div style={{flex: 1}}>
-                    <p style={{margin: '0 0 0.25rem 0', color: '#9ca3af', fontSize: '0.75rem'}}>Last Run</p>
-                    <p style={{margin: 0, fontSize: '0.875rem'}}>
-                      {playbook.lastRunAt ? new Date(playbook.lastRunAt).toLocaleDateString() : 'Never'}
-                    </p>
-                  </div>
-                  <div style={{flex: 1}}>
-                    <p style={{margin: '0 0 0.25rem 0', color: '#9ca3af', fontSize: '0.75rem'}}>Total Runs</p>
-                    <p style={{margin: 0, fontSize: '0.875rem'}}>{playbook.runCount}</p>
-                  </div>
-                </div>
-
-                {/* Manual Trigger */}
-                {playbook.active && customers.length > 0 && (
-                  <form 
-                    action={async (formData) => {
-                      'use server';
-                      const customerId = formData.get('customerId') as string;
-                      const playbookType = formData.get('playbookType') as string;
-                      
-                      await fetch(`${process.env.VERCEL_URL || 'https://churn-guard-app.vercel.app'}/api/playbooks/run`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ playbookType, customerId })
-                      });
-                      
-                      revalidatePath('/dashboard');
-                      revalidatePath('/activity');
-                    }}
-                    style={{marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #374151'}}
-                  >
-                    <input type="hidden" name="playbookType" value={playbook.type} />
-                    <p style={{margin: '0 0 0.5rem 0', color: '#9ca3af', fontSize: '0.75rem'}}>Test Manually:</p>
-                    <div style={{display: 'flex', gap: '0.5rem'}}>
-                      <select 
-                        name="customerId" 
-                        required
-                        style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          borderRadius: '0.375rem',
-                          border: '1px solid #4b5563',
-                          background: '#1f2937',
-                          color: 'white',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        <option value="">Select customer...</option>
-                        {customers.map(c => (
-                          <option key={c.id} value={c.id}>{c.name || c.email}</option>
-                        ))}
-                      </select>
-                      <button 
-                        type="submit"
-                        style={{
-                          padding: '0.5rem 1rem',
-                          borderRadius: '0.375rem',
-                          border: 'none',
-                          background: '#3b82f6',
-                          color: 'white',
-                          fontWeight: '600',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Run Now
-                      </button>
+          <div style={{padding: '1.5rem'}}>
+            {playbooks.length === 0 ? (
+              <div style={{color: '#94a3b8', textAlign: 'center', padding: '2rem'}}>No playbooks configured</div>
+            ) : (
+              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                {playbooks.map((playbook) => (
+                  <div key={playbook.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#0f172a', borderRadius: '0.375rem'}}>
+                    <div>
+                      <div style={{fontWeight: '600', marginBottom: '0.25rem'}}>
+                        {playbook.type.replace(/_/g, ' ')}
+                      </div>
+                      <div style={{fontSize: '0.875rem', color: '#94a3b8'}}>
+                        Last run: {playbook.lastRunAt ? new Date(playbook.lastRunAt).toLocaleDateString() : 'Never'} | 
+                        Runs: {playbook.runCount}
+                      </div>
                     </div>
-                  </form>
-                )}
+                    <div style={{display: 'flex', gap: '0.75rem', alignItems: 'center'}}>
+                      <button
+                        onClick={() => runPlaybookNow(playbook.type)}
+                        disabled={runningPlaybook === playbook.type}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid #3b82f6',
+                          color: '#3b82f6',
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: '0.25rem',
+                          cursor: runningPlaybook === playbook.type ? 'not-allowed' : 'pointer',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        {runningPlaybook === playbook.type ? '...' : 'Run Now'}
+                      </button>
+                      <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                        <input
+                          type="checkbox"
+                          checked={playbook.active}
+                          onChange={() => togglePlaybook(playbook.id, playbook.active)}
+                          style={{marginRight: '0.5rem'}}
+                        />
+                        <span style={{fontSize: '0.875rem'}}>{playbook.active ? 'Active' : 'Inactive'}</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )) : (
-              <div style={{padding: '1rem', color: '#94a3b8'}}>No playbooks configured.</div>
             )}
           </div>
         </div>
 
         {/* Customers Table */}
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', overflow: 'hidden'}}>
-          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{background: '#1e293b', borderRadius: '0.5rem', border: '1px solid #334155'}}>
+          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155'}}>
             <h2 style={{margin: 0, fontSize: '1.25rem'}}>Customers</h2>
-            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>{customers.length} total</span>
           </div>
-          
           <div style={{overflowX: 'auto'}}>
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead style={{background: '#0f172a'}}>
-                <tr>
-                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Customer</th>
-                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Status</th>
-                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Last Login</th>
+              <thead>
+                <tr style={{borderBottom: '1px solid #334155'}}>
+                  <th style={{textAlign: 'left', padding: '1rem', color: '#94a3b8', fontWeight: '500', fontSize: '0.875rem'}}>Customer</th>
+                  <th style={{textAlign: 'left', padding: '1rem', color: '#94a3b8', fontWeight: '500', fontSize: '0.875rem'}}>Status</th>
+                  <th style={{textAlign: 'left', padding: '1rem', color: '#94a3b8', fontWeight: '500', fontSize: '0.875rem'}}>Risk Score</th>
+                  <th style={{textAlign: 'left', padding: '1rem', color: '#94a3b8', fontWeight: '500', fontSize: '0.875rem'}}>MRR</th>
+                  <th style={{textAlign: 'left', padding: '1rem', color: '#94a3b8', fontWeight: '500', fontSize: '0.875rem'}}>Last Login</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{padding: '2rem', textAlign: 'center', color: '#94a3b8'}}>
+                      No customers yet. Add customers via API or Prisma Studio.
+                    </td>
+                  </tr>
+                ) : (
+                  customers.map((customer) => (
+                    <tr key={customer.id} style={{borderBottom: '1px solid #334155'}}>
+                      <td style={{padding: '1rem'}}>
+                        <div style={{fontWeight: '500'}}>{customer.name}</div>
+                        <div style={{fontSize: '0.875rem', color: '#94a3b8'}}>{customer.email}</div>
+                      </td>
+                      <td style={{padding: '1rem'}}>
+                        <span style={{
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          background: customer.status === 'active' ? '#166534' : '#991b1b',
+                          color: customer.status === 'active' ? '#86efac' : '#fca5a5'
+                        }}>
+                          {customer.status}
+                        </span>
+                      </td>
+                      <td style={{padding: '1rem'}}>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.25rem',
+                          background: customer.riskScore > 70 ? '#450a0a' : customer.riskScore > 40 ? '#713f12' : '#14532d',
+                          color: customer.riskScore > 70 ? '#fca5a5' : customer.riskScore > 40 ? '#fde047' : '#86efac',
+                          fontSize: '0.875rem'
+                        }}>
+                          {customer.riskScore}
+                        </div>
+                      </td>
+                      <td style={{padding: '1rem'}}>${customer.mrr}</td>
+                      <td style={{padding: '1rem', color: '#94a3b8', fontSize: '0.875rem'}}>
+                        {customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
                   
