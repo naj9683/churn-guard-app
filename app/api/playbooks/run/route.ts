@@ -44,10 +44,10 @@ export async function POST(request: Request) {
 
       for (const customer of day3Customers) {
         try {
-          // Send email
+          // Send email using Resend test domain
           if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
             await resend.emails.send({
-              from: 'onboarding@churnguard.app',
+              from: 'onboarding@resend.dev',
               to: customer.email,
               subject: 'Welcome! Need help getting started?',
               html: `<p>Hi ${customer.name}, we noticed you haven't logged in yet. Need help?</p>`
@@ -111,15 +111,15 @@ export async function POST(request: Request) {
     }
 
     if (playbookType === 'PAYMENT_SAVER' || playbookType === 'ALL') {
-      // Payment saver needs Stripe webhook trigger, but we can simulate for testing
+      // Payment saver - targets at-risk customers
       const atRiskCustomers = user.customers.filter(c => c.riskScore > 70);
 
       for (const customer of atRiskCustomers) {
         try {
-          // Send pause offer email
+          // Send pause offer email using Resend test domain
           if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'mock-key') {
             await resend.emails.send({
-              from: 'support@churnguard.app',
+              from: 'onboarding@resend.dev',
               to: customer.email,
               subject: 'Special offer: Pause instead of cancel',
               html: `<p>Hi ${customer.name}, we noticed you might be thinking of leaving. How about a 30% discount instead?</p>`
