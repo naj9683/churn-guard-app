@@ -81,7 +81,7 @@ export default async function DashboardPage() {
         <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
             <h2 style={{margin: 0, fontSize: '1.25rem'}}>Playbook Control Center</h2>
-            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>Toggle ON/OFF to enable</span>
+            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>Toggle to enable/disable</span>
           </div>
           
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem'}}>
@@ -136,31 +136,26 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Manual Trigger */}
+                {/* Manual Trigger Form */}
                 {playbook.active && customers.length > 0 && (
                   <form 
                     action={async (formData) => {
                       'use server';
                       const customerId = formData.get('customerId') as string;
-                      const playbookType = formData.get('playbookType') as string;
-                      
-                      await fetch(`${process.env.VERCEL_URL || 'https://churn-guard-app.vercel.app'}/api/playbooks/run`, {
+                      const response = await fetch(`${process.env.VERCEL_URL || 'https://churn-guard-app.vercel.app'}/api/playbooks/run`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ playbookType, customerId })
+                        body: JSON.stringify({ playbookType: playbook.type, customerId })
                       });
-                      
                       revalidatePath('/dashboard');
                       revalidatePath('/activity');
                     }}
                     style={{marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #374151'}}
                   >
-                    <input type="hidden" name="playbookType" value={playbook.type} />
                     <p style={{margin: '0 0 0.5rem 0', color: '#9ca3af', fontSize: '0.75rem'}}>Test Manually:</p>
                     <div style={{display: 'flex', gap: '0.5rem'}}>
                       <select 
                         name="customerId" 
-                        required
                         style={{
                           flex: 1,
                           padding: '0.5rem',
@@ -205,7 +200,19 @@ export default async function DashboardPage() {
         <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', overflow: 'hidden'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h2 style={{margin: 0, fontSize: '1.25rem'}}>Customers</h2>
-            <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>{customers.length} total</span>
+            <Link 
+              href="/customers/add" 
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#3b82f6',
+                color: 'white',
+                borderRadius: '0.375rem',
+                textDecoration: 'none',
+                fontSize: '0.875rem'
+              }}
+            >
+              + Add Customer
+            </Link>
           </div>
           
           <div style={{overflowX: 'auto'}}>
@@ -215,4 +222,60 @@ export default async function DashboardPage() {
                   <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Customer</th>
                   <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Status</th>
                   <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Last Login</th>
-                  
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>MRR</th>
+                  <th style={{textAlign: 'left', padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase'}}>Risk Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.length > 0 ? customers.map((customer) => (
+                  <tr key={customer.id} style={{borderTop: '1px solid #334155'}}>
+                    <td style={{padding: '0.75rem'}}>
+                      <div style={{fontWeight: '500'}}>{customer.name || 'Unknown'}</div>
+                      <div style={{fontSize: '0.875rem', color: '#94a3b8'}}>{customer.email}</div>
+                    </td>
+                    <td style={{padding: '0.75rem'}}>
+                      <span style={{
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        background: customer.status === 'active' ? '#059669' : customer.status === 'at_risk' ? '#d97706' : '#dc2626',
+                        color: 'white'
+                      }}>
+                        {customer.status}
+                      </span>
+                    </td>
+                    <td style={{padding: '0.75rem', color: '#94a3b8', fontSize: '0.875rem'}}>
+                      {customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td style={{padding: '0.75rem', fontWeight: '500', color: 'white'}}>${customer.mrr}</td>
+                    <td style={{padding: '0.75rem'}}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        background: customer.riskScore > 70 ? '#dc2626' : customer.riskScore > 40 ? '#d97706' : '#059669'
+                      }}>
+                        {customer.riskScore}
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} style={{padding: '2rem', textAlign: 'center', color: '#94a3b8'}}>
+                      No customers yet. <Link href="/customers/add" style={{color: '#3b82f6'}}>Add your first customer</Link>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
