@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
       for (const playbook of activePlaybooks) {
         try {
-          let customersToProcess = [];
+          let customersToProcess: any[] = [];
 
           // ONBOARDING RESCUE: Day 3, no activity
           if (playbook.type === 'ONBOARDING_RESCUE') {
