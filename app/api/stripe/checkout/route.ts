@@ -16,56 +16,68 @@ export async function POST(request: Request) {
 
     const { mrr } = await request.json();
 
-    // Get or create Stripe customer
-    let user = await prisma.user.findUnique({
+    // Get user
+    const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
-    let customerId = user?.stripeCustomerId;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
+    let customerId = user.stripeCustomerId;
+
+    // Create Stripe customer if doesn't exist
     if (!customerId) {
-      // Create new Stripe customer
-      const customer = await stripe.customers.create({
-        metadata: {
-          userId: userId,
-          mrr: mrr?.toString() || '0',
-        },
-      });
-      customerId = customer.id;
+      try {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: {
+            userId: userId,
+            mrr: mrr?.toString() || '0',
+          },
+        });
+        customerId = customer.id;
 
-      // Update user with Stripe customer ID
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customerId },
-      });
+        // Save to database
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId: customerId },
+        });
+      } catch (stripeError) {
+        console.error('Stripe customer creation error:', stripeError);
+        return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
+      }
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
+    try {
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: [
+          {
+            price: process.env.STRIPE_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/dashboard?success=true`,
+        cancel_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/pricing?canceled=true`,
+        subscription_data: {
+          metadata: {
+            userId: userId,
+            mrr: mrr?.toString() || '0',
+          },
         },
-      ],
-      mode: 'subscription',
-      success_url: `${request.headers.get('origin')}/dashboard?success=true`,
-      cancel_url: `${request.headers.get('origin')}/pricing?canceled=true`,
-      subscription_data: {
-        metadata: {
-          userId: userId,
-          mrr: mrr?.toString() || '0',
-        },
-      },
-    });
+      });
 
-    return NextResponse.json({ sessionId: session.id });
+      return NextResponse.json({ sessionId: session.id });
+    } catch (stripeError) {
+      console.error('Stripe session creation error:', stripeError);
+      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    }
   } catch (error) {
     console.error('Checkout error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
