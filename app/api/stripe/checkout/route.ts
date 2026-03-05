@@ -16,13 +16,28 @@ export async function POST(request: Request) {
 
     const { mrr } = await request.json();
 
-    // Get user
-    const user = await prisma.user.findUnique({
+    // Get user from Clerk
+    const clerk = require('@clerk/nextjs/server');
+    const clerkUser = await clerk.currentUser();
+    
+    if (!clerkUser) {
+      return NextResponse.json({ error: 'User not found in Clerk' }, { status: 404 });
+    }
+
+    // Find or create user in database
+    let user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Create user in database
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          stripeCustomerId: null,
+        },
+      });
     }
 
     let customerId = user.stripeCustomerId;
@@ -46,7 +61,7 @@ export async function POST(request: Request) {
         });
       } catch (stripeError) {
         console.error('Stripe customer creation error:', stripeError);
-        return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to create Stripe customer' }, { status: 500 });
       }
     }
 
