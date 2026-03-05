@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
@@ -24,53 +23,29 @@ export async function POST(request: Request) {
     let customerId = user?.stripeCustomerId;
 
     if (!customerId) {
-      try {
-        const customer = await stripe.customers.create({
-          email: user?.email || undefined,
-          metadata: {
-            userId: userId,
-            mrr: mrr?.toString() || '0',
-          },
-        });
-        customerId = customer.id;
-
-        await prisma.user.update({
-          where: { id: userId },
-          data: { stripeCustomerId: customerId },
-        });
-      } catch (stripeError) {
-        console.error('Stripe customer creation error:', stripeError);
-        return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
-      }
-    }
-
-    try {
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price: process.env.STRIPE_PRICE_ID,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/dashboard?success=true`,
-        cancel_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/pricing?canceled=true`,
-        subscription_data: {
-          metadata: {
-            userId: userId,
-            mrr: mrr?.toString() || '0',
-          },
-        },
+      const customer = await stripe.customers.create({
+        email: user?.email || undefined,
+        metadata: { userId: userId, mrr: mrr?.toString() || '0' },
       });
+      customerId = customer.id;
 
-      return NextResponse.json({ sessionId: session.id });
-    } catch (stripeError) {
-      console.error('Stripe session creation error:', stripeError);
-      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+      await prisma.user.update({
+        where: { id: userId },
+        data: { stripeCustomerId: customerId },
+      });
     }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `https://churn-guard-app.vercel.app/dashboard?success=true`,
+      cancel_url: `https://churn-guard-app.vercel.app/pricing?canceled=true`,
+    });
+
+    return NextResponse.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }
