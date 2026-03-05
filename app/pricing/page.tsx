@@ -1,5 +1,3 @@
-
-      cd ~/churn-guard/churn-guard-app && cat > app/pricing/page.tsx << 'ENDOFFILE'
 'use client';
 
 import { useState } from 'react';
@@ -34,9 +32,7 @@ export default function PricingPage() {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          mrr: mrr 
-        }),
+        body: JSON.stringify({ mrr: mrr }),
       });
 
       const { sessionId } = await response.json();
@@ -68,7 +64,6 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {/* MRR Slider */}
           <div style={{marginBottom: '3rem', textAlign: 'left'}}>
             <label style={{display: 'block', marginBottom: '1rem', color: '#94a3b8'}}>
               Your Monthly MRR: <strong style={{color: 'white'}}>${mrr.toLocaleString()}</strong>
@@ -88,7 +83,6 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Examples */}
           <div style={{background: '#0f172a', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem', textAlign: 'left'}}>
             <h3 style={{margin: '0 0 1rem', color: '#94a3b8', fontSize: '0.875rem', textTransform: 'uppercase'}}>Examples:</h3>
             <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
@@ -111,7 +105,6 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Features */}
           <ul style={{listStyle: 'none', padding: 0, margin: '0 0 2rem', textAlign: 'left'}}>
             {[
               'All 3 retention playbooks included',
@@ -155,4 +148,3 @@ export default function PricingPage() {
     </div>
   );
 }
-ENDOFFILE     
