@@ -38,7 +38,7 @@ export async function GET(request: Request) {
           let customersToProcess: any[] = [];
 
           // ONBOARDING RESCUE: Day 3, no activity
-          if (playbook.type === 'ONBOARDING_RESCUE') {
+          if (playbook.trigger === 'ONBOARDING_RESCUE') {
             customersToProcess = user.customers.filter(c => {
               const daysSinceSignup = Math.floor((now.getTime() - new Date(c.signupAt).getTime()) / (1000 * 60 * 60 * 24));
               const hasLoggedIn = c.lastLoginAt && new Date(c.lastLoginAt).getTime() > new Date(c.signupAt).getTime();
