@@ -8,69 +8,139 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  status        String         @default("active")
-  stripeCustomerId     String? @unique
-  stripeSubscriptionId String? @unique
-  plan          String         @default("free")
-  playbooks     PlaybookConfig[]
-  activities    UserActivity[]
-  events        PlaybookEvent[]
-  customers     Customer[]     // Added: relation to customers
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-}
-
-model PlaybookConfig {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  type            String   // ONBOARDING_RESCUE, SILENT_QUITTER, PAYMENT_SAVER
-  active          Boolean  @default(false)
-  triggerConfig   String   @default("{}") // JSON config for triggers
-  actionConfig    String   @default("{}") // JSON config for actions
-  lastRunAt       DateTime?
-  runCount        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String    @id @default(cuid())
+  email             String    @unique
+  stripeCustomerId  String?
+  mrr               Int       @default(0)
+  arr               Int       @default(0)
+  slackWebhookUrl   String?
+  crmType           String?
+  crmApiKey         String?
+  crmRefreshToken   String?
+  widgetEnabled     Boolean   @default(false)
+  widgetConfig      Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
-  @@unique([userId, type])
-}
-
-model UserActivity {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  type        String   // signup, login, feature_usage, payment
-  metadata    String   @default("{}")
-  createdAt   DateTime @default(now())
-}
-
-model PlaybookEvent {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  playbookType String
-  status       String   // triggered, action_sent, completed, failed
-  customerId   String?
-  message      String?
-  createdAt    DateTime @default(now())
+  customers         Customer[]
+  playbooks         Playbook[]
+  activityLogs      ActivityLog[]
+  revenueMetrics    RevenueMetrics?
+  slackAlerts       SlackAlert[]
+  widgetMessages    WidgetMessage[]
 }
 
 model Customer {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])  // Added: relation to user
-  email        String
-  name         String?
-  status       String   @default("active") // active, at_risk, rescued, churned
-  riskScore    Int      @default(0)
-  lastLoginAt  DateTime?
-  signupAt     DateTime @default(now())
-  mrr          Float    @default(0)
-  playbookStatus String @default("{}") // Track which playbooks ran
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  email           String
+  name            String?
+  riskScore       Int      @default(0)
+  mrr             Int      @default(0)
+  arr             Int      @default(0)
+  revenueAtRisk   Int      @default(0)
+  lastInvoice     Int?
+  plan            String?
+  crmId           String?
+  healthScore     Int      @default(100)
+  slackNotified   Boolean  @default(false)
+  widgetMessages  Json?
+  
+  user            User     @relation(fields: [userId], references: [id])
+  activity        Activity[]
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([riskScore])
+}
+
+model Playbook {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  trigger     String
+  actions     Json
+  isActive    Boolean  @default(true)
+  lastRun     DateTime?
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  customerId  String
+  type        String
+  data        Json?
+  createdAt   DateTime @default(now())
+  
+  customer    Customer @relation(fields: [customerId], references: [id])
+  
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model RevenueMetrics {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  totalMrr        Int      @default(0)
+  totalArr        Int      @default(0)
+  atRiskMrr       Int      @default(0)
+  atRiskArr       Int      @default(0)
+  churnedMrr      Int      @default(0)
+  savedMrr        Int      @default(0)
+  highValueCount  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model SlackAlert {
+  id              String   @id @default(cuid())
+  userId          String
+  customerId      String
+  alertType       String
+  mrrAtRisk       Int
+  messageSent     Boolean  @default(false)
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+}
+
+model WidgetMessage {
+  id              String   @id @default(cuid())
+  userId          String
+  customerId      String?
+  title           String
+  content         String
+  type            String
+  trigger         String
+  showOnce        Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
 }

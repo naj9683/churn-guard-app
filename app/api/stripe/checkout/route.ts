@@ -1,98 +1,130 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+// CORS headers for widget
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
-export async function POST(request: Request) {
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
+export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { searchParams } = new URL(request.url);
+    const apiKey = searchParams.get('apiKey');
+    const customerEmail = searchParams.get('email');
+
+    if (!apiKey || !customerEmail) {
+      return NextResponse.json(
+        { error: 'Missing apiKey or email' },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    const { mrr } = await request.json();
-
-    // Get user from Clerk
-    const clerk = require('@clerk/nextjs/server');
-    const clerkUser = await clerk.currentUser();
-    
-    if (!clerkUser) {
-      return NextResponse.json({ error: 'User not found in Clerk' }, { status: 404 });
-    }
-
-    // Find or create user in database
-    let user = await prisma.user.findUnique({
-      where: { id: userId },
+    // Find user by API key (in production, use proper API key validation)
+    const user = await prisma.user.findFirst({
+      where: {
+        widgetEnabled: true,
+      },
+      include: {
+        widgetMessages: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     if (!user) {
-      // Create user in database
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email: clerkUser.emailAddresses[0]?.emailAddress || '',
-          stripeCustomerId: null,
-        },
-      });
+      return NextResponse.json(
+        { error: 'Widget not enabled' },
+        { status: 403, headers: corsHeaders }
+      );
     }
 
-    let customerId = user.stripeCustomerId;
+    // Find customer
+    const customer = await prisma.customer.findFirst({
+      where: {
+        userId: user.id,
+        email: customerEmail,
+      },
+    });
 
-    // Create Stripe customer if doesn't exist
-    if (!customerId) {
-      try {
-        const customer = await stripe.customers.create({
-          email: user.email || undefined,
-          metadata: {
-            userId: userId,
-            mrr: mrr?.toString() || '0',
-          },
-        });
-        customerId = customer.id;
-
-        // Save to database
-        await prisma.user.update({
-          where: { id: userId },
-          data: { stripeCustomerId: customerId },
-        });
-      } catch (stripeError) {
-        console.error('Stripe customer creation error:', stripeError);
-        return NextResponse.json({ error: 'Failed to create Stripe customer' }, { status: 500 });
+    // Get messages for this customer
+    const messages = user.widgetMessages.filter(msg => {
+      // Check if message should show to this customer
+      if (msg.trigger === 'risk_score' && customer) {
+        return (customer.riskScore || 0) >= 70;
       }
-    }
+      if (msg.trigger === 'payment_failed') {
+        // Would check payment status
+        return true;
+      }
+      return msg.trigger === 'manual';
+    }).slice(0, 3); // Max 3 messages
 
-    // Create checkout session
-    try {
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price: process.env.STRIPE_PRICE_ID,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/dashboard?success=true`,
-        cancel_url: `${request.headers.get('origin') || 'https://churn-guard-app.vercel.app'}/pricing?canceled=true`,
-        subscription_data: {
-          metadata: {
-            userId: userId,
-            mrr: mrr?.toString() || '0',
-          },
-        },
+    // Track impression
+    for (const msg of messages) {
+      await prisma.widgetMessage.update({
+        where: { id: msg.id },
+        data: { impressions: { increment: 1 } },
       });
-
-      return NextResponse.json({ sessionId: session.id });
-    } catch (stripeError) {
-      console.error('Stripe session creation error:', stripeError);
-      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
     }
+
+    return NextResponse.json(
+      {
+        messages: messages.map(m => ({
+          id: m.id,
+          title: m.title,
+          content: m.content,
+          type: m.type,
+        })),
+        config: {
+          position: 'bottom-right',
+          primaryColor: '#8b5cf6',
+        },
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Widget messages error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch messages' },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const { apiKey, messageId, action } = await request.json();
+
+    if (!apiKey || !messageId || !action) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Track click
+    if (action === 'click') {
+      await prisma.widgetMessage.update({
+        where: { id: messageId },
+        data: { clicks: { increment: 1 } },
+      });
+    }
+
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to track action' },
+      { status: 500, headers: corsHeaders }
+    );
+  }
