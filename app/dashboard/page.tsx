@@ -274,7 +274,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155' }}>
               <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem' }}>At Risk</div>
-              <div style={{ fontSize: '2.25rem', fontWeight: '700', color: stats?.atRisk > 0 ? '#ef4444' : 'white' }}>
+              <div style={{ fontSize: '2.25rem', fontWeight: '700', color: (stats?.atRisk || 0) > 0 ? '#ef4444' : 'white' }}>
                 {stats?.atRisk || 0}
               </div>
             </div>
