@@ -7,21 +7,21 @@ import Link from 'next/link';
 
 interface Customer {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
-  status: string;
   riskScore: number;
   mrr: number;
-  lastLoginAt: string | null;
-  signupAt: string;
+  arr: number;
+  createdAt: string;
 }
 
 interface PlaybookConfig {
   id: string;
-  type: string;
-  active: boolean;
-  runCount: number;
-  lastRunAt: string | null;
+  name: string;
+  trigger: string;
+  isActive: boolean;
+  actions: any;
+  lastRun: string | null;
 }
 
 interface Stats {
