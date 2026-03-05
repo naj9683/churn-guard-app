@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       if (customer && customer.user) {
         // Check if Payment Savior playbook is active
         const paymentSaver = customer.user.playbooks.find(
-          p => p.type === 'PAYMENT_SAVER' && p.active
+          p => p.trigger === 'PAYMENT_SAVER' && p.isActive
         );
 
         if (paymentSaver) {
