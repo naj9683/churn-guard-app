@@ -44,7 +44,7 @@ export async function POST(request: Request) {
           riskScore: 0,
           mrr: 0,
           
-          lastLoginAt: event === 'login' ? new Date() : null
+          
         }
       });
     } else {
