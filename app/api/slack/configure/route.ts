@@ -8,7 +8,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    cconst { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
 const webhookUrl = searchParams.get('webhookUrl');
 
     if (!webhookUrl?.startsWith('https://hooks.slack.com/')) {
