@@ -30,8 +30,7 @@ export async function GET(request: Request) {
     console.log(`[Cron] Checking ${users.length} users for automated playbooks`);
 
     for (const user of users) {
-      const activePlaybooks = user.playbooks?.filter(p => p.active) || [];
-      
+      const activePlaybooks = user.playbooks?.filter(p => p.isActive) || [];      
       if (activePlaybooks.length === 0) continue;
 
       for (const playbook of activePlaybooks) {
