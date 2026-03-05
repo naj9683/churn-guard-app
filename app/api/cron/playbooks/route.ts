@@ -60,7 +60,7 @@ export async function GET(request: Request) {
           }
 
           // Send email via Resend if configured
-          if (actions?.sendEmail && user.resendApiKey) {
+          if (actions?.sendEmail) {
             // Email sending logic here
             console.log(`Would send email to ${customer.email}`);
           }
