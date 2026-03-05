@@ -40,10 +40,10 @@ export async function POST(request: Request) {
           userId: user.id,
           email: userEmail,
           name: userName || userEmail.split('@')[0],
-          status: 'active',
+        
           riskScore: 0,
           mrr: 0,
-          signupAt: new Date(),
+          
           lastLoginAt: event === 'login' ? new Date() : null
         }
       });
