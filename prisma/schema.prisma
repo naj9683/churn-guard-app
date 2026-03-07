@@ -22,6 +22,7 @@ model User {
   playbooks        Playbook[]
   subscriptions    Subscription[]
   revenueMetrics   RevenueMetrics?
+  slackAlerts      SlackAlert[]
 }
 
 model Customer {
@@ -88,4 +89,14 @@ model RevenueMetrics {
   date            DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id])
+}
+
+model SlackAlert {
+  id          String   @id @default(cuid())
+  userId      String
+  customerId  String?
+  message     String?
+  riskScore   Int?
+  sentAt      DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
 }
