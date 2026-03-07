@@ -61,7 +61,7 @@ async function sendSlackAlert(userId: string, customer: any, webhookUrl?: string
         where: { id: userId },
         select: { slackWebhookUrl: true }
       });
-      webhookUrl = user?.slackWebhookUrl;
+      webhookUrl = user?.slackWebhookUrl || undefined;
     }
 
     if (!webhookUrl) {
