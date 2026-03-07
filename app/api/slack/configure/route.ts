@@ -1,91 +1,53 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { searchParams } = new URL(request.url);
-    const webhookUrl = searchParams.get('webhookUrl');
-
-    if (!webhookUrl) {
-      return NextResponse.json({ error: 'Missing webhookUrl' }, { status: 400 });
-    }
-
-    if (!webhookUrl.startsWith('https://hooks.slack.com/')) {
-      return NextResponse.json({ error: 'Invalid Slack webhook URL' }, { status: 400 });
-    }
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { slackWebhookUrl: webhookUrl },
+    const user = await prisma.user.findFirst({
+      where: { clerkId: userId },
+      select: { slackWebhookUrl: true }
     });
 
-    try {
-      const testResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: '✅ ChurnGuard Slack integration activated!',
-        }),
-      });
-
-      if (!testResponse.ok) {
-        return NextResponse.json({ error: 'Webhook test failed' }, { status: 400 });
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Failed to test webhook' }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Slack configured successfully' });
+    return NextResponse.json({
+      configured: !!user?.slackWebhookUrl,
+      webhookUrl: user?.slackWebhookUrl || null
+    });
   } catch (error) {
-    console.error('Slack config error:', error);
-    return NextResponse.json({ error: 'Failed to configure Slack' }, { status: 500 });
+    console.error("Error fetching Slack config:", error);
+    return NextResponse.json({ error: "Failed to fetch config" }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await request.json();
-    const webhookUrl = body.webhookUrl;
+    const body = await req.json();
+    const { webhookUrl } = body;
 
-    if (!webhookUrl?.startsWith('https://hooks.slack.com/')) {
-      return NextResponse.json({ error: 'Invalid Slack webhook URL' }, { status: 400 });
-    }
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { slackWebhookUrl: webhookUrl },
+    const user = await prisma.user.findFirst({
+      where: { clerkId: userId }
     });
 
-    try {
-      const testResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: '✅ ChurnGuard Slack integration activated!',
-        }),
-      });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-      if (!testResponse.ok) {
-        return NextResponse.json({ error: 'Webhook test failed' }, { status: 400 });
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Failed to test webhook' }, { status: 400 });
-    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { slackWebhookUrl: webhookUrl }
+    });
 
-    return NextResponse.json({ success: true, message: 'Slack configured successfully' });
+    return NextResponse.json({
+      success: true,
+      configured: !!webhookUrl,
+      webhookUrl: webhookUrl
+    });
   } catch (error) {
-    console.error('Slack config error:', error);
-    return NextResponse.json({ error: 'Failed to configure Slack' }, { status: 500 });
+    console.error("Error saving Slack config:", error);
+    return NextResponse.json({ error: "Failed to save config" }, { status: 500 });
   }
 }
