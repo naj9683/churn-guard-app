@@ -17,7 +17,7 @@ model User {
   apiKey           String?        @unique @default(cuid())
   crmType          String?
   crmApiKey        String?
-  slackWebhookUrl  String?        // Slack webhook for alerts
+  slackWebhookUrl  String?        
   customers        Customer[]
   playbooks        Playbook[]
   subscriptions    Subscription[]
@@ -35,6 +35,7 @@ model Customer {
   riskScore   Int      @default(50)
   crmId       String?  
   healthScore Int?     @default(100)
+  plan        String?  @default("free") // Customer's subscription plan
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id])
