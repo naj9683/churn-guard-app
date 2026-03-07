@@ -36,7 +36,7 @@ export default function EmailCampaignsPage() {
   async function addEmailToCustomer(e: React.FormEvent) {
     e.preventDefault();
     setStatus('Adding email...');
-    
+
     try {
       const res = await fetch('/api/customers/update-email', {
         method: 'POST',
@@ -46,7 +46,7 @@ export default function EmailCampaignsPage() {
           email: emailInput
         })
       });
-      
+
       if (res.ok) {
         setStatus(`✅ Email added to ${selectedCustomer}!`);
         setShowAddEmail(false);
@@ -73,7 +73,7 @@ export default function EmailCampaignsPage() {
           metadata: { offerLink: 'https://churn-guard-app.vercel.app/pricing' }
         })
       });
-      
+
       if (res.ok) {
         setStatus(`✅ Email sent to ${customer.email}!`);
       } else {
@@ -91,24 +91,17 @@ export default function EmailCampaignsPage() {
   const customersWithoutEmail = allCustomers.filter((c: any) => !c.email);
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
-          ChurnGuard
-        </div>
-        <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>📊 Dashboard</Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>👥 Customers</Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>⚡ Playbooks</Link>
-          <Link href="/widget-messages" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>💬 Widget</Link>
-          <Link href="/email-campaigns" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none'}}>📧 Email Campaigns</Link>
-        </nav>
-      </aside>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Back to Dashboard */}
+      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
+        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
+          <span>←</span> Back to Dashboard
+        </Link>
+      </div>
 
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px'}}>
+      <main style={{padding: '2rem'}}>
         <h1 style={{margin: '0 0 2rem 0'}}>📧 Email Campaigns</h1>
-        
+
         {status && (
           <div style={{background: '#1e293b', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem', borderLeft: '4px solid #6366f1'}}>
             {status}
@@ -122,7 +115,7 @@ export default function EmailCampaignsPage() {
               <h3 style={{margin: '0 0 0.5rem 0'}}>Add Email to Customer</h3>
               <p style={{margin: '0', color: '#94a3b8', fontSize: '0.875rem'}}>{customersWithoutEmail.length} customers without emails</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowAddEmail(!showAddEmail)}
               style={{padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}
             >
@@ -135,8 +128,8 @@ export default function EmailCampaignsPage() {
               <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                 <div>
                   <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Select Customer</label>
-                  <select 
-                    value={selectedCustomer} 
+                  <select
+                    value={selectedCustomer}
                     onChange={(e) => setSelectedCustomer(e.target.value)}
                     style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white'}}
                     required
@@ -149,16 +142,16 @@ export default function EmailCampaignsPage() {
                 </div>
                 <div>
                   <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="najwa.saadi1@hotmail.com"
+                    placeholder="customer@example.com"
                     style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white'}}
                     required
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
                   style={{padding: '0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '1rem'}}
                 >
@@ -193,7 +186,7 @@ export default function EmailCampaignsPage() {
                     Risk Score: {customer.riskScore} {customer.riskScore >= 70 ? '🔥 High Risk' : '✅ Low Risk'}
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => sendEmail(customer)}
                   style={{padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '1rem'}}
                 >

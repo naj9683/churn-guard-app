@@ -42,7 +42,7 @@ export default function WidgetMessagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newMessage)
       });
-      
+
       if (res.ok) {
         setShowForm(false);
         fetchMessages();
@@ -69,38 +69,17 @@ export default function WidgetMessagesPage() {
   if (!isLoaded || loading) return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
-          ChurnGuard
-        </div>
-        <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>👥</span> Customers
-          </Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚡</span> Playbooks
-          </Link>
-          <Link href="/widget-messages" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>💬</span> Widget Messages
-          </Link>
-          <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚙️</span> Settings
-          </Link>
-          <Link href="/signout" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '1rem'}}>
-            <span>🚪</span> Sign Out
-          </Link>
-        </nav>
-      </aside>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Back to Dashboard */}
+      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
+        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
+          <span>←</span> Back to Dashboard
+        </Link>
+      </div>
 
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px'}}>
+      <main style={{padding: '2rem'}}>
         <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
           <h1 style={{margin: 0, fontSize: '1.875rem'}}>Widget Messages</h1>
-          <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none'}}>← Back to Dashboard</Link>
         </header>
 
         <div style={{marginBottom: '2rem'}}>
