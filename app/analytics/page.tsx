@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
 
   if (!data) return <div>No data</div>;
 
-  const { overview } = data;
+  const { overview, monthlyTrend } = data;
 
   return (
     <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
@@ -107,6 +107,32 @@ export default function AnalyticsPage() {
             <div style={{fontSize: '2rem', fontWeight: '700', color: '#3b82f6'}}>{overview.lowRiskCount}</div>
           </div>
         </div>
+
+        {/* Growth Chart */}
+        {monthlyTrend && monthlyTrend.length > 0 && (
+          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '2rem', border: '1px solid #334155'}}>
+            <h3 style={{margin: '0 0 1.5rem 0'}}>📊 Customer Growth Trend</h3>
+            <div style={{display: 'flex', alignItems: 'flex-end', gap: '1rem', height: '200px', padding: '1rem 0'}}>
+              {monthlyTrend.map((month: any, index: number) => {
+                const maxCount = Math.max(...monthlyTrend.map((m: any) => m.count));
+                const height = maxCount > 0 ? (month.count / maxCount) * 100 : 0;
+                return (
+                  <div key={index} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem'}}>
+                    <div style={{fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600'}}>{month.count}</div>
+                    <div style={{
+                      width: '100%',
+                      height: `${height}%`,
+                      background: 'linear-gradient(to top, #6366f1, #8b5cf6)',
+                      borderRadius: '4px 4px 0 0',
+                      minHeight: '4px'
+                    }} />
+                    <div style={{fontSize: '0.75rem', color: '#64748b'}}>{month.month}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Customer List */}
         <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
