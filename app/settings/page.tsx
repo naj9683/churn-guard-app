@@ -8,21 +8,35 @@ export default function SettingsPage() {
   const { user, isLoaded } = useUser();
   const [slackStatus, setSlackStatus] = useState<any>(null);
   const [apiKey, setApiKey] = useState<string>('');
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testResult, setTestResult] = useState('');
 
   useEffect(() => {
     if (isLoaded && user) {
-      checkSlackStatus();
-      fetchApiKey();
+      fetchSettings();
     }
   }, [isLoaded, user]);
 
-  async function checkSlackStatus() {
+  async function fetchSettings() {
     try {
-      const response = await fetch('/api/slack/configure');
-      if (response.ok) {
-        const data = await response.json();
+      const [slackRes, apiRes] = await Promise.all([
+        fetch('/api/slack/configure'),
+        fetch('/api/user/api-key')
+      ]);
+      
+      if (slackRes.ok) {
+        const data = await slackRes.json();
         setSlackStatus(data);
+        if (data.webhookUrl) {
+          setSlackWebhookUrl(data.webhookUrl);
+        }
+      }
+      
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        setApiKey(data.apiKey);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -31,15 +45,44 @@ export default function SettingsPage() {
     }
   }
 
-  async function fetchApiKey() {
+  async function saveSlackWebhook(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
     try {
-      const response = await fetch('/api/user/api-key');
+      const response = await fetch('/api/slack/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: slackWebhookUrl })
+      });
+      
       if (response.ok) {
-        const data = await response.json();
-        setApiKey(data.apiKey);
+        setSlackStatus({ configured: true, webhookUrl: slackWebhookUrl });
+        alert('Slack webhook saved!');
+      } else {
+        alert('Failed to save webhook');
       }
     } catch (error) {
-      console.error('Error fetching API key:', error);
+      alert('Error saving webhook');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function testSlackAlert() {
+    setTestResult('Sending...');
+    try {
+      const response = await fetch('/api/slack/test', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        setTestResult('✅ Test message sent! Check your Slack channel.');
+      } else {
+        const error = await response.json();
+        setTestResult(`❌ Failed: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      setTestResult('❌ Error sending test');
     }
   }
 
@@ -75,6 +118,9 @@ export default function SettingsPage() {
           <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
             <span>⚙️</span> Settings
           </Link>
+          <Link href="/signout" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '1rem'}}>
+            <span>🚪</span> Sign Out
+          </Link>
         </nav>
 
         <div style={{paddingTop: '1rem', borderTop: '1px solid #334155'}}>
@@ -99,40 +145,88 @@ export default function SettingsPage() {
               {apiKey || 'Loading...'}
             </div>
             <button 
-              onClick={() => {
-                navigator.clipboard.writeText(apiKey);
-                alert('API Key copied!');
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#6366f1',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer'
-              }}
+              onClick={() => {navigator.clipboard.writeText(apiKey); alert('API Key copied!');}}
+              style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}
             >
               Copy API Key
             </button>
           </div>
 
-          {/* Slack Integration */}
+          {/* Slack Integration - NOW CONFIGURABLE */}
           <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem'}}>
             <h3 style={{margin: '0 0 1rem 0'}}>Slack Integration</h3>
-            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-              <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                background: slackStatus?.configured ? '#10b981' : '#64748b'
-              }}></div>
-              <span>{slackStatus?.configured ? 'Connected' : 'Not Connected'}</span>
+            
+            <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem'}}>
+              <div style={{width: '12px', height: '12px', borderRadius: '50%', background: slackStatus?.configured ? '#10b981' : '#64748b'}}></div>
+              <span>{slackStatus?.configured ? '✅ Connected' : '❌ Not Connected'}</span>
             </div>
-            {slackStatus?.configured && (
-              <p style={{color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.5rem'}}>
-                Alerts will be sent to your Slack channel
-              </p>
-            )}
+
+            <form onSubmit={saveSlackWebhook} style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.875rem'}}>
+                  Slack Webhook URL
+                </label>
+                <input
+                  type="url"
+                  value={slackWebhookUrl}
+                  onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: '0.5rem',
+                    color: 'white',
+                    fontSize: '0.875rem'
+                  }}
+                />
+                <p style={{color: '#64748b', fontSize: '0.75rem', marginTop: '0.5rem'}}>
+                  Get this from your Slack app under Incoming Webhooks
+                </p>
+              </div>
+
+              <div style={{display: 'flex', gap: '1rem'}}>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#6366f1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    opacity: saving ? 0.5 : 1
+                  }}
+                >
+                  {saving ? 'Saving...' : 'Save Webhook'}
+                </button>
+
+                {slackStatus?.configured && (
+                  <button
+                    type="button"
+                    onClick={testSlackAlert}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Test Alert
+                  </button>
+                )}
+              </div>
+
+              {testResult && (
+                <p style={{color: testResult.includes('✅') ? '#10b981' : '#ef4444', fontSize: '0.875rem', margin: 0}}>
+                  {testResult}
+                </p>
+              )}
+            </form>
           </div>
 
           {/* Billing */}
