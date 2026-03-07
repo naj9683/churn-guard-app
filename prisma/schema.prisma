@@ -92,11 +92,15 @@ model RevenueMetrics {
 }
 
 model SlackAlert {
-  id          String   @id @default(cuid())
-  userId      String
-  customerId  String?
-  message     String?
-  riskScore   Int?
-  sentAt      DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
+  id            String   @id @default(cuid())
+  userId        String
+  customerId    String?
+  alertType     String?
+  mrrAtRisk     Int?     @default(0)
+  messageSent   Boolean? @default(false)
+  errorMessage  String?
+  message       String?
+  riskScore     Int?
+  sentAt        DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
 }
