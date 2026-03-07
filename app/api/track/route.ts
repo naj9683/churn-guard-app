@@ -1,47 +1,47 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { calculateRiskScore } from '@/lib/risk-calculator';
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { customerId, event, metadata, timestamp, apiKey } = body;
-    
-    // Validate API key (find user by API key)
+    const body = await req.json();
+    const { apiKey, customerId, event, metadata, timestamp } = body;
+
+    console.log("Track request:", { apiKey, customerId, event });
+
+    if (!apiKey || !customerId || !event) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Find user by API key
     const user = await prisma.user.findFirst({
       where: { apiKey: apiKey }
     });
-    
+
+    console.log("User found:", user ? "Yes" : "No");
+
     if (!user) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
+      return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
     }
-    
+
     // Find or create customer
     let customer = await prisma.customer.findFirst({
-      where: { 
-        userId: user.id,
-        externalId: customerId 
-      },
-      include: { events: true }
+      where: { userId: user.id, externalId: customerId }
     });
-    
+
     if (!customer) {
-      // Create new customer
       customer = await prisma.customer.create({
         data: {
           userId: user.id,
           externalId: customerId,
-          email: metadata?.email || `${customerId}@customer.com`,
+          email: metadata?.email || `${customerId}@unknown.com`,
           name: metadata?.name || customerId,
           mrr: metadata?.mrr || 0,
-          riskScore: 50, // Default middle score
-          createdAt: new Date()
-        },
-        include: { events: true }
+          riskScore: 50
+        }
       });
     }
-    
-    // Store the event
+
+    // Create event
     await prisma.event.create({
       data: {
         customerId: customer.id,
@@ -50,40 +50,29 @@ export async function POST(request: Request) {
         timestamp: timestamp || Date.now()
       }
     });
-    
-    // Recalculate risk score
-    const updatedEvents = [...customer.events, { event, timestamp: timestamp || Date.now() }];
-    const newRiskScore = calculateRiskScore(updatedEvents, customer.riskScore);
-    
-    // Update customer risk score
+
+    // Update risk score based on event type
+    let riskChange = 0;
+    if (event === 'payment_failed') riskChange = 20;
+    else if (event === 'no_login_7_days') riskChange = 15;
+    else if (event === 'downgrade_attempt') riskChange = 30;
+    else if (event === 'login') riskChange = -5;
+
+    const newRiskScore = Math.max(0, Math.min(100, customer.riskScore + riskChange));
+
     await prisma.customer.update({
       where: { id: customer.id },
-      data: { riskScore: newRiskScore }
+      data: { riskScore: newRiskScore, updatedAt: new Date() }
     });
-    
-    // Check if we should trigger Slack alert (risk >= 70)
-    if (newRiskScore >= 70 && customer.riskScore < 70) {
-      // Trigger Slack alert
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/slack/alert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer: customer.name || customer.email,
-          riskScore: newRiskScore,
-          mrr: customer.mrr,
-          reason: event
-        })
-      });
-    }
-    
-    return NextResponse.json({ 
-      success: true, 
-      riskScore: newRiskScore,
-      customerId: customer.id
+
+    return NextResponse.json({
+      success: true,
+      customerId: customerId,
+      riskScore: newRiskScore
     });
-    
+
   } catch (error) {
-    console.error('Tracking error:', error);
-    return NextResponse.json({ error: 'Failed to track event' }, { status: 500 });
+    console.error("Track error:", error);
+    return NextResponse.json({ error: "Failed to track event" }, { status: 500 });
   }
 }
