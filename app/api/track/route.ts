@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { checkAndRunPlaybooks } from "@/lib/auto-playbook";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
       where: { apiKey: apiKey }
     });
 
-    console.log("User found:", user ? "Yes" : "No");
+    console.log("User found:", user ? "Yes - " + user.id : "No");
 
     if (!user) {
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
@@ -51,24 +52,41 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Update risk score based on event type
+    // Calculate risk score based on event type
     let riskChange = 0;
     if (event === 'payment_failed') riskChange = 20;
     else if (event === 'no_login_7_days') riskChange = 15;
     else if (event === 'downgrade_attempt') riskChange = 30;
     else if (event === 'login') riskChange = -5;
+    else if (event === 'payment_success') riskChange = -10;
 
     const newRiskScore = Math.max(0, Math.min(100, customer.riskScore + riskChange));
 
-    await prisma.customer.update({
+    // Update customer
+    const updatedCustomer = await prisma.customer.update({
       where: { id: customer.id },
-      data: { riskScore: newRiskScore, updatedAt: new Date() }
+      data: { 
+        riskScore: newRiskScore, 
+        updatedAt: new Date(),
+        mrr: metadata?.mrr || customer.mrr
+      }
     });
+
+    console.log(`Risk score updated: ${customer.riskScore} -> ${newRiskScore}`);
+
+    // 🎯 AUTO-RUN PLAYBOOKS if risk is now high (>= 70)
+    if (newRiskScore >= 70 && customer.riskScore < 70) {
+      console.log("Risk crossed 70 threshold, triggering playbooks...");
+      
+      // Run in background (don't block response)
+      checkAndRunPlaybooks(user.id, updatedCustomer).catch(console.error);
+    }
 
     return NextResponse.json({
       success: true,
       customerId: customerId,
-      riskScore: newRiskScore
+      riskScore: newRiskScore,
+      playbookTriggered: newRiskScore >= 70 && customer.riskScore < 70
     });
 
   } catch (error) {
