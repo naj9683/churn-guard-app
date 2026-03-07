@@ -17,6 +17,12 @@ export default function PricingPage() {
     const units = Math.ceil(excess / 1000);
     return 29 + (units * 0.50);
   };
+<header style={{background: '#1e293b', borderBottom: '1px solid #334155', padding: '1.5rem 2rem'}}>
+  <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+    <h1 style={{margin: 0}}>Pricing</h1>
+    <a href="/" style={{color: '#94a3b8', textDecoration: 'none'}}>← Back to Home</a>
+  </div>
+</header>
 
   const price = calculatePrice(mrr);
 
