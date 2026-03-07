@@ -10,29 +10,37 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find user by Clerk ID (we need to match clerkId)
+    // Find user by Clerk ID or create if not exists
     let user = await prisma.user.findFirst({
-      where: { email: userId } // Temporary workaround - should use clerkId field
+      where: { clerkId: userId }
     });
 
+    // If no user found by clerkId, try finding by email (fallback)
     if (!user) {
-      // Try to find by email from Clerk session
-      // For now, create if not exists
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // If no API key exists, generate one
-    if (!user.apiKey) {
-      const newApiKey = `cg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { apiKey: newApiKey }
+      // Get user email from Clerk (you might need @clerk/nextjs client here)
+      // For now, create user with clerkId
+      user = await prisma.user.create({
+        data: {
+          clerkId: userId,
+          email: `user_${userId}@temp.com`, // Temporary - should get real email
+          apiKey: `cg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+        }
       });
     }
 
-    return NextResponse.json({ apiKey: user.apiKey });
+    // If user exists but no API key, generate one
+    if (user && !user.apiKey) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          apiKey: `cg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+        }
+      });
+    }
+
+    return NextResponse.json({ apiKey: user?.apiKey || "error" });
   } catch (error) {
-    console.error("Error fetching API key:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    console.error("Error:", error);
+    return NextResponse.json({ error: "Failed to get API key" }, { status: 500 });
   }
 }
