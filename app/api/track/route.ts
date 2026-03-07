@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Find user by API key
     const user = await prisma.user.findFirst({
       where: { apiKey: apiKey }
     });
@@ -24,10 +23,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
     }
 
-    // Find or create customer
     let customer = await prisma.customer.findFirst({
       where: { userId: user.id, externalId: customerId }
     });
+
+    const oldRiskScore = customer?.riskScore || 50;
 
     if (!customer) {
       customer = await prisma.customer.create({
@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create event
     await prisma.event.create({
       data: {
         customerId: customer.id,
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Calculate risk score based on event type
     let riskChange = 0;
     if (event === 'payment_failed') riskChange = 20;
     else if (event === 'no_login_7_days') riskChange = 15;
@@ -60,9 +58,8 @@ export async function POST(req: NextRequest) {
     else if (event === 'login') riskChange = -5;
     else if (event === 'payment_success') riskChange = -10;
 
-    const newRiskScore = Math.max(0, Math.min(100, customer.riskScore + riskChange));
+    const newRiskScore = Math.max(0, Math.min(100, oldRiskScore + riskChange));
 
-    // Update customer
     const updatedCustomer = await prisma.customer.update({
       where: { id: customer.id },
       data: { 
@@ -72,21 +69,27 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    console.log(`Risk score updated: ${customer.riskScore} -> ${newRiskScore}`);
+    console.log(`Risk updated: ${oldRiskScore} -> ${newRiskScore}`);
 
-    // 🎯 AUTO-RUN PLAYBOOKS if risk is now high (>= 70)
-    if (newRiskScore >= 70 && customer.riskScore < 70) {
-      console.log("Risk crossed 70 threshold, triggering playbooks...");
+    let playbookTriggered = false;
+
+    if (newRiskScore >= 70 && oldRiskScore < 70) {
+      console.log("Threshold crossed! Triggering playbooks...");
+      playbookTriggered = true;
       
-      // Run in background (don't block response)
-      checkAndRunPlaybooks(user.id, updatedCustomer).catch(console.error);
+      try {
+        await checkAndRunPlaybooks(user.id, updatedCustomer);
+      } catch (err) {
+        console.error("Playbook execution error:", err);
+      }
     }
 
     return NextResponse.json({
       success: true,
       customerId: customerId,
       riskScore: newRiskScore,
-      playbookTriggered: newRiskScore >= 70 && customer.riskScore < 70
+      oldRiskScore: oldRiskScore,
+      playbookTriggered: playbookTriggered
     });
 
   } catch (error) {
