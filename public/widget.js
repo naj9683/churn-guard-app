@@ -1,51 +1,73 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
-
-export async function POST(request: Request) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { mrr } = await request.json();
-
-    let user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    let customerId = user?.stripeCustomerId;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user?.email || undefined,
-        metadata: { userId: userId, mrr: mrr?.toString() || '0' },
+(function() {
+  // ChurnGuard Widget
+  window.ChurnGuard = {
+    apiKey: null,
+    customerId: null,
+    
+    init: function(config) {
+      this.apiKey = config.apiKey;
+      this.customerId = config.customerId;
+      
+      // Auto-track page views
+      this.track('page_view', { url: window.location.href });
+      
+      // Check for risk and show messages
+      this.checkRisk();
+    },
+    
+    track: function(event, metadata) {
+      fetch('https://churn-guard-app.vercel.app/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: this.apiKey,
+          customerId: this.customerId,
+          event: event,
+          metadata: metadata,
+          timestamp: Date.now()
+        })
       });
-      customerId = customer.id;
-
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customerId },
-      });
+    },
+    
+    checkRisk: function() {
+      // Poll for risk score every 5 minutes
+      setInterval(() => {
+        this.track('heartbeat', { timeOnSite: Date.now() });
+      }, 300000);
+    },
+    
+    showMessage: function(message, type = 'info') {
+      const div = document.createElement('div');
+      div.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${type === 'danger' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#6366f1'};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        max-width: 400px;
+        font-family: system-ui, sans-serif;
+        animation: slideIn 0.3s ease;
+      `;
+      div.innerHTML = message;
+      document.body.appendChild(div);
+      
+      setTimeout(() => {
+        div.remove();
+      }, 10000);
     }
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `https://churn-guard-app.vercel.app/dashboard?success=true`,
-      cancel_url: `https://churn-guard-app.vercel.app/pricing?canceled=true`,
-    });
-
-    return NextResponse.json({ sessionId: session.id });
-  } catch (error) {
-    console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
-  }
-}
+  };
+  
+  // CSS animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
