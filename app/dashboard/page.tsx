@@ -1,195 +1,136 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+// Admin user IDs - your user ID
+const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
 export default function Dashboard() {
-  const { user, isLoaded } = useUser();
-  const [playbooks, setPlaybooks] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({ totalCustomers: 0, atRisk: 0, monthlyRevenue: 0, activePlaybooks: 0 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      fetchDashboardData();
-    }
-  }, [isLoaded, user]);
-
-  async function fetchDashboardData() {
-    try {
-      const response = await fetch('/api/dashboard');
-      if (response.ok) {
-        const data = await response.json();
-        setPlaybooks(data.playbooks || []);
-        setCustomers(data.customers || []);
-        setStats(data.stats || { totalCustomers: 0, atRisk: 0, monthlyRevenue: 0, activePlaybooks: 0 });
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function runPlaybook(id: string) {
-    try {
-      const response = await fetch('/api/playbooks/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playbookId: id })
-      });
-      if (response.ok) {
-        alert('Playbook executed successfully!');
-      }
-    } catch (error) {
-      alert('Failed to run playbook');
-    }
-  }
-
-  if (!isLoaded || loading) {
-    return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
-  }
-
-  const isAdmin = user?.emailAddresses[0]?.emailAddress === 'najwa.saadi1@hotmail.com';
+  const pathname = usePathname();
+  const { user } = useUser();
+  
+  const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
+  
+  const menuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { href: '/customers', label: 'Customers', icon: '👥' },
+    { href: '/playbooks', label: 'Playbooks', icon: '⚡' },
+    { href: '/widget-messages', label: 'Widget', icon: '💬' },
+    { href: '/email-campaigns', label: 'Email Campaigns', icon: '📧' },
+    { href: '/analytics', label: 'Analytics', icon: '📈' },
+    { href: '/integrations', label: 'Integrations', icon: '🔌', adminOnly: true },
+    { href: '/admin', label: 'Admin Panel', icon: '🔐', adminOnly: true },
+    { href: '/settings', label: 'Settings', icon: '⚙️' },
+  ];
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar - Only shows on Dashboard */}
+      <aside style={{
+        width: '250px', 
+        background: '#1e293b', 
+        borderRight: '1px solid #334155', 
+        padding: '1.5rem', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100vh', 
+        position: 'fixed', 
+        left: 0, 
+        top: 0'
+      }}>
+        <div style={{
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          fontWeight: '700', 
+          fontSize: '1.25rem', 
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '32px', 
+            height: '32px', 
+            background: '#6366f1', 
+            borderRadius: '8px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center'
+          }}>🛡️</div>
           ChurnGuard
         </div>
-
+        
         <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>👥</span> Customers
-          </Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚡</span> Playbooks
-          </Link>
-          <Link href="/analytics" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>📈</span> Analytics
-          </Link>
-          <Link href="/integrations" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>🔌</span> Integrations
-          </Link>
-          <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚙️</span> Settings
-          </Link>
-
-          {isAdmin && (
-            <Link href="/admin" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-              <span>🔒</span> Admin
-            </Link>
-          )}
-
-          <Link href="/signout" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '1rem'}}>
-            <span>🚪</span> Sign Out
-          </Link>
+          {menuItems.map((item) => {
+            if (item.adminOnly && !isAdmin) return null;
+            
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            
+            return (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                style={{
+                  padding: '0.75rem 1rem', 
+                  borderRadius: '0.5rem', 
+                  color: isActive ? 'white' : '#94a3b8', 
+                  textDecoration: 'none',
+                  background: isActive ? '#334155' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
-
-        <div style={{paddingTop: '1rem', borderTop: '1px solid #334155'}}>
-          <div style={{color: '#64748b', fontSize: '0.75rem'}}>Free Plan</div>
+        
+        <div style={{marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #334155'}}>
+          <Link 
+            href="/signout" 
+            style={{
+              padding: '0.75rem 1rem', 
+              borderRadius: '0.5rem', 
+              color: '#94a3b8', 
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}
+          >
+            <span>🚪</span>
+            Sign Out
+          </Link>
         </div>
       </aside>
 
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px', overflow: 'auto'}}>
-        <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
-          <h1 style={{margin: 0, fontSize: '1.875rem'}}>Dashboard</h1>
-          <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-            <span style={{color: '#94a3b8'}}>{user?.emailAddresses[0]?.emailAddress}</span>
-            <Link href="/pricing" style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', textDecoration: 'none', borderRadius: '0.5rem', fontSize: '0.875rem'}}>
-              Upgrade
-            </Link>
+      {/* Main Content */}
+      <main style={{ marginLeft: '250px', flex: 1, padding: '2rem', background: '#0f172a', minHeight: '100vh' }}>
+        <h1 style={{ color: 'white', fontSize: '2rem', marginBottom: '1rem' }}>Dashboard</h1>
+        <p style={{ color: '#94a3b8' }}>Welcome to your ChurnGuard dashboard!</p>
+        
+        {/* Add your dashboard content here */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '1.5rem',
+          marginTop: '2rem'
+        }}>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155' }}>
+            <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Total Customers</h3>
+            <p style={{ color: '#6366f1', fontSize: '2rem', fontWeight: 'bold' }}>--</p>
           </div>
-        </header>
-
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem'}}>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem'}}>Total Customers</div>
-            <div style={{fontSize: '2rem', fontWeight: '700'}}>{stats.totalCustomers}</div>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155' }}>
+            <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Churn Rate</h3>
+            <p style={{ color: '#6366f1', fontSize: '2rem', fontWeight: 'bold' }}>--</p>
           </div>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem'}}>At Risk</div>
-            <div style={{fontSize: '2rem', fontWeight: '700', color: stats.atRisk > 0 ? '#ef4444' : 'white'}}>{stats.atRisk}</div>
-          </div>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem'}}>Monthly Revenue</div>
-            <div style={{fontSize: '2rem', fontWeight: '700'}}>${stats.monthlyRevenue.toLocaleString()}</div>
-          </div>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem'}}>Active Playbooks</div>
-            <div style={{fontSize: '2rem', fontWeight: '700', color: '#10b981'}}>{stats.activePlaybooks}</div>
-          </div>
-        </div>
-
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
-          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <h2 style={{margin: 0}}>Active Playbooks</h2>
-            <Link href="/playbooks" style={{color: '#6366f1', textDecoration: 'none', fontSize: '0.875rem'}}>View All →</Link>
-          </div>
-          <div style={{padding: '1.5rem'}}>
-            {playbooks.length === 0 ? (
-              <div style={{color: '#64748b', textAlign: 'center', padding: '2rem'}}>
-                No playbooks yet. <Link href="/playbooks" style={{color: '#6366f1'}}>Create one</Link>
-              </div>
-            ) : (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                {playbooks.map((playbook: any) => (
-                  <div key={playbook.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#0f172a', borderRadius: '0.5rem'}}>
-                    <div>
-                      <div style={{fontWeight: '600'}}>{playbook.name}</div>
-                      <div style={{color: '#64748b', fontSize: '0.875rem'}}>{playbook.trigger}</div>
-                    </div>
-                    <button
-                      onClick={() => runPlaybook(playbook.id)}
-                      style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}
-                    >
-                      Run
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <h2 style={{margin: 0}}>Recent Customers</h2>
-            <Link href="/customers" style={{color: '#6366f1', textDecoration: 'none', fontSize: '0.875rem'}}>View All →</Link>
-          </div>
-          <div style={{padding: '1.5rem'}}>
-            {customers.length === 0 ? (
-              <div style={{color: '#64748b', textAlign: 'center', padding: '2rem'}}>
-                No customers yet. <Link href="/customers" style={{color: '#6366f1'}}>Add one</Link>
-              </div>
-            ) : (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                {customers.slice(0, 5).map((customer: any) => (
-                  <div key={customer.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#0f172a', borderRadius: '0.5rem'}}>
-                    <div>
-                      <div style={{fontWeight: '600'}}>{customer.name || customer.email}</div>
-                      <div style={{color: '#64748b', fontSize: '0.875rem'}}>{customer.email}</div>
-                    </div>
-                    <span style={{
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '0.25rem',
-                      background: customer.riskScore >= 70 ? '#ef4444' : customer.riskScore >= 40 ? '#f59e0b' : '#10b981',
-                      color: 'white',
-                      fontSize: '0.875rem'
-                    }}>
-                      Risk: {customer.riskScore}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155' }}>
+            <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Active Playbooks</h3>
+            <p style={{ color: '#6366f1', fontSize: '2rem', fontWeight: 'bold' }}>--</p>
           </div>
         </div>
       </main>
