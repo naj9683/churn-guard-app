@@ -52,18 +52,16 @@ export default function Dashboard() {
     return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
   }
 
-  // Check if user is admin (you)
   const isAdmin = user?.emailAddresses[0]?.emailAddress === 'najwa.saadi1@hotmail.com';
 
   return (
     <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      {/* Single Sidebar */}
       <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
           <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
           ChurnGuard
         </div>
-        
+
         <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1}}>
           <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
             <span>📊</span> Dashboard
@@ -83,13 +81,16 @@ export default function Dashboard() {
           <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
             <span>⚙️</span> Settings
           </Link>
-          
-          {/* Admin link - Only visible to you */}
+
           {isAdmin && (
             <Link href="/admin" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
               <span>🔒</span> Admin
             </Link>
           )}
+
+          <Link href="/signout" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '1rem'}}>
+            <span>🚪</span> Sign Out
+          </Link>
         </nav>
 
         <div style={{paddingTop: '1rem', borderTop: '1px solid #334155'}}>
@@ -97,7 +98,6 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main style={{flex: 1, padding: '2rem', marginLeft: '250px', overflow: 'auto'}}>
         <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
           <h1 style={{margin: 0, fontSize: '1.875rem'}}>Dashboard</h1>
@@ -109,7 +109,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Stats Grid */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem'}}>
           <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
             <div style={{color: '#94a3b8', fontSize: '0.875rem'}}>Total Customers</div>
@@ -129,7 +128,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Playbooks Section */}
         <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h2 style={{margin: 0}}>Active Playbooks</h2>
@@ -148,7 +146,7 @@ export default function Dashboard() {
                       <div style={{fontWeight: '600'}}>{playbook.name}</div>
                       <div style={{color: '#64748b', fontSize: '0.875rem'}}>{playbook.trigger}</div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => runPlaybook(playbook.id)}
                       style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}
                     >
@@ -161,7 +159,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Customers */}
         <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155'}}>
           <div style={{padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h2 style={{margin: 0}}>Recent Customers</h2>
