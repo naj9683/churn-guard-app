@@ -30,6 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ 
+        error: "Email not configured", 
+        message: "Add RESEND_API_KEY to GitHub Secrets" 
+      }, { status: 500 });
+    }
+
     const selectedTemplate = emailTemplates[template as keyof typeof emailTemplates] || emailTemplates.retention;
     
     // Send via Resend
@@ -54,16 +61,6 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await response.json();
-
-    await prisma.emailLog.create({
-      data: {
-        userId: user.id,
-        customerEmail,
-        template,
-        status: 'sent',
-        resendId: result.id
-      }
-    });
 
     return NextResponse.json({ success: true, id: result.id });
 
