@@ -66,27 +66,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      {/* Sidebar */}
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
-          ChurnGuard
-        </div>
-        <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>📊 Dashboard</Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>👥 Customers</Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>⚡ Playbooks</Link>
-          <Link href="/widget-messages" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>💬 Widget</Link>
-          <Link href="/email-campaigns" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>📧 Email Campaigns</Link>
-          <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none'}}>⚙️ Settings</Link>
-        </nav>
-      </aside>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Back to Dashboard */}
+      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
+        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
+          <span>←</span> Back to Dashboard
+        </Link>
+      </div>
 
-      {/* Main Content */}
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px'}}>
+      <main style={{padding: '2rem'}}>
         <h1 style={{margin: '0 0 2rem 0', fontSize: '1.875rem'}}>⚙️ White-Label Settings</h1>
-        
+
         <p style={{color: '#94a3b8', marginBottom: '2rem'}}>
           Customize how your emails look to your customers. All emails will use YOUR branding instead of ChurnGuard's.
         </p>
@@ -103,8 +93,8 @@ export default function SettingsPage() {
             <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.875rem'}}>
               Company Name *
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={settings.companyName}
               onChange={(e) => setSettings({...settings, companyName: e.target.value})}
               placeholder="TechStart Inc."
@@ -119,8 +109,8 @@ export default function SettingsPage() {
             <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.875rem'}}>
               Logo URL
             </label>
-            <input 
-              type="url" 
+            <input
+              type="url"
               value={settings.logoUrl}
               onChange={(e) => setSettings({...settings, logoUrl: e.target.value})}
               placeholder="https://yourcompany.com/logo.png"
@@ -141,14 +131,14 @@ export default function SettingsPage() {
               Brand Color *
             </label>
             <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-              <input 
-                type="color" 
+              <input
+                type="color"
                 value={settings.brandColor}
                 onChange={(e) => setSettings({...settings, brandColor: e.target.value})}
                 style={{width: '60px', height: '40px', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}
               />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={settings.brandColor}
                 onChange={(e) => setSettings({...settings, brandColor: e.target.value})}
                 style={{flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem'}}
@@ -162,8 +152,8 @@ export default function SettingsPage() {
             <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.875rem'}}>
               From Email Address *
             </label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               value={settings.fromEmail}
               onChange={(e) => setSettings({...settings, fromEmail: e.target.value})}
               placeholder="support@yourcompany.com"
@@ -178,7 +168,7 @@ export default function SettingsPage() {
             <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.875rem'}}>
               Email Signature
             </label>
-            <textarea 
+            <textarea
               value={settings.emailSignature}
               onChange={(e) => setSettings({...settings, emailSignature: e.target.value})}
               rows={3}
@@ -190,7 +180,7 @@ support@yourcompany.com"
           </div>
 
           {/* Submit Button */}
-          <button 
+          <button
             type="submit"
             disabled={saving}
             style={{

@@ -13,7 +13,6 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isLoaded && user) {
-      // Check if user is admin
       if (user.emailAddresses[0]?.emailAddress !== 'najwa.saadi1@hotmail.com') {
         setError('Access denied. Admin only.');
         setLoading(false);
@@ -52,42 +51,15 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      {/* Sidebar */}
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
-          ChurnGuard
-        </div>
-        
-        <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>👥</span> Customers
-          </Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚡</span> Playbooks
-          </Link>
-          <Link href="/analytics" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>📈</span> Analytics
-          </Link>
-          <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>⚙️</span> Settings
-          </Link>
-          <Link href="/admin" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-            <span>🔒</span> Admin
-          </Link>
-        </nav>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Back to Dashboard */}
+      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
+        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
+          <span>←</span> Back to Dashboard
+        </Link>
+      </div>
 
-        <div style={{paddingTop: '1rem', borderTop: '1px solid #334155'}}>
-          <div style={{color: '#64748b', fontSize: '0.75rem'}}>Admin Panel</div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px', overflow: 'auto'}}>
+      <main style={{padding: '2rem'}}>
         <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
           <div>
             <h1 style={{margin: 0, fontSize: '1.875rem'}}>Admin Panel</h1>
@@ -104,12 +76,12 @@ export default function AdminPage() {
             <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Monthly Recurring Revenue</div>
             <div style={{fontSize: '2.25rem', fontWeight: '700', color: '#10b981'}}>${revenue.mrr.toLocaleString()}</div>
           </div>
-          
+
           <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
             <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Total Users</div>
             <div style={{fontSize: '2.25rem', fontWeight: '700'}}>{users.length}</div>
           </div>
-          
+
           <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
             <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Paid Customers</div>
             <div style={{fontSize: '2.25rem', fontWeight: '700', color: '#8b5cf6'}}>{users.filter(u => u.stripeCustomerId).length}</div>
