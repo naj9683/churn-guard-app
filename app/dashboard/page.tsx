@@ -52,6 +52,9 @@ export default function Dashboard() {
     return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
   }
 
+  // Check if user is admin (you)
+  const isAdmin = user?.emailAddresses[0]?.emailAddress === 'najwa.saadi1@hotmail.com';
+
   return (
     <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
       {/* Single Sidebar */}
@@ -77,6 +80,13 @@ export default function Dashboard() {
           <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
             <span>⚙️</span> Settings
           </Link>
+          
+          {/* Admin link - Only visible to you */}
+          {isAdmin && (
+            <Link href="/admin" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+              <span>🔒</span> Admin
+            </Link>
+          )}
         </nav>
 
         <div style={{paddingTop: '1rem', borderTop: '1px solid #334155'}}>
