@@ -21,7 +21,7 @@ model User {
   customers        Customer[]
   playbooks        Playbook[]
   subscriptions    Subscription[]
-  revenueMetrics   RevenueMetrics[]
+  revenueMetrics   RevenueMetrics?
 }
 
 model Customer {
@@ -35,7 +35,7 @@ model Customer {
   riskScore   Int      @default(50)
   crmId       String?  
   healthScore Int?     @default(100)
-  plan        String?  @default("free") // Customer's subscription plan
+  plan        String?  @default("free")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id])
@@ -78,10 +78,11 @@ model Subscription {
 
 model RevenueMetrics {
   id         String   @id @default(cuid())
-  userId     String
+  userId     String   @unique
   totalMrr   Int      @default(0)
   atRiskMrr  Int      @default(0)
   savedMrr   Int      @default(0)
+  totalArr   Int      @default(0)
   date       DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id])
 }
