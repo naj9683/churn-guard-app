@@ -14,7 +14,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-slate-300 hover:text-white transition">Features</a>
-              <a href="#pricing" className="text-slate-300 hover:text-white transition">Pricing</a>
+              <a href="/pricing" className="text-slate-300 hover:text-white transition">Pricing</a>
               <Link 
                 href="/dashboard"
                 className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg font-medium transition"
