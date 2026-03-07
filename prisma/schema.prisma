@@ -18,6 +18,8 @@ model User {
   crmType          String?
   crmApiKey        String?
   slackWebhookUrl  String?        
+  widgetEnabled    Boolean?       @default(true)
+  widgetMessages   WidgetMessage[]
   customers        Customer[]
   playbooks        Playbook[]
   subscriptions    Subscription[]
@@ -103,4 +105,14 @@ model SlackAlert {
   riskScore     Int?
   sentAt        DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id])
+}
+
+model WidgetMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  content   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
