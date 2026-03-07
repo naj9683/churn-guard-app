@@ -31,7 +31,6 @@ export default function AnalyticsPage() {
   }
 
   function openCustomerModal(customer: any) {
-    console.log('Opening modal for:', customer);
     setModalCustomer(customer);
     setShowModal(true);
   }
@@ -41,7 +40,6 @@ export default function AnalyticsPage() {
     setModalCustomer(null);
   }
 
-  // Filter customers
   const filteredCustomers = data?.recentActivity?.filter((customer: any) => {
     if (selectedSegment === 'all') return true;
     if (selectedSegment === 'high') return customer.riskScore >= 70;
@@ -56,29 +54,18 @@ export default function AnalyticsPage() {
 
   if (!data) return <div>No data</div>;
 
-  const { overview, riskDistribution, monthlyTrend } = data;
+  const { overview } = data;
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      {/* Sidebar */}
-      <aside style={{width: '250px', background: '#1e293b', borderRight: '1px solid #334155', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100vh', position: 'fixed', left: 0, top: 0}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem', marginBottom: '2rem'}}>
-          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
-          ChurnGuard
-        </div>
-        <nav style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-          <Link href="/dashboard" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>📊 Dashboard</Link>
-          <Link href="/customers" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>👥 Customers</Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>⚡ Playbooks</Link>
-          <Link href="/widget-messages" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>💬 Widget</Link>
-          <Link href="/email-campaigns" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>📧 Email Campaigns</Link>
-          <Link href="/analytics" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#334155', color: 'white', textDecoration: 'none'}}>📈 Analytics</Link>
-          <Link href="/settings" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#94a3b8', textDecoration: 'none'}}>⚙️ Settings</Link>
-        </nav>
-      </aside>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Back to Dashboard */}
+      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
+        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
+          <span>←</span> Back to Dashboard
+        </Link>
+      </div>
 
-      {/* Main Content */}
-      <main style={{flex: 1, padding: '2rem', marginLeft: '250px'}}>
+      <main style={{padding: '2rem'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
           <h1 style={{margin: 0, fontSize: '1.875rem'}}>📈 Customer Analytics & Segmentation</h1>
           <div style={{display: 'flex', gap: '0.5rem'}}>
@@ -124,12 +111,12 @@ export default function AnalyticsPage() {
         {/* Customer List */}
         <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
           <h3 style={{margin: '0 0 1.5rem 0'}}>
-            {selectedSegment === 'all' ? 'All Customers' : 
+            {selectedSegment === 'all' ? 'All Customers' :
              selectedSegment === 'high' ? '🔥 High Risk Customers' :
              selectedSegment === 'medium' ? '⚠️ Medium Risk Customers' : '✅ Low Risk Customers'}
             {' '}({filteredCustomers.length})
           </h3>
-          
+
           <table style={{width: '100%', borderCollapse: 'collapse'}}>
             <thead>
               <tr style={{borderBottom: '1px solid #334155'}}>
@@ -158,13 +145,8 @@ export default function AnalyticsPage() {
                     {customer.riskScore >= 70 ? '🔥 At Risk' : customer.riskScore >= 40 ? '⚠️ Watch' : '✅ Healthy'}
                   </td>
                   <td style={{padding: '1rem', textAlign: 'right'}}>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Clicked customer:', customer);
-                        openCustomerModal(customer);
-                      }}
+                    <button
+                      onClick={() => openCustomerModal(customer)}
                       style={{
                         padding: '0.5rem 1rem',
                         background: '#6366f1',
@@ -186,7 +168,7 @@ export default function AnalyticsPage() {
 
       {/* MODAL */}
       {showModal && modalCustomer && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0,
@@ -201,7 +183,7 @@ export default function AnalyticsPage() {
           }}
           onClick={closeModal}
         >
-          <div 
+          <div
             style={{
               background: '#1e293b',
               padding: '2rem',
@@ -217,8 +199,8 @@ export default function AnalyticsPage() {
             <p><strong>Risk Score:</strong> {modalCustomer.riskScore}</p>
             <p><strong>MRR:</strong> ${modalCustomer.mrr || 0}</p>
             <p><strong>Created:</strong> {new Date(modalCustomer.lastActivity).toLocaleDateString()}</p>
-            
-            <button 
+
+            <button
               onClick={closeModal}
               style={{
                 marginTop: '1.5rem',
