@@ -112,6 +112,7 @@ model WidgetMessage {
   userId    String
   title     String?
   content   String?
+  trigger   String?  @default("manual") // manual, risk_score, etc.
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
