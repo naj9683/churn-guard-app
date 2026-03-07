@@ -15,6 +15,8 @@ model User {
   stripeCustomerId String?
   mrr              Int            @default(0)
   apiKey           String?        @unique @default(cuid())
+  crmType          String?
+  crmApiKey        String?
   customers        Customer[]
   playbooks        Playbook[]
   subscriptions    Subscription[]
@@ -24,7 +26,7 @@ model User {
 model Customer {
   id          String   @id @default(cuid())
   userId      String
-  externalId  String   // Customer's ID from their system
+  externalId  String   
   email       String
   name        String?
   mrr         Int      @default(0)
@@ -41,7 +43,7 @@ model Customer {
 model Event {
   id          String   @id @default(cuid())
   customerId  String
-  event       String   // login, payment_failed, feature_used, etc.
+  event       String   
   metadata    Json?
   timestamp   BigInt
   createdAt   DateTime @default(now())
