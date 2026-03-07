@@ -32,6 +32,7 @@ model Customer {
   mrr         Int      @default(0)
   arr         Int      @default(0)
   riskScore   Int      @default(50)
+  crmId       String?  // CRM system ID
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id])
