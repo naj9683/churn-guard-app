@@ -1,20 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function PricingPage() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = async (priceId: string) => {
-    setLoading(priceId);
+  const handleSubscribe = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId: 'price_early_access' }),
       });
       const { sessionId } = await response.json();
       const stripe = await stripePromise;
@@ -22,83 +23,110 @@ export default function PricingPage() {
     } catch (error) {
       alert('Failed to start checkout');
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
-      {/* Header with Back Arrow */}
-      <header style={{background: '#1e293b', borderBottom: '1px solid #334155', padding: '1.5rem 2rem'}}>
-        <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <h1 style={{margin: 0, fontSize: '1.5rem'}}>Pricing</h1>
-          <a href="/" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>← Back to Home</a>
+    <div style={{minHeight: '100vh', background: '#0a0a1a', color: 'white', fontFamily: 'system-ui'}}>
+      {/* Header with Logo, Nav, and Back Arrow */}
+      <header style={{padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.25rem'}}>
+          <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
+          ChurnGuard
         </div>
+        <nav style={{display: 'flex', gap: '2rem', alignItems: 'center'}}>
+          <Link href="/#features" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>Features</Link>
+          <Link href="/pricing" style={{color: 'white', textDecoration: 'none', fontSize: '0.875rem'}}>Pricing</Link>
+          <a href="/" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>← Back</a>
+          <button style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', fontSize: '0.875rem', cursor: 'pointer'}}>
+            Get Early Access
+          </button>
+        </nav>
       </header>
 
-      <main style={{maxWidth: '1200px', margin: '0 auto', padding: '4rem 2rem'}}>
-        <div style={{textAlign: 'center', marginBottom: '4rem'}}>
-          <h2 style={{fontSize: '2.5rem', marginBottom: '1rem'}}>Simple, usage-based pricing</h2>
-          <p style={{color: '#94a3b8', fontSize: '1.125rem'}}>Pay only for what you use. No hidden fees.</p>
+      <main style={{maxWidth: '800px', margin: '0 auto', padding: '4rem 2rem'}}>
+        {/* Price Header */}
+        <div style={{textAlign: 'center', marginBottom: '3rem'}}>
+          <div style={{fontSize: '4rem', fontWeight: '700', marginBottom: '0.5rem'}}>$29</div>
+          <div style={{color: '#64748b', marginBottom: '0.5rem'}}>/month minimum</div>
+          <div style={{color: '#64748b'}}>Then $0.50 per $1,000 MRR above $50K</div>
         </div>
 
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', maxWidth: '1000px', margin: '0 auto'}}>
-          {/* Free Plan */}
-          <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '2rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', fontSize: '1.25rem'}}>Free</h3>
-            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem'}}>$0</div>
-            <ul style={{listStyle: 'none', padding: 0, margin: '0 0 2rem 0', color: '#94a3b8'}}>
-              <li style={{marginBottom: '0.5rem'}}>✓ Up to 100 customers</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ 3 playbooks</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Basic analytics</li>
-            </ul>
-            <button disabled style={{width: '100%', padding: '0.75rem', background: '#334155', color: 'white', border: 'none', borderRadius: '0.5rem', opacity: 0.5}}>
-              Current Plan
-            </button>
-          </div>
-
-          {/* Pro Plan */}
-          <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '2px solid #8b5cf6', padding: '2rem', position: 'relative'}}>
-            <div style={{position: 'absolute', top: '-12px', right: '20px', background: '#8b5cf6', padding: '0.25rem 0.75rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '600'}}>
-              POPULAR
+        {/* Examples Table */}
+        <div style={{background: '#111827', borderRadius: '0.75rem', padding: '1.5rem', marginBottom: '3rem'}}>
+          <div style={{color: '#64748b', fontSize: '0.75rem', fontWeight: '600', marginBottom: '1rem', letterSpacing: '0.05em'}}>EXAMPLES:</div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+              <span style={{color: '#94a3b8'}}>$10K MRR</span>
+              <span style={{color: '#22c55e', fontWeight: '600'}}>$29/mo</span>
             </div>
-            <h3 style={{margin: '0 0 0.5rem 0', fontSize: '1.25rem'}}>Pro</h3>
-            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.25rem'}}>$8</div>
-            <div style={{color: '#94a3b8', marginBottom: '1rem'}}>/month + $0.10 per customer</div>
-            <ul style={{listStyle: 'none', padding: 0, margin: '0 0 2rem 0', color: '#94a3b8'}}>
-              <li style={{marginBottom: '0.5rem'}}>✓ Unlimited customers</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Unlimited playbooks</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Advanced analytics</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Slack alerts</li>
-            </ul>
-            <button 
-              onClick={() => handleSubscribe('price_pro')}
-              disabled={loading === 'price_pro'}
-              style={{width: '100%', padding: '0.75rem', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'}}
-            >
-              {loading === 'price_pro' ? 'Loading...' : 'Subscribe'}
-            </button>
+            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+              <span style={{color: '#94a3b8'}}>$50K MRR</span>
+              <span style={{color: '#22c55e', fontWeight: '600'}}>$29/mo</span>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+              <span style={{color: '#94a3b8'}}>$100K MRR</span>
+              <span style={{color: '#22c55e', fontWeight: '600'}}>$54/mo</span>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+              <span style={{color: '#94a3b8'}}>$500K MRR</span>
+              <span style={{color: '#22c55e', fontWeight: '600'}}>$254/mo</span>
+            </div>
           </div>
+        </div>
 
-          {/* Enterprise Plan */}
-          <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '2rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', fontSize: '1.25rem'}}>Enterprise</h3>
-            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.25rem'}}>$29</div>
-            <div style={{color: '#94a3b8', marginBottom: '1rem'}}>/month + $0.05 per customer</div>
-            <ul style={{listStyle: 'none', padding: 0, margin: '0 0 2rem 0', color: '#94a3b8'}}>
-              <li style={{marginBottom: '0.5rem'}}>✓ Everything in Pro</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Priority support</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Custom integrations</li>
-              <li style={{marginBottom: '0.5rem'}}>✓ Dedicated account manager</li>
-            </ul>
-            <button 
-              onClick={() => handleSubscribe('price_enterprise')}
-              disabled={loading === 'price_enterprise'}
-              style={{width: '100%', padding: '0.75rem', background: '#1e293b', color: 'white', border: '1px solid #8b5cf6', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'}}
-            >
-              {loading === 'price_enterprise' ? 'Loading...' : 'Subscribe'}
-            </button>
+        {/* Features List */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '3rem'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>All 3 retention playbooks included</span>
           </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>Unlimited workflow runs</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>Stripe integration</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>Slack & Email alerts</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>Custom playbook builder</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{color: '#6366f1'}}>✓</span>
+            <span>Revenue saved dashboard</span>
+          </div>
+        </div>
+
+        {/* CTA Button */}
+        <button 
+          onClick={handleSubscribe}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '1rem',
+            background: '#6366f1',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.5 : 1,
+            marginBottom: '1rem'
+          }}
+        >
+          {loading ? 'Loading...' : 'Get Early Access'}
+        </button>
+
+        <div style={{textAlign: 'center', color: '#64748b', fontSize: '0.75rem'}}>
+          14-day free trial • Cancel anytime • No setup fees
         </div>
       </main>
     </div>
