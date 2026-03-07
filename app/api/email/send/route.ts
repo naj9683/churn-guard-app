@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
 
     const selectedTemplate = emailTemplates[template as keyof typeof emailTemplates] || emailTemplates.retention;
     
-    // Send via Resend
+    // Send via Resend - use onboarding@resend.dev for testing (only sends to your own email)
+    // Or use your own email as sender if verified
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'ChurnGuard <noreply@churnguard.app>',
+        from: 'onboarding@resend.dev',
         to: customerEmail,
         subject: selectedTemplate.subject,
         html: selectedTemplate.html({
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(await response.text());
+      const error = await response.json();
+      throw new Error(JSON.stringify(error));
     }
 
     const result = await response.json();
