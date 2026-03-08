@@ -1,30 +1,32 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { currentUser } from '@clerk/nextjs';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await currentUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const { 
-      type, // 'risk_alert', 'rar_threshold', 'vip_alert', 'digest'
+      type,
       customerId,
       riskScore,
       rarAmount,
       message 
     } = body;
 
-    // Get user's Slack webhook
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      include: { slackConfig: true }
+    // Get user's Slack webhook from settings
+    const userData = await prisma.user.findUnique({
+      where: { clerkId: user.id },
+      include: { settings: true }
     });
 
-    if (!user?.slackConfig?.webhookUrl) {
+    // Check if Slack is configured
+    const slackWebhookUrl = userData?.settings?.slackWebhookUrl;
+    if (!slackWebhookUrl) {
       return NextResponse.json({ error: 'Slack not configured' }, { status: 400 });
     }
 
@@ -43,11 +45,11 @@ export async function POST(req: Request) {
       riskScore,
       rarAmount,
       message,
-      userId
+      userId: user.id
     });
 
     // Send to Slack
-    const response = await fetch(user.slackConfig.webhookUrl, {
+    const response = await fetch(slackWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(slackMessage)
@@ -56,17 +58,6 @@ export async function POST(req: Request) {
     if (!response.ok) {
       throw new Error('Failed to send Slack message');
     }
-
-    // Log alert in database
-    await prisma.alertLog.create({
-      data: {
-        userId,
-        type,
-        customerId,
-        message: slackMessage.text,
-        sentAt: new Date()
-      }
-    });
 
     return NextResponse.json({ success: true, message: 'Alert sent' });
 

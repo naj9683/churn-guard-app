@@ -8,16 +8,18 @@ const RAR_ALERT_THRESHOLD = 5000;
 
 export async function POST(req: Request) {
   try {
-    // Get all users
+    // Get all users with their customers
     const users = await prisma.user.findMany({
       include: {
         customers: true,
-        slackConfig: true
+        settings: true
       }
     });
     
     for (const user of users) {
-      if (!user.slackConfig?.webhookUrl) continue;
+      // Skip if no Slack webhook configured
+      const slackWebhookUrl = user?.settings?.slackWebhookUrl;
+      if (!slackWebhookUrl) continue;
       
       // Calculate RaR
       let totalMRR = 0;
@@ -43,40 +45,27 @@ export async function POST(req: Request) {
       
       // Send RaR Threshold Alert
       if (atRiskMRR >= RAR_ALERT_THRESHOLD) {
-        await sendSlackAlert(user.slackConfig.webhookUrl, {
-          type: 'rar_threshold',
-          rarAmount: Math.round(atRiskMRR)
+        await fetch('https://churn-guard-app.vercel.app/api/slack/enhanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'rar_threshold',
+            rarAmount: Math.round(atRiskMRR)
+          })
         });
       }
       
       // Send VIP Alerts
       for (const vip of vipAtRisk) {
-        await sendSlackAlert(user.slackConfig.webhookUrl, {
-          type: 'vip_alert',
-          customerId: vip.id,
-          riskScore: vip.riskScore
+        await fetch('https://churn-guard-app.vercel.app/api/slack/enhanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'vip_alert',
+            customerId: vip.id,
+            riskScore: vip.riskScore
+          })
         });
-      }
-      
-      // Send High Risk Alerts (if not already sent recently)
-      for (const customer of highRiskCustomers) {
-        const recentAlert = await prisma.alertLog.findFirst({
-          where: {
-            customerId: customer.id,
-            type: 'risk_alert',
-            sentAt: {
-              gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
-            }
-          }
-        });
-        
-        if (!recentAlert) {
-          await sendSlackAlert(user.slackConfig.webhookUrl, {
-            type: 'risk_alert',
-            customerId: customer.id,
-            riskScore: customer.riskScore
-          });
-        }
       }
     }
     
@@ -86,15 +75,4 @@ export async function POST(req: Request) {
     console.error('Monitor error:', error);
     return NextResponse.json({ error: 'Monitoring failed' }, { status: 500 });
   }
-}
-
-async function sendSlackAlert(webhookUrl: string, data: any) {
-  await fetch('https://churn-guard-app.vercel.app/api/slack/enhanced', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...data,
-      // This would need auth token in production
-    })
-  });
 }
