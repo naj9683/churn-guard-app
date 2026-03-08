@@ -1,70 +1,65 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
 });
 
-export async function POST(request: Request) {
+// Price IDs from your Stripe dashboard
+const PRICE_IDS: Record<string, string> = {
+  'Seed': process.env.STRIPE_SEED_PRICE_ID!,
+  'Growth': process.env.STRIPE_GROWTH_PRICE_ID!,
+  'Scale': process.env.STRIPE_SCALE_PRICE_ID!,
+};
+
+export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    const userId = session?.userId;
+    
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { mrr } = await request.json();
+    const body = await req.json();
+    const { tier, price } = body;
 
-    // Try to find user, create if not exists
-    let user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      // Create minimal user
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email: `user-${userId}@example.com`,
-        },
-      });
+    if (!tier || !PRICE_IDS[tier]) {
+      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
-    let customerId = user.stripeCustomerId;
-
-    // Create Stripe customer if needed
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId: userId },
-      });
-      customerId = customer.id;
-
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customerId },
-      });
-    }
-
-    // Create checkout
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [{ 
-        price: process.env.STRIPE_PRICE_ID, 
-        quantity: 1 
-      }],
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      success_url: `https://churn-guard-app.vercel.app/dashboard?success=true`,
-      cancel_url: `https://churn-guard-app.vercel.app/pricing?canceled=true`,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: PRICE_IDS[tier],
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing?canceled=true`,
+      metadata: {
+        userId,
+        tier,
+      },
+      subscription_data: {
+        metadata: {
+          userId,
+          tier,
+        },
+      },
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    return NextResponse.json({ sessionId: checkoutSession.id });
+
   } catch (error) {
-    console.error('Checkout error:', error);
-    return NextResponse.json({ 
-      error: 'Checkout failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('Stripe checkout error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create checkout session' },
+      { status: 500 }
+    );
   }
 }
