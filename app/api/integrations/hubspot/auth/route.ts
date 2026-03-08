@@ -27,7 +27,7 @@ export async function GET() {
 
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
 
-    return NextResponse.json({ url: authUrl });
+    return NextResponse.json({ authUrl: authUrl });
   } catch (error) {
     console.error('HubSpot auth error:', error);
     return NextResponse.json({ error: 'Failed to generate auth URL' }, { status: 500 });
