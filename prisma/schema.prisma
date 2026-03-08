@@ -160,3 +160,46 @@ model Task {
   @@index([userId])
   @@index([status])
 }
+
+// CRM Integration Models
+model CrmIntegration {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  type            String   // 'salesforce' or 'hubspot'
+  enabled         Boolean  @default(false)
+  
+  // OAuth credentials
+  accessToken     String?
+  refreshToken    String?
+  expiresAt       DateTime?
+  instanceUrl     String?  // Salesforce instance URL or HubSpot portal URL
+  
+  // Sync settings
+  syncDirection   String   @default("bidirectional") // 'to_crm', 'from_crm', 'bidirectional'
+  lastSyncAt      DateTime?
+  syncStatus      String   @default("disconnected") // 'connected', 'syncing', 'error'
+  lastError       String?
+  
+  // Field mappings (JSON)
+  fieldMappings   String?  // JSON: { "riskScore": "ChurnGuard_Risk_Score__c", ... }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model CrmSyncLog {
+  id              String   @id @default(cuid())
+  userId          String
+  crmType         String
+  direction       String   // 'to_crm' or 'from_crm'
+  entityType      String   // 'customer', 'opportunity', etc.
+  entityId        String
+  status          String   // 'success', 'error', 'skipped'
+  message         String?
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
