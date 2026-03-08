@@ -96,6 +96,11 @@ export default function PricingPage() {
   const { user } = useUser();
   const [loading, setLoading] = useState<string | null>(null);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
+  const [selectedMrr, setSelectedMrr] = useState(2000);
+
+  const calculateSavings = (mrr: number) => {
+    return (mrr * 12).toLocaleString();
+  };
 
   const handleSubscribe = async (tierName: string, price: number) => {
     if (!user) {
@@ -154,7 +159,7 @@ export default function PricingPage() {
             <span style={{ fontSize: '1.75rem' }}>🛡️</span> ChurnGuard
           </Link>
           <Link href="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem' }}>
-            ← Back to Dashboard
+            ← Back to Home
           </Link>
         </div>
       </header>
@@ -203,7 +208,7 @@ export default function PricingPage() {
           No meter anxiety. Just predictable protection.
         </p>
 
-        {/* ROI Calculator Mini */}
+        {/* ROI Calculator - NOW DYNAMIC */}
         <div style={{
           background: '#1e293b',
           border: '1px solid #334155',
@@ -218,21 +223,29 @@ export default function PricingPage() {
           flexWrap: 'wrap'
         }}>
           <span style={{ color: '#94a3b8' }}>If we prevent just 1 churn of</span>
-          <select style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            color: '#10b981',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '1rem'
-          }}>
-            <option>$500/mo customer</option>
-            <option>$1,000/mo customer</option>
-            <option>$2,000/mo customer</option>
+          <select 
+            value={selectedMrr}
+            onChange={(e) => setSelectedMrr(Number(e.target.value))}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #334155',
+              color: '#10b981',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={500}>$500/mo customer</option>
+            <option value={1000}>$1,000/mo customer</option>
+            <option value={2000}>$2,000/mo customer</option>
+            <option value={5000}>$5,000/mo customer</option>
           </select>
           <span style={{ color: '#94a3b8' }}>you save</span>
-          <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '1.25rem' }}>$6,000/yr</span>
+          <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '1.25rem' }}>
+            ${calculateSavings(selectedMrr)}/yr
+          </span>
         </div>
       </div>
 
@@ -427,7 +440,7 @@ export default function PricingPage() {
         color: '#64748b',
         fontSize: '0.875rem'
       }}>
-        <p>Questions? <Link href="/contact" style={{ color: '#818cf8', textDecoration: 'none' }}>Contact our team</Link> or check our <Link href="/docs" style={{ color: '#818cf8', textDecoration: 'none' }}>documentation</Link>.</p>
+        <p>Questions? <Link href="mailto:support@churnguard.io" style={{ color: '#818cf8', textDecoration: 'none' }}>Contact our team</Link></p>
       </div>
     </div>
   );
