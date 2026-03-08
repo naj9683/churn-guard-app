@@ -118,3 +118,45 @@ model WidgetMessage {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
+
+// Add these models to track alerts and tasks
+model AlertLog {
+  id          String   @id @default(cuid())
+  userId      String
+  customerId  String?
+  type        String   // 'risk_alert', 'rar_threshold', 'vip_alert', 'digest'
+  message     String
+  sentAt      DateTime @default(now())
+  
+  @@index([userId])
+  @@index([customerId])
+  @@index([sentAt])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  customerId  String
+  type        String   // 'contacted', 'task_created', etc.
+  description String
+  createdAt   DateTime @default(now())
+  
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  customerId  String
+  userId      String
+  type        String
+  title       String
+  status      String   @default("pending")
+  priority    String
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  @@index([customerId])
+  @@index([userId])
+  @@index([status])
+}
