@@ -4,7 +4,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const session = await auth();
+    const userId = session?.userId;
+    
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -152,7 +154,7 @@ function buildSlackMessage({ type, customer, riskScore, rarAmount, message, user
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*⚠️ Alert:* Your Revenue at Risk has exceeded the threshold!\\n\\n*Current RaR:* $${rarAmount?.toLocaleString() || '0'}/month`
+            text: `*⚠️ Alert:* Your Revenue at Risk has exceeded the threshold!\n\n*Current RaR:* $${rarAmount?.toLocaleString() || '0'}/month`
           }
         },
         {
@@ -203,14 +205,14 @@ function buildSlackMessage({ type, customer, riskScore, rarAmount, message, user
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*🚨 URGENT:* A high-value customer is showing churn risk!\\n\\n*Customer:* ${customer?.externalId}\\n*MRR:* $${customer?.mrr || 0}\\n*Risk Score:* ${riskScore}/100\\n*Revenue at Risk:* $${Math.round((customer?.mrr || 0) * (riskScore / 100))}`
+            text: `*🚨 URGENT:* A high-value customer is showing churn risk!\n\n*Customer:* ${customer?.externalId}\n*MRR:* $${customer?.mrr || 0}\n*Risk Score:* ${riskScore}/100\n*Revenue at Risk:* $${Math.round((customer?.mrr || 0) * (riskScore / 100))}`
           }
         },
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: '*💡 Recommended Actions:*\\n• Personal outreach from founder\\n• Offer retention discount\\n• Schedule check-in call'
+            text: '*💡 Recommended Actions:*\n• Personal outreach from founder\n• Offer retention discount\n• Schedule check-in call'
           }
         },
         {
@@ -255,19 +257,19 @@ function buildSlackMessage({ type, customer, riskScore, rarAmount, message, user
           fields: [
             {
               type: 'mrkdwn',
-              text: `*New High-Risk Customers:*\\n${message?.newHighRisk || 0}`
+              text: `*New High-Risk Customers:*\n${message?.newHighRisk || 0}`
             },
             {
               type: 'mrkdwn',
-              text: `*Churn Prevented:*\\n$${message?.churnPrevented || 0}`
+              text: `*Churn Prevented:*\n$${message?.churnPrevented || 0}`
             },
             {
               type: 'mrkdwn',
-              text: `*Playbooks Executed:*\\n${message?.playbooksRun || 0}`
+              text: `*Playbooks Executed:*\n${message?.playbooksRun || 0}`
             },
             {
               type: 'mrkdwn',
-              text: `*Avg Risk Score:*\\n${message?.avgRisk || 0}`
+              text: `*Avg Risk Score:*\n${message?.avgRisk || 0}`
             }
           ]
         },
