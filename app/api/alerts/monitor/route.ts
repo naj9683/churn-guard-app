@@ -8,18 +8,16 @@ const RAR_ALERT_THRESHOLD = 5000;
 
 export async function POST(req: Request) {
   try {
-    // Get all users with their customers
+    // Get all users
     const users = await prisma.user.findMany({
       include: {
-        customers: true,
-        settings: true
+        customers: true
       }
     });
     
     for (const user of users) {
-      // Skip if no Slack webhook configured
-      const slackWebhookUrl = user?.settings?.slackWebhookUrl;
-      if (!slackWebhookUrl) continue;
+      // Skip if no Slack webhook configured (stored directly on User)
+      if (!user.slackWebhookUrl) continue;
       
       // Calculate RaR
       let totalMRR = 0;
