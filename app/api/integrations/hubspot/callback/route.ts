@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     const error = url.searchParams.get('error');
 
     if (error) {
+      console.error('HubSpot OAuth error:', error);
       return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=${error}`);
     }
 
@@ -20,8 +21,10 @@ export async function GET(req: Request) {
       return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=missing_params');
     }
 
-    // State is just the userId (plain string)
-    const userId = state;
+    // Decode the state back to userId
+    const userId = decodeURIComponent(state);
+
+    console.log('Exchanging code for token...');
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/token', {
@@ -39,9 +42,11 @@ export async function GET(req: Request) {
     const tokens = await tokenResponse.json();
 
     if (!tokenResponse.ok) {
-      console.error('HubSpot token error:', tokens);
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
+      console.error('Token exchange failed:', tokens);
+      return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=token_failed&details=${encodeURIComponent(JSON.stringify(tokens))}`);
     }
+
+    console.log('Token received, saving to database...');
 
     // Save to database
     await prisma.crmIntegration.upsert({
@@ -68,6 +73,6 @@ export async function GET(req: Request) {
     return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?success=hubspot_connected');
   } catch (error) {
     console.error('HubSpot callback error:', error);
-    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=callback_error');
+    return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=callback_error&message=${encodeURIComponent(error.message)}`);
   }
 }
