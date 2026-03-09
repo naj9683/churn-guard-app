@@ -14,8 +14,7 @@ export async function GET() {
     }
 
     const state = userId;
-    
-    // Correct OAuth scope names for HubSpot
+
     const scopes = [
       'crm.objects.contacts.read',
       'crm.objects.contacts.write',
