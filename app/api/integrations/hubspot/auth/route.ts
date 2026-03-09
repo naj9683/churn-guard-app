@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
-const REDIRECT_URI = `${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/api/integrations/hubspot/callback`;
+const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/hubspot/callback';
 
 export async function GET() {
   try {
@@ -13,21 +13,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
-    
+    const state = userId;
+
+    // Valid OAuth scopes only
     const scopes = [
-      'crm.schemas.read',
       'crm.objects.contacts.read',
       'crm.objects.contacts.write',
       'crm.objects.companies.read',
-      'crm.objects.companies.write',
-      'oauth',
-      'refresh_token'
+      'crm.objects.companies.write'
     ].join(' ');
 
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
 
-    return NextResponse.json({ authUrl: authUrl });
+    return NextResponse.json({ authUrl });
   } catch (error) {
     console.error('HubSpot auth error:', error);
     return NextResponse.json({ error: 'Failed to generate auth URL' }, { status: 500 });
