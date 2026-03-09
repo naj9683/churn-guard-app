@@ -13,8 +13,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Clean state - no spaces, URL safe
-    const state = encodeURIComponent(userId.trim());
+    // TRIM the userId to remove any trailing spaces!
+    const cleanUserId = userId.trim();
+    const state = encodeURIComponent(cleanUserId);
 
     const scopes = 'crm.objects.contacts.read crm.objects.contacts.write crm.objects.companies.read crm.objects.companies.write';
     
