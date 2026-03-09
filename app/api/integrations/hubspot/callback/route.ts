@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
     if (!tokenResponse.ok) {
       console.error('Token exchange failed:', tokens);
-      return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=token_failed&details=${encodeURIComponent(JSON.stringify(tokens))}`);
+      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
     }
 
     console.log('Token received, saving to database...');
@@ -71,8 +71,9 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?success=hubspot_connected');
-  } catch (error) {
+  } catch (error: any) {
     console.error('HubSpot callback error:', error);
-    return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=callback_error&message=${encodeURIComponent(error.message)}`);
+    const errorMessage = error?.message || 'Unknown error';
+    return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=callback_error&message=${encodeURIComponent(errorMessage)}`);
   }
 }
