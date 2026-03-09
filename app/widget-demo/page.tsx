@@ -46,15 +46,20 @@ export default function WidgetDemoPage() {
             Live Widget Demo
           </h1>
         </div>
-        <div style={{ 
-          padding: '0.5rem 1rem', 
-          background: '#f1f5f9', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          color: '#64748b'
-        }}>
-          Try it yourself →
-        </div>
+        <Link 
+          href="/widget-messages" 
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#6366f1',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '500'
+          }}
+        >
+          Create Messages
+        </Link>
       </div>
 
       <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
@@ -193,6 +198,34 @@ export default function WidgetDemoPage() {
                 🔴 About to Churn (85%)
               </button>
             </div>
+          </div>
+
+          {/* Manual Toggle */}
+          <div style={{ marginBottom: '2rem' }}>
+            <button
+              onClick={() => {
+                if (showWidget) {
+                  setShowWidget(false);
+                  setWidgetDismissed(true);
+                } else {
+                  setShowWidget(true);
+                  setWidgetDismissed(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: showWidget ? '#ef4444' : '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              {showWidget ? 'Hide Widget' : 'Show Widget Manually'}
+            </button>
           </div>
 
           {/* Info Box */}
