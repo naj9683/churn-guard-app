@@ -20,8 +20,11 @@ export async function GET(req: Request) {
       return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=missing_params');
     }
 
-    const userId = state;
+    // Decode state to get userId and codeVerifier
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    const { userId, codeVerifier } = stateData;
 
+    // Exchange code for tokens WITH code_verifier
     const tokenResponse = await fetch('https://login.salesforce.com/services/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -31,6 +34,7 @@ export async function GET(req: Request) {
         client_id: SALESFORCE_CLIENT_ID,
         client_secret: SALESFORCE_CLIENT_SECRET,
         redirect_uri: REDIRECT_URI,
+        code_verifier: codeVerifier, // REQUIRED for PKCE
       }),
     });
 
@@ -41,6 +45,7 @@ export async function GET(req: Request) {
       return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
     }
 
+    // Save to database
     await prisma.crmIntegration.upsert({
       where: { userId },
       update: {
