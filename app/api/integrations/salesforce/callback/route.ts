@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 const SALESFORCE_CLIENT_ID = process.env.SALESFORCE_CLIENT_ID!;
 const SALESFORCE_CLIENT_SECRET = process.env.SALESFORCE_CLIENT_SECRET!;
-const REDIRECT_URI = `${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/api/integrations/salesforce/callback`;
+const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/salesforce/callback';
 
 export async function GET(req: Request) {
   try {
@@ -13,17 +13,15 @@ export async function GET(req: Request) {
     const error = url.searchParams.get('error');
 
     if (error) {
-      console.error('OAuth error:', error);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?error=${error}`);
+      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=' + error);
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?error=missing_params`);
+      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=missing_params');
     }
 
     const userId = state;
 
-    // Exchange code for tokens
     const tokenResponse = await fetch('https://login.salesforce.com/services/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -40,51 +38,33 @@ export async function GET(req: Request) {
 
     if (!tokenResponse.ok) {
       console.error('Token error:', tokens);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?error=token_failed`);
+      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
     }
 
-    // DEBUG: Log what we're trying to save
-    console.log('Saving to database:', {
-      userId,
-      type: 'salesforce',
-      hasAccessToken: !!tokens.access_token,
-      hasRefreshToken: !!tokens.refresh_token,
-      instanceUrl: tokens.instance_url,
-      expiresIn: tokens.expires_in,
+    await prisma.crmIntegration.upsert({
+      where: { userId },
+      update: {
+        type: 'salesforce',
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        instanceUrl: tokens.instance_url,
+        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        syncStatus: 'connected',
+      },
+      create: {
+        userId,
+        type: 'salesforce',
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        instanceUrl: tokens.instance_url,
+        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        syncStatus: 'connected',
+      },
     });
 
-    try {
-      // Save to database
-      await prisma.crmIntegration.upsert({
-        where: { userId },
-        update: {
-          type: 'salesforce',
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          instanceUrl: tokens.instance_url,
-          expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-          syncStatus: 'connected',
-        },
-        create: {
-          userId,
-          type: 'salesforce',
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          instanceUrl: tokens.instance_url,
-          expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-          syncStatus: 'connected',
-        },
-      });
-      
-      console.log('Database save SUCCESS');
-    } catch (dbError) {
-      console.error('Database save FAILED:', dbError);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?error=database_error`);
-    }
-
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?success=salesforce_connected`);
+    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?success=salesforce_connected');
   } catch (error) {
     console.error('Callback error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_URL || 'https://churn-guard-app.vercel.app'}/settings/integrations?error=callback_failed`);
+    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=callback_failed');
   }
 }
