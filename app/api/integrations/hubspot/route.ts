@@ -15,13 +15,12 @@ export async function GET() {
 
     const state = userId;
     
-    // OAuth scope names (different from Private App scopes)
+    // Correct OAuth scope names for HubSpot
     const scopes = [
       'crm.objects.contacts.read',
       'crm.objects.contacts.write',
       'crm.objects.companies.read',
-      'crm.objects.companies.write',
-      'oauth'
+      'crm.objects.companies.write'
     ].join(' ');
 
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
