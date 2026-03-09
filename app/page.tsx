@@ -20,9 +20,9 @@ export default function Home() {
 
       {/* Hero Section */}
       <section style={{padding: '6rem 2rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto'}}>
-        <div style={{ 
-          display: 'inline-block', 
-          background: 'rgba(99, 102, 241, 0.1)', 
+        <div style={{
+          display: 'inline-block',
+          background: 'rgba(99, 102, 241, 0.1)',
           color: '#818cf8',
           padding: '0.5rem 1rem',
           borderRadius: '9999px',
@@ -33,12 +33,12 @@ export default function Home() {
         }}>
           💰 Guaranteed: Save 10× your subscription or money back
         </div>
-        
+
         <h1 style={{fontSize: '3.5rem', fontWeight: '700', marginBottom: '1.5rem', lineHeight: '1.1'}}>
           Stop Losing Revenue to Churn
         </h1>
         <p style={{fontSize: '1.25rem', color: '#94a3b8', marginBottom: '2rem', lineHeight: '1.6'}}>
-          AI-powered Revenue at Risk (RaR) dashboard. Know exactly how many dollars are at risk, 
+          AI-powered Revenue at Risk (RaR) dashboard. Know exactly how many dollars are at risk,
           not just percentages. Automated playbooks that save customers before they churn.
         </p>
         <div style={{display: 'flex', gap: '1rem', justifyContent: 'center'}}>
@@ -50,7 +50,7 @@ export default function Home() {
             borderRadius: '0.5rem',
             fontWeight: '600'
           }}>
-            Start Free Trial
+            Get Started
           </Link>
           <Link href="/dashboard" style={{
             padding: '1rem 2rem',
@@ -87,6 +87,11 @@ export default function Home() {
               <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Get alerts with action buttons: View Account, Mark Contacted, Create Task</p>
             </div>
             <div style={{padding: '1.5rem', background: '#1e293b', borderRadius: '0.75rem'}}>
+              <div style={{fontSize: '2rem', marginBottom: '1rem'}}>🍊</div>
+              <h3 style={{marginBottom: '0.5rem'}}>HubSpot & Salesforce Sync</h3>
+              <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Bi-directional CRM integration. Sync churn risk scores directly to your CRM.</p>
+            </div>
+            <div style={{padding: '1.5rem', background: '#1e293b', borderRadius: '0.75rem'}}>
               <div style={{fontSize: '2rem', marginBottom: '1rem'}}>🔮</div>
               <h3 style={{marginBottom: '0.5rem'}}>Predict Churn</h3>
               <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>AI identifies customers likely to churn before they cancel</p>
@@ -96,24 +101,17 @@ export default function Home() {
               <h3 style={{marginBottom: '0.5rem'}}>VIP Alerts</h3>
               <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Special notifications for high-value customers at risk</p>
             </div>
-            <div style={{padding: '1.5rem', background: '#1e293b', borderRadius: '0.75rem'}}>
-              <div style={{fontSize: '2rem', marginBottom: '1rem'}}>📊</div>
-              <h3 style={{marginBottom: '0.5rem'}}>Monthly Digest</h3>
-              <p style={{color: '#94a3b8', fontSize: '0.875rem'}}>Automated 30-day summaries with churn prevented and ROI tracking</p>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section - Updated */}
+      {/* Pricing Section */}
       <section id="pricing" style={{padding: '6rem 2rem', background: '#0a0a1a'}}>
         <div style={{maxWidth: '1000px', margin: '0 auto', textAlign: 'center'}}>
           <h2 style={{fontSize: '2.5rem', marginBottom: '1rem'}}>Simple, tier-based pricing</h2>
           <p style={{color: '#64748b', marginBottom: '3rem'}}>Flat-rate based on your MRR band. No meter anxiety. Predictable billing.</p>
 
-          {/* Pricing Cards Grid */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem'}}>
-            
             {/* Seed */}
             <div style={{background: '#1e293b', borderRadius: '1rem', padding: '2rem', border: '1px solid #334155', textAlign: 'left'}}>
               <div style={{marginBottom: '1rem'}}>
@@ -123,7 +121,6 @@ export default function Home() {
               <div style={{marginBottom: '1.5rem'}}>
                 <span style={{fontSize: '2.5rem', fontWeight: '700'}}>$79</span>
                 <span style={{color: '#64748b'}}>/month</span>
-                <div style={{color: '#10b981', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: '600'}}>Protect $50K for 0.16%</div>
               </div>
               <Link href="/pricing" style={{
                 display: 'block',
@@ -144,26 +141,11 @@ export default function Home() {
                 <div>✓ Up to 100 customers</div>
                 <div>✓ Basic playbooks</div>
                 <div>✓ Slack alerts</div>
-                <div>✓ Email support</div>
               </div>
             </div>
 
-            {/* Growth - Popular */}
-            <div style={{background: '#1e293b', borderRadius: '1rem', padding: '2rem', border: '2px solid #6366f1', textAlign: 'left', position: 'relative'}}>
-              <div style={{
-                position: 'absolute',
-                top: '-12px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#6366f1',
-                color: 'white',
-                padding: '0.25rem 1rem',
-                borderRadius: '9999px',
-                fontSize: '0.75rem',
-                fontWeight: '600'
-              }}>
-                Most Popular
-              </div>
+            {/* Growth */}
+            <div style={{background: '#1e293b', borderRadius: '1rem', padding: '2rem', border: '2px solid #6366f1', textAlign: 'left'}}>
               <div style={{marginBottom: '1rem'}}>
                 <h3 style={{fontSize: '1.25rem', marginBottom: '0.25rem', color: '#818cf8'}}>Growth</h3>
                 <p style={{color: '#64748b', fontSize: '0.875rem'}}>$50K – $200K MRR</p>
@@ -171,7 +153,6 @@ export default function Home() {
               <div style={{marginBottom: '1.5rem'}}>
                 <span style={{fontSize: '2.5rem', fontWeight: '700'}}>$149</span>
                 <span style={{color: '#64748b'}}>/month</span>
-                <div style={{color: '#10b981', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: '600'}}>Protect $200K for 0.07%</div>
               </div>
               <Link href="/pricing" style={{
                 display: 'block',
@@ -191,8 +172,6 @@ export default function Home() {
                 <div>✓ Unlimited customers</div>
                 <div>✓ Advanced playbooks</div>
                 <div>✓ VIP alerts</div>
-                <div>✓ Priority support</div>
-                <div>✓ 30-day forecasting</div>
               </div>
             </div>
 
@@ -205,7 +184,6 @@ export default function Home() {
               <div style={{marginBottom: '1.5rem'}}>
                 <span style={{fontSize: '2.5rem', fontWeight: '700'}}>$299</span>
                 <span style={{color: '#64748b'}}>/month</span>
-                <div style={{color: '#10b981', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: '600'}}>Protect $1M for 0.03%</div>
               </div>
               <Link href="/pricing" style={{
                 display: 'block',
@@ -226,36 +204,12 @@ export default function Home() {
                 <div>✓ Unlimited everything</div>
                 <div>✓ API access</div>
                 <div>✓ Custom risk models</div>
-                <div>✓ Team collaboration</div>
-                <div>✓ 1-year data retention</div>
               </div>
-            </div>
-
-          </div>
-
-          {/* Enterprise */}
-          <div style={{marginTop: '2rem', padding: '1.5rem', background: '#1e293b', borderRadius: '1rem', border: '1px solid #334155'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'}}>
-              <div style={{textAlign: 'left'}}>
-                <h3 style={{marginBottom: '0.25rem'}}>Enterprise</h3>
-                <p style={{color: '#64748b', fontSize: '0.875rem'}}>$1M+ MRR • White-glove onboarding • Custom SLA • Dedicated success manager</p>
-              </div>
-              <Link href="mailto:sales@churnguard.io" style={{
-                padding: '0.75rem 1.5rem',
-                background: 'transparent',
-                color: 'white',
-                border: '1px solid #334155',
-                borderRadius: '0.5rem',
-                textDecoration: 'none',
-                fontWeight: '600'
-              }}>
-                Contact Sales
-              </Link>
             </div>
           </div>
 
           <div style={{marginTop: '2rem', color: '#64748b', fontSize: '0.875rem'}}>
-            14-day free trial • Cancel anytime • No setup fees • Money-back guarantee
+            Cancel anytime • No setup fees • Money-back guarantee
           </div>
         </div>
       </section>
