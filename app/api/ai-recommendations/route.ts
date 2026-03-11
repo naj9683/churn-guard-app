@@ -60,7 +60,7 @@ async function generateRecommendation(userId: string, customer: any) {
   });
   
   const daysSinceLogin = lastLogin 
-    ? Math.floor((Date.now() - lastLogin.timestamp) / (1000 * 60 * 60 * 24))
+    ? Math.floor((Date.now() - Number(lastLogin.timestamp)) / (1000 * 60 * 60 * 24))
     : 30;
 
   // Find matching patterns
