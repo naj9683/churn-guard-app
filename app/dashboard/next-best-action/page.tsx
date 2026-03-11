@@ -94,13 +94,6 @@ export default function NextBestActionPage() {
         </button>
       </div>
 
-          color: '#f59e0b',
-          fontSize: '0.875rem'
-        }}>
-          💡 <strong>Learning mode:</strong> {rec.recommendation.note}
-        </div>
-      )}
-
       <div style={{ display: 'grid', gap: '1.5rem' }}>
         {recommendations.length > 0 ? recommendations.map((rec) => (
           <RecommendationCard 
@@ -156,6 +149,20 @@ function RecommendationCard({ rec, onExecute, isLoading }: { rec: any, onExecute
       padding: '1.5rem',
       border: `2px solid ${actionColors[rec.recommendation.action] || '#6366f1'}`
     }}>
+      {!rec.recommendation.isPatternBased && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '0.5rem',
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          color: '#f59e0b',
+          fontSize: '0.875rem'
+        }}>
+          💡 Learning mode: Patterns will improve as more data is collected
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{rec.customer.name}</h3>
