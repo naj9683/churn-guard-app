@@ -8,21 +8,45 @@ export default function NextBestActionPage() {
   const { user } = useUser();
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [intervening, setIntervening] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<Date>(new Date());
 
   useEffect(() => {
     if (user) fetchRecommendations();
-  }, [user]);
+  }, [user, lastFetch]);
 
   async function fetchRecommendations() {
+    setLoading(true);
+    setError(null);
     try {
+      console.log('Fetching recommendations...');
       const res = await fetch('/api/ai-recommendations');
-      if (res.ok) {
-        const data = await res.json();
-        setRecommendations(Array.isArray(data) ? data : [data]);
+      console.log('Response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error('API Error:', errorData);
+        setError(`Failed to load: ${res.status} - ${errorData}`);
+        setRecommendations([]);
+        return;
       }
-    } catch (error) {
-      console.error('Error:', error);
+      
+      const data = await res.json();
+      console.log('Received data:', data);
+      
+      if (Array.isArray(data)) {
+        setRecommendations(data);
+      } else if (data.error) {
+        setError(data.error);
+        setRecommendations([]);
+      } else {
+        setRecommendations([data]);
+      }
+    } catch (error: any) {
+      console.error('Fetch Error:', error);
+      setError(`Network error: ${error.message}`);
+      setRecommendations([]);
     } finally {
       setLoading(false);
     }
@@ -46,10 +70,13 @@ export default function NextBestActionPage() {
       });
 
       if (res.ok) {
-        alert(`Intervention "${rec.recommendation.action}" started for ${rec.customer.name}`);
+        alert(`Intervention started for ${rec.customer.name}`);
+      } else {
+        alert('Failed to start intervention');
       }
     } catch (error) {
       console.error('Error:', error);
+      alert('Error starting intervention');
     } finally {
       setIntervening(null);
     }
@@ -58,7 +85,10 @@ export default function NextBestActionPage() {
   if (loading) {
     return (
       <div style={{ padding: '2rem', color: 'white' }}>
-        Loading AI Recommendations...
+        <div>Loading AI Recommendations...</div>
+        <div style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+          Checking for high-risk customers (60%+ risk score)...
+        </div>
       </div>
     );
   }
@@ -75,34 +105,57 @@ export default function NextBestActionPage() {
         <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🤖 Next Best Action</h1>
           <p style={{ color: '#94a3b8' }}>
-            AI-recommended interventions based on patterns from your successful saves
+            AI-recommended interventions for customers with 60%+ risk score
           </p>
         </div>
         <button 
-          onClick={fetchRecommendations}
+          onClick={() => {
+            console.log('Refresh clicked');
+            setLastFetch(new Date());
+          }}
+          disabled={loading}
           style={{
             padding: '0.75rem 1.5rem',
-            background: '#6366f1',
+            background: loading ? '#475569' : '#6366f1',
             color: 'white',
             border: 'none',
             borderRadius: '0.5rem',
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             fontWeight: '500'
           }}
         >
-          Refresh Recommendations
+          {loading ? 'Loading...' : 'Refresh Recommendations'}
         </button>
       </div>
 
+      {error && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          marginBottom: '2rem',
+          color: '#ef4444'
+        }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      <div style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.875rem' }}>
+        Found {recommendations.length} high-risk customer{recommendations.length !== 1 ? 's' : ''}
+      </div>
+
       <div style={{ display: 'grid', gap: '1.5rem' }}>
-        {recommendations.length > 0 ? recommendations.map((rec) => (
-          <RecommendationCard 
-            key={rec.customer.id} 
-            rec={rec} 
-            onExecute={() => executeIntervention(rec)}
-            isLoading={intervening === rec.customer.id}
-          />
-        )) : (
+        {recommendations.length > 0 ? (
+          recommendations.map((rec, index) => (
+            <RecommendationCard 
+              key={`${rec.customer.id}-${index}`} 
+              rec={rec} 
+              onExecute={() => executeIntervention(rec)}
+              isLoading={intervening === rec.customer.id}
+            />
+          ))
+        ) : (
           <div style={{ 
             background: '#1e293b', 
             borderRadius: '1rem', 
@@ -110,7 +163,16 @@ export default function NextBestActionPage() {
             textAlign: 'center',
             color: '#94a3b8'
           }}>
-            No high-risk customers found. Great job! 🎉
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'white' }}>
+              No high-risk customers found!
+            </div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              Your customers are healthy. The AI shows recommendations when risk score is 60% or higher.
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+              Total checked: {recommendations.length} | Threshold: 60% risk score
+            </div>
           </div>
         )}
       </div>
@@ -165,7 +227,7 @@ function RecommendationCard({ rec, onExecute, isLoading }: { rec: any, onExecute
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{rec.customer.name}</h3>
+          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{rec.customer.name || 'Unknown'}</h3>
           <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.875rem' }}>{rec.customer.email}</p>
         </div>
         <div style={{ 
@@ -186,10 +248,10 @@ function RecommendationCard({ rec, onExecute, isLoading }: { rec: any, onExecute
         gap: '1rem',
         marginBottom: '1.5rem'
       }}>
-        <Stat label="MRR" value={`$${rec.customer.mrr}`} />
+        <Stat label="MRR" value={`$${rec.customer.mrr || 0}`} />
         <Stat label="Risk Score" value={`${rec.customer.riskScore}%`} color={rec.customer.riskScore > 80 ? '#ef4444' : '#f59e0b'} />
         <Stat label="Plan" value={rec.customer.plan || 'Unknown'} />
-        <Stat label="Days Since Login" value={rec.customer.daysSinceLogin} />
+        <Stat label="Days Since Login" value={rec.customer.daysSinceLogin || 'N/A'} />
       </div>
 
       <div style={{ 
@@ -223,7 +285,7 @@ function RecommendationCard({ rec, onExecute, isLoading }: { rec: any, onExecute
           <div>
             <span style={{ color: '#64748b' }}>Est. MRR Saved: </span>
             <span style={{ color: '#10b981', fontWeight: '600' }}>
-              ${rec.recommendation.estimatedMrrSaved.toLocaleString()}
+              ${(rec.recommendation.estimatedMrrSaved || 0).toLocaleString()}
             </span>
           </div>
           {rec.recommendation.historicalSuccessRate && (
@@ -232,34 +294,10 @@ function RecommendationCard({ rec, onExecute, isLoading }: { rec: any, onExecute
               <span style={{ color: '#6366f1', fontWeight: '600' }}>
                 {rec.recommendation.historicalSuccessRate}%
               </span>
-              <span style={{ color: '#475569', marginLeft: '0.5rem' }}>
-                ({rec.recommendation.similarCasesSaved}/{rec.recommendation.similarCasesAttempted} cases)
-              </span>
             </div>
           )}
         </div>
       </div>
-
-      {rec.recommendation.alternativeActions.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
-            Alternative approaches:
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {rec.recommendation.alternativeActions.map((alt: any, idx: number) => (
-              <span key={idx} style={{
-                background: '#334155',
-                padding: '0.5rem 0.75rem',
-                borderRadius: '0.25rem',
-                fontSize: '0.75rem',
-                color: '#94a3b8'
-              }}>
-                {actionLabels[alt.action] || alt.action.replace(/_/g, ' ')} ({alt.successRate}%)
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       <button
         onClick={onExecute}
