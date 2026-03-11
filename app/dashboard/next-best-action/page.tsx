@@ -94,13 +94,6 @@ export default function NextBestActionPage() {
         </button>
       </div>
 
-      {!rec.recommendation.isPatternBased && (
-        <div style={{
-          background: 'rgba(245, 158, 11, 0.1)',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
-          borderRadius: '0.5rem',
-          padding: '1rem',
-          marginBottom: '2rem',
           color: '#f59e0b',
           fontSize: '0.875rem'
         }}>
