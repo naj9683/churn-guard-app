@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     console.log('STEP 1: Getting auth...');
     const { userId } = await auth();
     console.log('STEP 1: userId =', userId);
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'No userId from auth' }, { status: 401 });
     }
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       select: { id: true }
     });
     console.log('STEP 2: user =', user);
-    
+
     if (!user) {
       return NextResponse.json({ error: 'User not in database' }, { status: 404 });
     }
@@ -26,6 +26,10 @@ export async function POST(request: Request) {
     console.log('STEP 3: Parsing request...');
     const data = await request.json();
     console.log('STEP 3: data =', data);
+
+    if (!data.customerId) {
+      return NextResponse.json({ error: 'Missing customerId' }, { status: 400 });
+    }
 
     console.log('STEP 4: Finding customer...');
     const customer = await prisma.customer.findFirst({
@@ -56,8 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, intervention });
 
   } catch (error: any) {
-    console.error('ERROR at step:', error.message);
-    console.error('Full error:', error);
+    console.error('ERROR:', error.message);
     return NextResponse.json({ 
       error: 'Failed', 
       message: error.message,
