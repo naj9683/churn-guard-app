@@ -1,11 +1,12 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -14,13 +15,13 @@ export async function POST(req: Request) {
     });
     
     if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const data = await req.json();
+    const data = await request.json();
     
     if (!data.customerId) {
-      return Response.json({ error: 'Missing customerId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing customerId' }, { status: 400 });
     }
 
     const customer = await prisma.customer.findFirst({
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     });
 
     if (!customer) {
-      return Response.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
     const intervention = await prisma.interventionOutcome.create({
@@ -48,26 +49,26 @@ export async function POST(req: Request) {
       }
     });
 
-    return Response.json({ 
+    return NextResponse.json({ 
       success: true, 
-      message: 'Intervention started',
+      message: 'Intervention started successfully',
       intervention 
     });
 
   } catch (error: any) {
     console.error('POST Error:', error);
-    return Response.json({ 
+    return NextResponse.json({ 
       success: false,
       error: error.message || 'Failed to create intervention'
     }, { status: 500 });
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -76,14 +77,14 @@ export async function PATCH(req: Request) {
     });
     
     if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { interventionId, status, mrrSaved, mrrLost, notes } = body;
     
     if (!interventionId) {
-      return Response.json({ error: 'Missing interventionId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing interventionId' }, { status: 400 });
     }
     
     const updateData: any = {
@@ -108,11 +109,11 @@ export async function PATCH(req: Request) {
 
     await updatePatternStats(user.id, intervention);
     
-    return Response.json({ success: true, intervention });
+    return NextResponse.json({ success: true, intervention });
     
   } catch (error: any) {
     console.error('PATCH Error:', error);
-    return Response.json({ 
+    return NextResponse.json({ 
       error: error.message || 'Failed to update intervention'
     }, { status: 500 });
   }
