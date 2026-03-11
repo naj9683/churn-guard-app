@@ -203,3 +203,82 @@ model CrmSyncLog {
   @@index([userId])
   @@index([createdAt])
 }
+
+// Track which interventions actually saved revenue
+model InterventionOutcome {
+  id            String    @id @default(cuid())
+  userId        String
+  customerId    String
+  playbookId    String?
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Intervention details
+  interventionType  String    // 'discount_offer', 'training_session', 'ceo_call', 'webinar_invite', etc.
+  triggerEvent      String?   // What triggered it: 'risk_spike', 'login_streak_broken', 'support_ticket'
+  
+  // Financial tracking
+  mrrAtRisk         Int       // MRR value when intervention started
+  mrrSaved          Int       @default(0)  // Actual MRR retained
+  mrrLost           Int       @default(0)  // If churned anyway
+  interventionCost  Int       @default(0)  // Cost of discount/effort (optional)
+  
+  // Timeline
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  churnedAt     DateTime?  // If they churned despite intervention
+  
+  // Pattern matching data
+  customerSegment   String?   // 'enterprise', 'smb', 'startup'
+  riskScoreAtStart  Int
+  daysSinceLogin    Int?
+  plan              String?
+  
+  // Outcome tracking
+  status        String    @default("pending") // 'pending', 'saved', 'churned', 'no_change'
+  notes         String?
+  
+  // For AI pattern learning
+  successful    Boolean?  // true if saved, false if churned
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([customerId])
+  @@index([interventionType])
+  @@index([status])
+  @@index([successful])
+}
+
+// Store patterns for Next Best Action AI
+model RecommendationPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Pattern definition
+  customerSegment     String    // 'enterprise', 'smb', etc.
+  riskRangeMin        Int       // 0-100
+  riskRangeMax        Int       // 0-100
+  plan                String?   // 'pro', 'enterprise', etc.
+  
+  // What was recommended
+  recommendedAction   String    // 'discount', 'training', 'ceo_call', etc.
+  
+  // Success metrics
+  timesAttempted      Int       @default(0)
+  timesSuccessful     Int       @default(0)
+  avgMrrSaved         Int       @default(0)
+  successRate         Float     @default(0)  // Calculated: timesSuccessful / timesAttempted
+  
+  // Metadata
+  lastUsed            DateTime  @default(now())
+  isActive            Boolean   @default(true)
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([customerSegment])
+  @@index([riskRangeMin, riskRangeMax])
+  @@index([successRate])
+}

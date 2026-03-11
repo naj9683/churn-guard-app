@@ -77,6 +77,8 @@ export default function Dashboard() {
     { href: '/widget-messages', label: 'Widget', icon: '💬' },
     { href: '/email-campaigns', label: 'Email Campaigns', icon: '📧' },
     { href: '/analytics', label: 'Analytics', icon: '📈' },
+    { href: '/dashboard/revenue-impact', label: 'Revenue Impact', icon: '💰' },
+    { href: '/dashboard/next-best-action', label: 'AI Actions', icon: '🤖' },
     { href: '/integrations', label: 'Integrations', icon: '🔌', adminOnly: true },
     { href: '/admin', label: 'Admin Panel', icon: '🔐', adminOnly: true },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
