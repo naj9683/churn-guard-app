@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Intervention {
   id: string;
@@ -17,6 +19,7 @@ interface Intervention {
 export default function InterventionsPage() {
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, pending: 0, saved: 0, churned: 0 });
 
   useEffect(() => {
     fetch('/api/interventions')
@@ -24,60 +27,194 @@ export default function InterventionsPage() {
       .then(data => {
         if (data.interventions) {
           setInterventions(data.interventions);
+          // Calculate stats
+          const pending = data.interventions.filter((i: Intervention) => i.status === 'pending').length;
+          const saved = data.interventions.filter((i: Intervention) => i.status === 'saved').length;
+          const churned = data.interventions.filter((i: Intervention) => i.status === 'churned').length;
+          setStats({
+            total: data.interventions.length,
+            pending,
+            saved,
+            churned
+          });
         }
         setLoading(false);
       });
   }, []);
 
-  if (loading) return <div className="p-8">Loading interventions...</div>;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' };
+      case 'saved': return { bg: '#d1fae5', text: '#065f46', border: '#10b981' };
+      case 'churned': return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' };
+      default: return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' };
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+          <div>Loading interventions...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Interventions</h1>
-      
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Score</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Segment</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {interventions.map((intervention) => (
-              <tr key={intervention.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {intervention.customerId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {intervention.interventionType}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    intervention.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    intervention.status === 'saved' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {intervention.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {intervention.riskScoreAtStart}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {intervention.customerSegment}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(intervention.createdAt).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Header with Back Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+          <Link 
+            href="/dashboard" 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#94a3b8',
+              textDecoration: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              border: '1px solid #334155',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span>←</span> Back to Dashboard
+          </Link>
+        </div>
+
+        {/* Page Title */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ color: 'white', fontSize: '2.5rem', fontWeight: '700', margin: '0 0 0.5rem 0' }}>
+            🔧 Interventions
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '1rem' }}>
+            Track and manage all customer retention interventions
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '1.5rem', 
+          marginBottom: '2rem' 
+        }}>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Total Interventions</div>
+            <div style={{ color: 'white', fontSize: '2rem', fontWeight: '700' }}>{stats.total}</div>
+          </div>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', borderTop: '3px solid #f59e0b' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Pending</div>
+            <div style={{ color: '#f59e0b', fontSize: '2rem', fontWeight: '700' }}>{stats.pending}</div>
+          </div>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', borderTop: '3px solid #10b981' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Saved</div>
+            <div style={{ color: '#10b981', fontSize: '2rem', fontWeight: '700' }}>{stats.saved}</div>
+          </div>
+          <div style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', borderTop: '3px solid #ef4444' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Churned</div>
+            <div style={{ color: '#ef4444', fontSize: '2rem', fontWeight: '700' }}>{stats.churned}</div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div style={{ background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', overflow: 'hidden' }}>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>All Interventions</h2>
+            <Link 
+              href="/dashboard/next-best-action" 
+              style={{
+                background: '#6366f1',
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                textDecoration: 'none',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <span>+</span> New Intervention
+            </Link>
+          </div>
+          
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#0f172a' }}>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer ID</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Score</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Segment</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'left', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MRR at Risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interventions.map((intervention) => {
+                  const statusStyle = getStatusColor(intervention.status);
+                  return (
+                    <tr key={intervention.id} style={{ borderTop: '1px solid #334155', transition: 'background 0.2s' }}>
+                      <td style={{ padding: '1.25rem 1.5rem', color: 'white', fontWeight: '500' }}>
+                        {intervention.customerId.substring(0, 20)}...
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem', color: '#cbd5e1', textTransform: 'capitalize' }}>
+                        {intervention.interventionType.replace(/_/g, ' ')}
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background: statusStyle.bg,
+                          color: statusStyle.text,
+                          border: `1px solid ${statusStyle.border}`
+                        }}>
+                          {intervention.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem', color: intervention.riskScoreAtStart >= 70 ? '#ef4444' : '#f59e0b', fontWeight: '600' }}>
+                        {intervention.riskScoreAtStart}%
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem', color: '#cbd5e1', textTransform: 'capitalize' }}>
+                        {intervention.customerSegment}
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem', color: '#94a3b8' }}>
+                        {formatDate(intervention.createdAt)}
+                      </td>
+                      <td style={{ padding: '1.25rem 1.5rem', color: '#ef4444', fontWeight: '600' }}>
+                        ${intervention.mrrAtRisk.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          {interventions.length === 0 && (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔧</div>
+              <div>No interventions yet. Start by creating one from the AI Actions page.</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
