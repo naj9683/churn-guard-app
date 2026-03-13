@@ -74,6 +74,7 @@ export default function Dashboard() {
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/customers', label: 'Customers', icon: '👥' },
     { href: '/playbooks', label: 'Playbooks', icon: '⚡' },
+    { href: '/dashboard/interventions', label: 'Interventions', icon: '🔧' },
     { href: '/widget-messages', label: 'Widget', icon: '💬' },
     { href: '/email-campaigns', label: 'Email Campaigns', icon: '📧' },
     { href: '/analytics', label: 'Analytics', icon: '📈' },
