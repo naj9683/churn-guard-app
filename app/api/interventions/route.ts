@@ -134,8 +134,6 @@ export async function PATCH(request: Request) {
       data: updateData
     });
     
-    await updatePatternStats(user.id, intervention);
-    
     return NextResponse.json({ success: true, intervention });
     
   } catch (error: any) {
@@ -146,53 +144,38 @@ export async function PATCH(request: Request) {
   }
 }
 
-// Helper function to update pattern statistics
-async function updatePatternStats(userId: string, intervention: any) {
+// DELETE handler - delete intervention
+export async function DELETE(request: Request) {
   try {
-    if (!intervention.customerSegment || !intervention.interventionType) {
-      return;
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const pattern = await prisma.recommendationPattern.findFirst({
-      where: {
-        userId,
-        customerSegment: intervention.customerSegment,
-        recommendedAction: intervention.interventionType,
-        riskRangeMin: { lte: intervention.riskScoreAtStart },
-        riskRangeMax: { gte: intervention.riskScoreAtStart }
-      }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true }
     });
-    
-    if (pattern) {
-      const newAttempts = pattern.timesAttempted + 1;
-      const newSuccessful = pattern.timesSuccessful + (intervention.successful ? 1 : 0);
-      
-      await prisma.recommendationPattern.update({
-        where: { id: pattern.id },
-        data: {
-          timesAttempted: newAttempts,
-          timesSuccessful: newSuccessful,
-          successRate: newSuccessful / newAttempts,
-          lastUsed: new Date()
-        }
-      });
-    } else if (intervention.successful !== null) {
-      await prisma.recommendationPattern.create({
-        data: {
-          userId,
-          customerSegment: intervention.customerSegment || 'unknown',
-          riskRangeMin: Math.floor((intervention.riskScoreAtStart || 50) / 10) * 10,
-          riskRangeMax: Math.ceil((intervention.riskScoreAtStart || 50) / 10) * 10,
-          plan: intervention.plan,
-          recommendedAction: intervention.interventionType,
-          timesAttempted: 1,
-          timesSuccessful: intervention.successful ? 1 : 0,
-          avgMrrSaved: intervention.mrrSaved || 0,
-          successRate: intervention.successful ? 1 : 0
-        }
-      });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-  } catch (error) {
-    console.error('Pattern error:', error);
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing intervention ID' }, { status: 400 });
+    }
+
+    await prisma.interventionOutcome.delete({
+      where: { id, userId: user.id }
+    });
+
+    return NextResponse.json({ success: true, message: 'Intervention deleted' });
+
+  } catch (error: any) {
+    console.error('Delete error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
