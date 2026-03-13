@@ -11,8 +11,9 @@ export async function POST(request: Request) {
 
     const { playbookId } = await request.json();
 
+    // FIX: Use clerkId lookup like your other routes
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { clerkId: userId },
       include: {
         customers: true,
         playbooks: true,
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const results = [];
     const actions = playbook.actions as any;
 
-    // Simple logic: filter by risk score (field that exists)
+    // Filter by risk score (field that exists)
     let targetCustomers = user.customers;
     if (playbook.trigger === 'HIGH_RISK') {
       targetCustomers = user.customers.filter(c => c.riskScore >= 70);
@@ -41,7 +42,6 @@ export async function POST(request: Request) {
 
     // Execute actions
     for (const customer of targetCustomers) {
-      // Send Slack if configured
       if (actions?.sendSlack && user.slackWebhookUrl) {
         try {
           await fetch(user.slackWebhookUrl, {
@@ -57,14 +57,12 @@ export async function POST(request: Request) {
         }
       }
 
-      // Send email if configured (simplified)
       if (actions?.sendEmail) {
         console.log(`Would send email to ${customer.email}`);
         results.push({ customer: customer.email, action: 'email', status: 'queued' });
       }
     }
 
-    // Update last run time
     await prisma.playbook.update({
       where: { id: playbookId },
       data: { lastRun: new Date() },
