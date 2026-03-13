@@ -10,7 +10,7 @@ export async function GET() {
       where: { clerkId: userId },
       select: { id: true }
     });
-    
+
     if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
     // Get all intervention outcomes
@@ -25,13 +25,14 @@ export async function GET() {
     const saved = outcomes.filter(o => o.status === 'saved');
     const churned = outcomes.filter(o => o.status === 'churned');
     const pending = outcomes.filter(o => o.status === 'pending');
-    
-    const totalMrrSaved = saved.reduce((sum, o) => sum + o.mrrSaved, 0);
-    const totalMrrAtRisk = outcomes.reduce((sum, o) => sum + o.mrrAtRisk, 0);
-    const totalMrrLost = churned.reduce((sum, o) => sum + o.mrrLost, 0);
-    
-    const successRate = totalInterventions > 0 
-      ? Math.round((saved.length / totalInterventions) * 100) 
+
+    const totalMrrSaved = saved.reduce((sum, o) => sum + (o.mrrSaved || 0), 0);
+    const totalMrrAtRisk = outcomes.reduce((sum, o) => sum + (o.mrrAtRisk || 0), 0);
+    // FIX: Calculate lost MRR from churned items using mrrAtRisk (mrrLost doesn't exist)
+    const totalMrrLost = churned.reduce((sum, o) => sum + (o.mrrAtRisk || 0), 0);
+
+    const successRate = totalInterventions > 0
+      ? Math.round((saved.length / totalInterventions) * 100)
       : 0;
 
     // Group by intervention type for reporting
@@ -43,7 +44,7 @@ export async function GET() {
       acc[type].count++;
       if (outcome.status === 'saved') {
         acc[type].saved++;
-        acc[type].mrrSaved += outcome.mrrSaved;
+        acc[type].mrrSaved += (outcome.mrrSaved || 0);
       } else if (outcome.status === 'churned') {
         acc[type].lost++;
       }
@@ -51,10 +52,10 @@ export async function GET() {
     }, {} as Record<string, any>);
 
     // ROI calculation (assuming $50/month subscription cost)
-    const subscriptionCost = 50; // Your SaaS price
+    const subscriptionCost = 50;
     const netBenefit = totalMrrSaved - (totalInterventions * subscriptionCost);
-    const roi = totalInterventions > 0 
-      ? Math.round((netBenefit / (totalInterventions * subscriptionCost)) * 100) 
+    const roi = totalInterventions > 0
+      ? Math.round((netBenefit / (totalInterventions * subscriptionCost)) * 100)
       : 0;
 
     return Response.json({
