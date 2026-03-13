@@ -2,12 +2,21 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-// GET handler - prevents 405 error
+// GET handler - list all interventions
 export async function GET() {
-  return NextResponse.json({ 
-    message: 'Interventions API - Use POST to create intervention, PATCH to update',
-    status: 'ok'
-  });
+  try {
+    const interventions = await prisma.interventionOutcome.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    
+    return NextResponse.json({ 
+      interventions,
+      count: interventions.length
+    });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch interventions' }, { status: 500 });
+  }
 }
 
 // POST handler - create new intervention
