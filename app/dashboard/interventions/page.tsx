@@ -250,4 +250,12 @@ export default function InterventionsPage() {
           
           {interventions.length === 0 && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-              <div style={{ fontSize
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔧</div>
+              <div>No interventions yet. Start by creating one from the AI Actions page.</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
