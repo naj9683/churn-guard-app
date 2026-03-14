@@ -1,0 +1,76 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(req: Request) {
+  try {
+    const payload = await req.text();
+    const signature = req.headers.get('stripe-signature')!;
+
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } catch (err: any) {
+      console.error('Webhook signature verification failed:', err.message);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    // Handle successful payment
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = invoice.customer as string;
+      console.log('Payment succeeded for customer:', customerId);
+      await markInterventionAsSaved(customerId);
+    }
+
+    // Handle subscription created
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const customerId = session.customer as string;
+      console.log('Checkout completed for customer:', customerId);
+      await markInterventionAsSaved(customerId);
+    }
+
+    return NextResponse.json({ received: true });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return NextResponse.json({ error: 'Webhook failed' }, { status: 500 });
+  }
+}
+
+async function markInterventionAsSaved(stripeCustomerId: string) {
+  try {
+    // Find most recent pending intervention and mark as saved
+    const interventions = await prisma.interventionOutcome.findMany({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'desc' },
+      take: 1
+    });
+
+    if (interventions.length > 0) {
+      const intervention = interventions[0];
+      
+      await prisma.interventionOutcome.update({
+        where: { id: intervention.id },
+        data: {
+          status: 'saved',
+          successful: true,
+          mrrSaved: intervention.mrrAtRisk,
+          completedAt: new Date(),
+          notes: 'Auto-marked as saved: Payment received via Stripe'
+        }
+      });
+      
+      console.log(`✅ Intervention ${intervention.id} marked as saved (payment received)`);
+    }
+  } catch (error) {
+    console.error('Error marking intervention as saved:', error);
+  }
+}
