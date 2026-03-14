@@ -2,8 +2,47 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-// Settings cache
-const settingsCache: any = {};
+const templates: Record<string, (settings: any, customerName: string) => { subject: string; html: string }> = {
+  welcome: (settings, name) => ({
+    subject: `Welcome to ${settings.companyName}! 🎉`,
+    html: generateEmail(settings, name, 'welcome', {
+      title: 'Welcome Aboard!',
+      body: `Hi ${name},<br><br>Welcome to ${settings.companyName}! We're excited to help you reduce churn and grow your business.<br><br>Here's what you can do next:`,
+      cta: 'Get Started',
+      ctaLink: 'https://churn-guard-app.vercel.app/dashboard'
+    })
+  }),
+  
+  churnRisk: (settings, name) => ({
+    subject: `Action needed: Your account needs attention ⚠️`,
+    html: generateEmail(settings, name, 'churnRisk', {
+      title: 'We noticed you might be struggling',
+      body: `Hi ${name},<br><br>We've noticed some signals that you might not be getting the full value from ${settings.companyName}. We want to help.<br><br>Let's schedule a quick call to get you back on track:`,
+      cta: 'Schedule Call',
+      ctaLink: 'https://calendly.com/your-company'
+    })
+  }),
+  
+  winBack: (settings, name) => ({
+    subject: `We miss you! Here's 20% off 🎁`,
+    html: generateEmail(settings, name, 'winBack', {
+      title: 'We miss you! 💙',
+      body: `Hi ${name},<br><br>We noticed you haven't been active lately. Your success matters to us.<br><br>Come back with a <strong style="color: ${settings.brandColor};">special 20% discount</strong>:`,
+      cta: 'Claim 20% Off',
+      ctaLink: 'https://churn-guard-app.vercel.app/pricing'
+    })
+  }),
+  
+  checkIn: (settings, name) => ({
+    subject: `Quick check-in from ${settings.companyName}`,
+    html: generateEmail(settings, name, 'checkIn', {
+      title: 'How are things going?',
+      body: `Hi ${name},<br><br>Just checking in to see how you're doing with ${settings.companyName}. Any questions or feedback?`,
+      cta: 'Reply to this email',
+      ctaLink: 'mailto:support@yourcompany.com'
+    })
+  })
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,31 +53,36 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const body = await req.json();
-    const { customerEmail, template, metadata } = body;
+    const { customerEmail, template = 'winBack', customerName = 'there' } = body;
 
     if (!customerEmail) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
     if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ 
-        error: "Email not configured", 
-        message: "Add RESEND_API_KEY to GitHub Secrets" 
+      return NextResponse.json({
+        error: "Email not configured",
+        message: "Add RESEND_API_KEY to environment variables"
       }, { status: 500 });
     }
 
-    // Get user's white-label settings
-    const settings = settingsCache[user.id] || {
+    // Get user settings
+    const settings = {
       companyName: 'Your Company',
-      logoUrl: '',
       brandColor: '#6366f1',
       fromEmail: 'onboarding@resend.dev',
-      emailSignature: 'Best regards,\nThe Team'
+      ...user.settings
     };
 
-    // Generate branded email
-    const emailHtml = generateBrandedEmail(settings, customerEmail);
+    // Get template
+    const emailTemplate = templates[template];
+    if (!emailTemplate) {
+      return NextResponse.json({ error: "Invalid template" }, { status: 400 });
+    }
 
+    const { subject, html } = emailTemplate(settings, customerName);
+
+    // Send email via Resend
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -46,10 +90,10 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: settings.fromEmail || 'onboarding@resend.dev',
+        from: settings.fromEmail,
         to: customerEmail,
-        subject: `We miss you! Here's a special offer from ${settings.companyName} 🎁`,
-        html: emailHtml
+        subject,
+        html
       })
     });
 
@@ -60,7 +104,15 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
 
-    return NextResponse.json({ success: true, id: result.id });
+    // Log the email sent
+    console.log(`✅ Email sent: ${template} to ${customerEmail}`);
+
+    return NextResponse.json({ 
+      success: true, 
+      id: result.id,
+      template,
+      to: customerEmail
+    });
 
   } catch (error) {
     console.error("Email error:", error);
@@ -68,8 +120,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function generateBrandedEmail(settings: any, customerEmail: string) {
-  const { companyName, logoUrl, brandColor, emailSignature } = settings;
+function generateEmail(settings: any, customerName: string, type: string, content: any) {
+  const { companyName, brandColor } = settings;
   
   return `
     <!DOCTYPE html>
@@ -77,7 +129,7 @@ function generateBrandedEmail(settings: any, customerEmail: string) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>We Miss You - ${companyName}</title>
+      <title>${content.title}</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
@@ -85,70 +137,29 @@ function generateBrandedEmail(settings: any, customerEmail: string) {
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
               
-              <!-- Header with Brand Color -->
+              <!-- Header -->
               <tr>
-                <td style="background: ${brandColor}; padding: 40px 40px 30px 40px; text-align: center;">
-                  ${logoUrl ? 
-                    `<img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px;" />` : 
-                    `<h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 700;">${companyName}</h1>`
-                  }
+                <td style="background: ${brandColor}; padding: 40px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${companyName}</h1>
                 </td>
               </tr>
 
               <!-- Body -->
               <tr>
                 <td style="padding: 40px;">
-                  <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">We miss you! 💙</h2>
+                  <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">${content.title}</h2>
                   
                   <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                    Hi there,
-                  </p>
-                  
-                  <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                    We noticed you haven't been active lately, and we wanted to reach out personally. Your success matters to us at ${companyName}, and we're here to help you get the most out of our platform.
+                    ${content.body}
                   </p>
 
-                  <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                    As a valued customer, we'd love to welcome you back with a <strong style="color: ${brandColor};">special 20% discount</strong> on your next month. This exclusive offer is our way of saying thank you for being part of the ${companyName} family.
-                  </p>
-
-                  <!-- CTA Button with Brand Color -->
+                  <!-- CTA Button -->
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                     <tr>
                       <td align="center">
-                        <a href="https://churn-guard-app.vercel.app/pricing" style="display: inline-block; padding: 16px 40px; background: ${brandColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                          Claim Your 20% Off 🎉
+                        <a href="${content.ctaLink}" style="display: inline-block; padding: 16px 40px; background: ${brandColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                          ${content.cta}
                         </a>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0; text-align: center;">
-                    This offer expires in 7 days. Don't miss out!
-                  </p>
-                </td>
-              </tr>
-
-              <!-- Features Section -->
-              <tr>
-                <td style="background-color: #f9fafb; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
-                  <h3 style="color: #1f2937; margin: 0 0 20px 0; font-size: 18px; font-weight: 600; text-align: center;">Why customers love us:</h3>
-                  
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td width="50%" style="padding: 10px; vertical-align: top;">
-                        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
-                          <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
-                          <p style="margin: 0; color: #1f2937; font-weight: 600;">Analytics</p>
-                          <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">Track your growth</p>
-                        </div>
-                      </td>
-                      <td width="50%" style="padding: 10px; vertical-align: top;">
-                        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center;">
-                          <div style="font-size: 32px; margin-bottom: 8px;">🚀</div>
-                          <p style="margin: 0; color: #1f2937; font-weight: 600;">Automation</p>
-                          <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">Save time daily</p>
-                        </div>
                       </td>
                     </tr>
                   </table>
@@ -157,15 +168,9 @@ function generateBrandedEmail(settings: any, customerEmail: string) {
 
               <!-- Footer -->
               <tr>
-                <td style="background-color: #1f2937; padding: 30px 40px; text-align: center;">
-                  <p style="color: #ffffff; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;">
-                    ${companyName}
-                  </p>
-                  <p style="color: #9ca3af; font-size: 14px; margin: 0 0 15px 0; white-space: pre-line;">
-                    ${emailSignature}
-                  </p>
-                  <p style="color: #6b7280; font-size: 12px; margin: 0;">
-                    © ${new Date().getFullYear()} ${companyName}. All rights reserved.
+                <td style="background-color: #1f2937; padding: 30px; text-align: center;">
+                  <p style="color: #ffffff; font-size: 14px; margin: 0;">
+                    © ${new Date().getFullYear()} ${companyName}
                   </p>
                 </td>
               </tr>
