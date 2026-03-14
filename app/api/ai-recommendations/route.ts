@@ -2,9 +2,10 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
+// Only initialize OpenAI if API key exists (prevents build crash)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 export async function GET(req: Request) {
   try {
@@ -18,21 +19,28 @@ export async function GET(req: Request) {
 
     if (!user) return Response.json([], { status: 200 });
 
-    // Get high-risk customers (60%+ risk score)
+    // Get high-risk customers
     const customers = await prisma.customer.findMany({
       where: {
         userId: user.id,
         riskScore: { gte: 60 }
       },
       orderBy: { riskScore: 'desc' },
-      take: 5 // Limit to 5 for AI processing speed
+      take: 5
     });
 
     if (!customers || customers.length === 0) {
       return Response.json([], { status: 200 });
     }
 
-    // Generate AI-powered recommendations for each customer
+    // If OpenAI not configured, use fallback
+    if (!openai) {
+      console.log('OpenAI not configured, using rule-based recommendations');
+      const recommendations = customers.map(c => getFallbackRecommendation(c, 30));
+      return Response.json(recommendations);
+    }
+
+    // Generate AI-powered recommendations
     const recommendations = await Promise.all(
       customers.map(c => generateAIRecommendation(user.id, c))
     );
@@ -46,62 +54,36 @@ export async function GET(req: Request) {
 
 async function generateAIRecommendation(userId: string, customer: any) {
   try {
-    // Get customer context
     const daysSinceLogin = await getDaysSinceLogin(customer.id);
-    const recentEvents = await getRecentEvents(customer.id);
     
-    // Build prompt for GPT-4
     const prompt = `
-You are a customer success expert. Analyze this at-risk customer and recommend the best intervention.
+Analyze this at-risk customer and recommend the best intervention.
 
-CUSTOMER DATA:
+CUSTOMER:
 - Name: ${customer.name || 'Unknown'}
-- Email: ${customer.email}
 - Plan: ${customer.plan || 'unknown'}
 - MRR: $${customer.mrr || 0}
 - Risk Score: ${customer.riskScore}/100
-- Days Since Last Login: ${daysSinceLogin}
-- Health Score: ${customer.healthScore || 50}/100
-- Recent Activity: ${recentEvents.join(', ') || 'No recent activity'}
+- Days Since Login: ${daysSinceLogin}
 
-AVAILABLE INTERVENTIONS:
-1. discount_offer - Offer 20-30% discount for next 3 months
-2. ceo_call - Executive reaches out personally (for high-value customers)
-3. training_session - Schedule 1-on-1 product training
-4. check_in_call - Casual check-in call from account manager
-5. webinar_invite - Invite to exclusive customer success webinar
+INTERVENTIONS: discount_offer, ceo_call, training_session, check_in_call, webinar_invite
 
-RESPOND IN THIS EXACT JSON FORMAT:
+Respond in JSON:
 {
-  "action": "one_of_the_interventions_above",
+  "action": "intervention_name",
   "confidence": 75,
-  "reasoning": "2-3 sentences explaining why this intervention fits this specific customer",
-  "personalizedMessage": "A custom message to send to this customer",
-  "expectedOutcome": "What we expect to happen"
-}
+  "reasoning": "why this fits",
+  "personalizedMessage": "message to customer"
+}`;
 
-Rules:
-- If MRR > $1000 and risk > 80, recommend ceo_call
-- If inactive > 21 days, recommend training_session
-- If risk 60-75, recommend check_in_call or discount_offer
-- Confidence should be 60-95 based on how clear the signals are
-`;
-
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
+    const completion = await openai!.chat.completions.create({
       model: "gpt-4",
       messages: [
-        {
-          role: "system",
-          content: "You are a churn prevention expert. Analyze customer data and recommend interventions. Always respond in valid JSON format."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "You are a churn prevention expert." },
+        { role: "user", content: prompt }
       ],
       temperature: 0.3,
-      max_tokens: 500
+      max_tokens: 400
     });
 
     const aiResponse = completion.choices[0].message.content;
@@ -110,25 +92,7 @@ Rules:
     try {
       aiRecommendation = JSON.parse(aiResponse || '{}');
     } catch (e) {
-      // Fallback if AI doesn't return valid JSON
-      aiRecommendation = getFallbackRecommendation(customer, daysSinceLogin);
-    }
-
-    // Get pattern data for comparison
-    let patterns: any[] = [];
-    try {
-      patterns = await prisma.recommendationPattern.findMany({
-        where: {
-          userId,
-          customerSegment: customer.plan || 'unknown',
-          riskRangeMin: { lte: customer.riskScore },
-          riskRangeMax: { gte: customer.riskScore }
-        },
-        orderBy: { successRate: 'desc' },
-        take: 2
-      });
-    } catch (e) {
-      // Pattern table might not exist
+      aiRecommendation = {};
     }
 
     return {
@@ -144,21 +108,15 @@ Rules:
       recommendation: {
         action: aiRecommendation.action || 'check_in_call',
         confidence: aiRecommendation.confidence || 70,
-        reasoning: aiRecommendation.reasoning || 'AI analysis suggests proactive outreach',
-        personalizedMessage: aiRecommendation.personalizedMessage || 'We noticed you might need help getting the most out of our platform.',
-        expectedOutcome: aiRecommendation.expectedOutcome || 'Re-engagement and reduced churn risk',
+        reasoning: aiRecommendation.reasoning || 'Proactive outreach recommended',
+        personalizedMessage: aiRecommendation.personalizedMessage || 'We want to ensure your success.',
         estimatedMrrSaved: Math.round((customer.mrr || 0) * 0.8),
-        isAIGenerated: true,
-        alternativeActions: patterns.map(p => ({
-          action: p.recommendedAction,
-          successRate: Math.round((p.successRate || 0) * 100)
-        }))
+        isAIGenerated: true
       }
     };
 
   } catch (error) {
     console.error('AI Generation Error:', error);
-    // Fallback to rule-based
     return getFallbackRecommendation(customer, await getDaysSinceLogin(customer.id));
   }
 }
@@ -166,33 +124,14 @@ Rules:
 async function getDaysSinceLogin(customerId: string): Promise<number> {
   try {
     const lastLogin = await prisma.event.findFirst({
-      where: {
-        customerId,
-        event: 'login'
-      },
+      where: { customerId, event: 'login' },
       orderBy: { timestamp: 'desc' }
     });
-
-    if (lastLogin && lastLogin.timestamp) {
+    if (lastLogin?.timestamp) {
       return Math.floor((Date.now() - Number(lastLogin.timestamp)) / (1000 * 60 * 60 * 24));
     }
-  } catch (e) {
-    // Ignore error
-  }
-  return 30; // Default
-}
-
-async function getRecentEvents(customerId: string): Promise<string[]> {
-  try {
-    const events = await prisma.event.findMany({
-      where: { customerId },
-      orderBy: { timestamp: 'desc' },
-      take: 5
-    });
-    return events.map(e => e.event);
-  } catch (e) {
-    return [];
-  }
+  } catch (e) {}
+  return 30;
 }
 
 function getFallbackRecommendation(customer: any, daysSinceLogin: number) {
@@ -200,20 +139,20 @@ function getFallbackRecommendation(customer: any, daysSinceLogin: number) {
   const mrr = customer.mrr || 0;
 
   let action = 'check_in_call';
-  let reasoning = 'Standard proactive outreach recommended';
+  let reasoning = 'Proactive outreach recommended';
   let confidence = 65;
 
   if (riskScore >= 85 && mrr > 1000) {
     action = 'ceo_call';
-    reasoning = `High-value customer ($${mrr} MRR) at critical risk (${riskScore}%). Executive intervention recommended.`;
+    reasoning = `High-value customer ($${mrr} MRR) at critical risk (${riskScore}%)`;
     confidence = 85;
   } else if (riskScore >= 80) {
     action = 'discount_offer';
-    reasoning = `Customer showing strong churn signals (${riskScore}% risk). Immediate retention offer recommended.`;
+    reasoning = `Strong churn signals (${riskScore}% risk)`;
     confidence = 75;
   } else if (daysSinceLogin > 14) {
     action = 'training_session';
-    reasoning = `Customer inactive for ${daysSinceLogin} days. Training session may re-engage.`;
+    reasoning = `Inactive for ${daysSinceLogin} days`;
     confidence = 70;
   }
 
@@ -231,11 +170,9 @@ function getFallbackRecommendation(customer: any, daysSinceLogin: number) {
       action,
       confidence,
       reasoning,
-      personalizedMessage: 'We value your business and want to ensure you are getting the most out of our platform.',
-      expectedOutcome: 'Re-engagement and feature adoption',
+      personalizedMessage: 'We value your business and want to ensure your success.',
       estimatedMrrSaved: Math.round(mrr * 0.7),
-      isAIGenerated: false,
-      alternativeActions: []
+      isAIGenerated: false
     }
   };
 }
