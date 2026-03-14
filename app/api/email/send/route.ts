@@ -2,6 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// Settings cache (same as settings API)
+const settingsCache: any = {};
+
 const templates: Record<string, (settings: any, customerName: string) => { subject: string; html: string }> = {
   welcome: (settings, name) => ({
     subject: `Welcome to ${settings.companyName}! 🎉`,
@@ -27,7 +30,7 @@ const templates: Record<string, (settings: any, customerName: string) => { subje
     subject: `We miss you! Here's 20% off 🎁`,
     html: generateEmail(settings, name, 'winBack', {
       title: 'We miss you! 💙',
-      body: `Hi ${name},<br><br>We noticed you haven't been active lately. Your success matters to us.<br><br>Come back with a <strong style="color: ${settings.brandColor};">special 20% discount</strong>:`,
+      body: `Hi ${name},<br><br>We noticed you haven't been active lately. Your success matters to us at ${settings.companyName}.<br><br>Come back with a <strong style="color: ${settings.brandColor};">special 20% discount</strong>:`,
       cta: 'Claim 20% Off',
       ctaLink: 'https://churn-guard-app.vercel.app/pricing'
     })
@@ -39,7 +42,7 @@ const templates: Record<string, (settings: any, customerName: string) => { subje
       title: 'How are things going?',
       body: `Hi ${name},<br><br>Just checking in to see how you're doing with ${settings.companyName}. Any questions or feedback?`,
       cta: 'Reply to this email',
-      ctaLink: 'mailto:support@yourcompany.com'
+      ctaLink: `mailto:${settings.fromEmail}`
     })
   })
 };
@@ -66,11 +69,13 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Settings (hardcoded - user.settings doesn't exist in schema)
-    const settings = {
-      companyName: 'ChurnGuard',
+    // ✅ FETCH WHITE-LABEL SETTINGS (from cache)
+    const settings = settingsCache[user.id] || {
+      companyName: 'ChurnGuard',  // Default fallback
       brandColor: '#6366f1',
-      fromEmail: 'onboarding@resend.dev'
+      fromEmail: 'onboarding@resend.dev',
+      logoUrl: '',
+      emailSignature: 'Best regards,\nThe Team'
     };
 
     // Get template
@@ -81,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     const { subject, html } = emailTemplate(settings, customerName);
 
-    // Send email via Resend
+    // Send email via Resend WITH USER'S FROM EMAIL
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: settings.fromEmail,
+        from: settings.fromEmail,  // ✅ User's white-label from email
         to: customerEmail,
         subject,
         html
@@ -103,13 +108,15 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
 
-    console.log(`✅ Email sent: ${template} to ${customerEmail}`);
+    console.log(`✅ Email sent: ${template} to ${customerEmail} from ${settings.companyName}`);
 
     return NextResponse.json({ 
       success: true, 
       id: result.id,
       template,
-      to: customerEmail
+      to: customerEmail,
+      from: settings.fromEmail,
+      company: settings.companyName
     });
 
   } catch (error) {
@@ -118,8 +125,29 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH endpoint to update settings cache (called by settings page)
+export async function PATCH(req: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const user = await prisma.user.findFirst({ where: { clerkId: userId } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    const body = await req.json();
+    settingsCache[user.id] = {
+      ...settingsCache[user.id],
+      ...body
+    };
+
+    return NextResponse.json({ success: true, settings: settingsCache[user.id] });
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+
 function generateEmail(settings: any, customerName: string, type: string, content: any) {
-  const { companyName, brandColor } = settings;
+  const { companyName, brandColor, logoUrl, emailSignature } = settings;
   
   return `
     <!DOCTYPE html>
@@ -135,10 +163,13 @@ function generateEmail(settings: any, customerName: string, type: string, conten
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
               
-              <!-- Header -->
+              <!-- Header with Logo -->
               <tr>
                 <td style="background: ${brandColor}; padding: 40px; text-align: center;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${companyName}</h1>
+                  ${logoUrl ? 
+                    `<img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px;" />` :
+                    `<h1 style="color: #ffffff; margin: 0; font-size: 28px;">${companyName}</h1>`
+                  }
                 </td>
               </tr>
 
@@ -164,11 +195,17 @@ function generateEmail(settings: any, customerName: string, type: string, conten
                 </td>
               </tr>
 
-              <!-- Footer -->
+              <!-- Footer with Signature -->
               <tr>
                 <td style="background-color: #1f2937; padding: 30px; text-align: center;">
-                  <p style="color: #ffffff; font-size: 14px; margin: 0;">
-                    © ${new Date().getFullYear()} ${companyName}
+                  <p style="color: #ffffff; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;">
+                    ${companyName}
+                  </p>
+                  <p style="color: #9ca3af; font-size: 14px; margin: 0; white-space: pre-line;">
+                    ${emailSignature}
+                  </p>
+                  <p style="color: #6b7280; font-size: 12px; margin: 15px 0 0 0;">
+                    © ${new Date().getFullYear()} ${companyName}. All rights reserved.
                   </p>
                 </td>
               </tr>
