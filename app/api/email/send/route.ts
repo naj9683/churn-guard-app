@@ -66,12 +66,11 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get user settings
+    // Settings (hardcoded - user.settings doesn't exist in schema)
     const settings = {
-      companyName: 'Your Company',
+      companyName: 'ChurnGuard',
       brandColor: '#6366f1',
-      fromEmail: 'onboarding@resend.dev',
-      ...user.settings
+      fromEmail: 'onboarding@resend.dev'
     };
 
     // Get template
@@ -104,7 +103,6 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
 
-    // Log the email sent
     console.log(`✅ Email sent: ${template} to ${customerEmail}`);
 
     return NextResponse.json({ 
