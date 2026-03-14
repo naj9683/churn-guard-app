@@ -69,7 +69,7 @@ export default function EmailCampaignsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerEmail: customer.email,
-          template: 'retention',
+          template: 'winBack',
           metadata: { offerLink: 'https://churn-guard-app.vercel.app/pricing' }
         })
       });
