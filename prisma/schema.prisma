@@ -46,6 +46,7 @@ model Customer {
   user        User     @relation(fields: [userId], references: [id])
   events      Event[]
   interventions InterventionOutcome[]
+  activityLogs  ActivityLog[]
   
   @@unique([userId, externalId])
 }
