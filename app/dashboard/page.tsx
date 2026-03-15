@@ -93,6 +93,7 @@ export default function Dashboard() {
 
   const rar = calculateRaR();
 
+  return (
     <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
       <Sidebar />
       <div style={{marginLeft: '250px', flex: 1, padding: '2rem'}}>
