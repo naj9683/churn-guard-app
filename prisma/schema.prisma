@@ -136,14 +136,18 @@ model AlertLog {
 }
 
 model ActivityLog {
+  userId      String?
   id          String   @id @default(cuid())
   customerId  String
   type        String   // 'contacted', 'task_created', etc.
   description String
   createdAt   DateTime @default(now())
   
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
   @@index([customerId])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model Task {
