@@ -2,11 +2,10 @@
 
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import Sidebar from '@/app/components/Sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Sidebar from '@/app/components/Sidebar';
 
-// Admin user IDs - your user ID
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
 export default function Dashboard() {
@@ -20,9 +19,7 @@ export default function Dashboard() {
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
   useEffect(() => {
-    if (user) {
-      checkOnboarding();
-    }
+    if (user) checkOnboarding();
   }, [user]);
 
   async function checkOnboarding() {
@@ -30,10 +27,7 @@ export default function Dashboard() {
       const res = await fetch('/api/onboarding/status');
       if (res.ok) {
         const data = await res.json();
-        
-        // If onboarding not complete, redirect to onboarding
         if (!data.onboardingComplete) {
-          console.log('Onboarding not complete, redirecting...');
           router.push('/onboarding');
           return;
         }
@@ -60,14 +54,8 @@ export default function Dashboard() {
     }
   }
 
-  if (checkingOnboarding || loading) {
-    return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
-  }
-
-  // Calculate Revenue at Risk
   const calculateRaR = () => {
     if (!dashboardData?.customers) return { atRisk: 0, total: 0, percentage: 0, highRiskCount: 0 };
-
     let totalMRR = 0;
     let atRiskMRR = 0;
     let highRiskCount = 0;
@@ -76,7 +64,6 @@ export default function Dashboard() {
       const mrr = customer.mrr || 0;
       const riskScore = customer.riskScore || 0;
       totalMRR += mrr;
-
       if (riskScore >= 70) {
         atRiskMRR += mrr * (riskScore / 100);
         highRiskCount++;
@@ -93,43 +80,152 @@ export default function Dashboard() {
 
   const rar = calculateRaR();
 
+  if (checkingOnboarding || loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '3px solid rgba(99, 102, 241, 0.1)',
+          borderTop: '3px solid #6366f1',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+      display: 'flex',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+    }}>
       <Sidebar />
-      <div style={{marginLeft: '250px', flex: 1, padding: '2rem'}}>
-        <h1>Dashboard</h1>
-        
-        {/* Stats Cards */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '2rem'}}>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '0.875rem'}}>Total Customers</h3>
-            <p style={{margin: '0', fontSize: '2rem', fontWeight: '700'}}>{dashboardData?.totalCustomers || 0}</p>
-          </div>
-          
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '0.875rem'}}>At Risk</h3>
-            <p style={{margin: '0', fontSize: '2rem', fontWeight: '700', color: '#ef4444'}}>{dashboardData?.atRisk || 0}</p>
-          </div>
-          
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '0.875rem'}}>Active Playbooks</h3>
-            <p style={{margin: '0', fontSize: '2rem', fontWeight: '700', color: '#10b981'}}>{dashboardData?.activePlaybooks || 0}</p>
-          </div>
-          
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem'}}>
-            <h3 style={{margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '0.875rem'}}>MRR Saved</h3>
-            <p style={{margin: '0', fontSize: '2rem', fontWeight: '700', color: '#6366f1'}}>${dashboardData?.totalSaved || 0}</p>
-          </div>
+      
+      <div style={{
+        marginLeft: '280px',
+        flex: 1,
+        padding: '32px',
+        overflowY: 'auto'
+      }}>
+        {/* Header */}
+        <div style={{marginBottom: '32px'}}>
+          <h1 style={{
+            margin: '0 0 8px 0',
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#fff',
+            letterSpacing: '-0.02em'
+          }}>
+            Dashboard
+          </h1>
+          <p style={{
+            margin: 0,
+            color: '#64748b',
+            fontSize: '14px'
+          }}>
+            Monitor your churn prevention metrics
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '24px',
+          marginBottom: '32px'
+        }}>
+          {[
+            { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', icon: '👥' },
+            { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', icon: '🔥' },
+            { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 0, color: '#10b981', icon: '⚡' },
+            { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', icon: '💰' }
+          ].map((metric, idx) => (
+            <div key={idx} style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              padding: '20px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: `${metric.color}15`,
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '12px',
+                fontSize: '18px'
+              }}>{metric.icon}</div>
+              <div style={{
+                color: '#64748b',
+                fontSize: '12px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '4px'
+              }}>{metric.label}</div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: metric.color
+              }}>{metric.value}</div>
+            </div>
+          ))}
         </div>
 
         {/* Quick Actions */}
-        <div style={{marginTop: '2rem', display: 'flex', gap: '1rem'}}>
-          <Link href="/customers" style={{padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', textDecoration: 'none', borderRadius: '0.5rem'}}>
-            View Customers
-          </Link>
-          <Link href="/playbooks" style={{padding: '0.75rem 1.5rem', background: '#1e293b', color: 'white', textDecoration: 'none', borderRadius: '0.5rem', border: '1px solid #334155'}}>
-            Manage Playbooks
-          </Link>
+        <div style={{
+          background: 'rgba(30, 41, 59, 0.4)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '32px'
+        }}>
+          <h3 style={{
+            margin: '0 0 16px 0',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#fff'
+          }}>Quick Actions</h3>
+          <div style={{display: 'flex', gap: '12px'}}>
+            <Link href="/customers" style={{
+              padding: '10px 20px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              View Customers
+            </Link>
+            <Link href="/playbooks" style={{
+              padding: '10px 20px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '500',
+              fontSize: '14px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              Manage Playbooks
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -3,167 +3,153 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import Sidebar from '@/app/components/Sidebar';
 
 export default function PlaybooksPage() {
   const { user, isLoaded } = useUser();
-  const [playbooks, setPlaybooks] = useState([]);
+  const [playbooks, setPlaybooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [newPlaybook, setNewPlaybook] = useState({
-    name: '',
-    trigger: 'high_risk',
-    description: '',
-    actions: { type: 'slack_alert' }
-  });
 
   useEffect(() => {
-    if (isLoaded && user) {
-      fetchPlaybooks();
-    }
+    if (isLoaded && user) fetchPlaybooks();
   }, [isLoaded, user]);
 
   async function fetchPlaybooks() {
     try {
-      const response = await fetch('/api/playbooks');
-      if (response.ok) {
-        const data = await response.json();
+      const res = await fetch('/api/playbooks');
+      if (res.ok) {
+        const data = await res.json();
         setPlaybooks(data.playbooks || []);
       }
     } catch (error) {
-      console.error('Error fetching playbooks:', error);
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function createPlaybook(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/playbooks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPlaybook)
-      });
-
-      if (response.ok) {
-        setShowForm(false);
-        setNewPlaybook({ name: '', trigger: 'high_risk', description: '', actions: { type: 'slack_alert' } });
-        fetchPlaybooks();
-      }
-    } catch (error) {
-      alert('Failed to create playbook');
-    }
-  }
-
-  async function runPlaybook(id: string) {
-    try {
-      const response = await fetch('/api/playbooks/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playbookId: id })
-      });
-      if (response.ok) {
-        alert('Playbook executed!');
-      }
-    } catch (error) {
-      alert('Failed to run playbook');
-    }
-  }
-
   if (!isLoaded || loading) {
-    return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '3px solid rgba(99, 102, 241, 0.1)',
+          borderTop: '3px solid #6366f1',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
-      {/* Back to Dashboard Bar */}
-      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
-        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
-          <span>←</span> Back to Dashboard
-        </Link>
-      </div>
-
-      <main style={{padding: '2rem'}}>
-        <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
-          <h1 style={{margin: 0, fontSize: '1.875rem'}}>Playbooks</h1>
-        </header>
-
-        <div style={{marginBottom: '2rem'}}>
-          <button onClick={() => setShowForm(!showForm)} style={{padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '1rem'}}>
-            {showForm ? 'Cancel' : '+ Create Playbook'}
-          </button>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+      display: 'flex',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+    }}>
+      <Sidebar />
+      
+      <div style={{
+        marginLeft: '280px',
+        flex: 1,
+        padding: '32px',
+        overflowY: 'auto'
+      }}>
+        <div style={{marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div>
+            <h1 style={{
+              margin: '0 0 8px 0',
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#fff',
+              letterSpacing: '-0.02em'
+            }}>
+              Playbooks
+            </h1>
+            <p style={{
+              margin: 0,
+              color: '#64748b',
+              fontSize: '14px'
+            }}>
+              Automated workflows to prevent churn
+            </p>
+          </div>
+          <Link href="/playbooks/new" style={{
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '8px',
+            fontWeight: '500',
+            fontSize: '14px'
+          }}>
+            + Create Playbook
+          </Link>
         </div>
 
-        {showForm && (
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
-            <h3 style={{margin: '0 0 1rem 0'}}>Create New Playbook</h3>
-            <form onSubmit={createPlaybook} style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-              <div>
-                <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Name</label>
-                <input type="text" value={newPlaybook.name} onChange={(e) => setNewPlaybook({...newPlaybook, name: e.target.value})} placeholder="High Risk Alert" required style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem'}} />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '24px'
+        }}>
+          {playbooks.map((playbook) => (
+            <div key={playbook.id} style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              padding: '24px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'rgba(99, 102, 241, 0.15)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                fontSize: '20px'
+              }}>🔮</div>
+              <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#fff'}}>{playbook.name}</h3>
+              <p style={{margin: '0 0 16px 0', fontSize: '14px', color: '#64748b'}}>{playbook.description}</p>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <span style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: playbook.isActive ? '#10b98120' : '#64748b20',
+                  color: playbook.isActive ? '#10b981' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {playbook.isActive ? 'Active' : 'Inactive'}
+                </span>
+                <Link href={`/playbooks/${playbook.id}`} style={{
+                  padding: '6px 12px',
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  color: '#6366f1',
+                  textDecoration: 'none',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500'
+                }}>
+                  Edit
+                </Link>
               </div>
-
-              <div>
-                <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Trigger</label>
-                <select value={newPlaybook.trigger} onChange={(e) => setNewPlaybook({...newPlaybook, trigger: e.target.value})} style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem'}}>
-                  <option value="high_risk">High Risk (Score 70+)</option>
-                  <option value="payment_failed">Payment Failed</option>
-                  <option value="no_login_7_days">No Login 7 Days</option>
-                  <option value="manual">Manual Only</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Description</label>
-                <input type="text" value={newPlaybook.description} onChange={(e) => setNewPlaybook({...newPlaybook, description: e.target.value})} placeholder="Auto-trigger when customer risk 70+" style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem'}} />
-              </div>
-
-              <div>
-                <label style={{display: 'block', marginBottom: '0.5rem', color: '#94a3b8'}}>Action Type</label>
-                <select value={(newPlaybook.actions as any).type} onChange={(e) => setNewPlaybook({...newPlaybook, actions: { type: e.target.value }})} style={{width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem'}}>
-                  <option value="slack_alert">Send Slack Alert</option>
-                  <option value="email">Send Email</option>
-                  <option value="webhook">Call Webhook</option>
-                </select>
-              </div>
-
-              <button type="submit" style={{padding: '0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '1rem', marginTop: '0.5rem'}}>
-                Create Playbook
-              </button>
-            </form>
-          </div>
-        )}
-
-        {playbooks.length === 0 ? (
-          <div style={{background: '#1e293b', padding: '3rem', borderRadius: '0.75rem', border: '1px solid #334155', textAlign: 'center'}}>
-            <div style={{fontSize: '3rem', marginBottom: '1rem'}}>⚡</div>
-            <h3 style={{margin: '0 0 0.5rem 0'}}>No playbooks found</h3>
-            <p style={{color: '#64748b', margin: '0'}}>Create your first playbook to automate customer retention</p>
-          </div>
-        ) : (
-          <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-            {playbooks.map((playbook: any) => (
-              <div key={playbook.id} style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <div>
-                    <h3 style={{margin: '0 0 0.5rem 0'}}>{playbook.name}</h3>
-                    <p style={{margin: '0', color: '#64748b', fontSize: '0.875rem'}}>
-                      Trigger: {playbook.trigger} • {playbook.isActive ? '🟢 Active' : '🔴 Inactive'}
-                      {playbook.lastRun && ` • Last run: ${new Date(playbook.lastRun).toLocaleDateString()}`}
-                    </p>
-                    {playbook.description && (
-                      <p style={{margin: '0.5rem 0 0 0', color: '#94a3b8', fontSize: '0.875rem'}}>{playbook.description}</p>
-                    )}
-                  </div>
-                  <button onClick={() => runPlaybook(playbook.id)} style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer'}}>
-                    Run Now
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
