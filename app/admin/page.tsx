@@ -1,198 +1,153 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import Layout from '@/app/components/Layout';
 import Link from 'next/link';
+
+const adminSections = [
+  { 
+    title: 'User Management',
+    description: 'Manage users, roles, and permissions',
+    href: '/admin/users',
+    count: '24 users',
+    icon: '👥'
+  },
+  { 
+    title: 'System Settings',
+    description: 'Configure global system settings',
+    href: '/admin/settings',
+    icon: '⚙️'
+  },
+  { 
+    title: 'Security',
+    description: 'Security policies and access controls',
+    href: '/admin/security',
+    icon: '🔒'
+  },
+  { 
+    title: 'Database',
+    description: 'Database management and backups',
+    href: '/admin/database',
+    icon: '🗄️'
+  },
+  { 
+    title: 'API Management',
+    description: 'API keys, rate limits, and webhooks',
+    href: '/admin/api',
+    icon: '🔌'
+  },
+  { 
+    title: 'Logs & Monitoring',
+    description: 'System logs and performance monitoring',
+    href: '/admin/logs',
+    icon: '📊'
+  }
+];
 
 export default function AdminPage() {
   const { user, isLoaded } = useUser();
-  const [users, setUsers] = useState<any[]>([]);
-  const [revenue, setRevenue] = useState({ mrr: 0, totalRevenue: 0, customerCount: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (isLoaded && user) {
-      if (user.emailAddresses[0]?.emailAddress !== 'najwa.saadi1@hotmail.com') {
-        setError('Access denied. Admin only.');
-        setLoading(false);
-        return;
-      }
-      fetchAdminData();
-    }
-  }, [isLoaded, user]);
-
-  async function fetchAdminData() {
-    try {
-      const response = await fetch('/api/admin/data');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-        setRevenue(data.revenue || { mrr: 0, totalRevenue: 0, customerCount: 0 });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (!isLoaded || loading) {
-    return <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading...</div>;
-  }
-
-  if (error) {
+  if (!isLoaded) {
     return (
-      <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem'}}>
-        <div style={{fontSize: '1.5rem'}}>🔒 {error}</div>
-        <Link href="/dashboard" style={{color: '#6366f1', textDecoration: 'none'}}>← Back to Dashboard</Link>
+      <div style={{
+        minHeight: '100vh',
+        background: '#f8fafc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: '260px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #6366f1',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
-      {/* Back to Dashboard */}
-      <div style={{padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155'}}>
-        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem'}}>
-          <span>←</span> Back to Dashboard
-        </Link>
-      </div>
-
-      <main style={{padding: '2rem'}}>
-        <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
-          <div>
-            <h1 style={{margin: 0, fontSize: '1.875rem'}}>Admin Panel</h1>
-            <p style={{margin: '0.5rem 0 0', color: '#64748b'}}>Manage your SaaS business</p>
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-            <span style={{color: '#94a3b8'}}>{user?.emailAddresses[0]?.emailAddress}</span>
-          </div>
-        </header>
-
-        {/* Revenue Stats */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem'}}>
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Monthly Recurring Revenue</div>
-            <div style={{fontSize: '2.25rem', fontWeight: '700', color: '#10b981'}}>${revenue.mrr.toLocaleString()}</div>
-          </div>
-
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Total Users</div>
-            <div style={{fontSize: '2.25rem', fontWeight: '700'}}>{users.length}</div>
-          </div>
-
-          <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #334155'}}>
-            <div style={{color: '#94a3b8', fontSize: '0.875rem', marginBottom: '0.5rem'}}>Paid Customers</div>
-            <div style={{fontSize: '2.25rem', fontWeight: '700', color: '#8b5cf6'}}>{users.filter(u => u.stripeCustomerId).length}</div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem', marginBottom: '2rem'}}>
-          <h2 style={{margin: '0 0 1rem 0'}}>Quick Actions</h2>
-          <div style={{display: 'flex', gap: '1rem'}}>
-            <a href="https://dashboard.stripe.com" target="_blank" style={{
-              padding: '0.75rem 1.5rem',
-              background: '#8b5cf6',
-              color: 'white',
+    <Layout 
+      title="Admin Panel"
+      subtitle="System administration and management"
+    >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '24px'
+      }}>
+        {adminSections.map((section, idx) => (
+          <Link 
+            key={idx}
+            href={section.href}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '16px',
+              padding: '24px',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               textDecoration: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600'
-            }}>
-              Stripe Dashboard →
-            </a>
-            <a href="https://dashboard.clerk.com" target="_blank" style={{
-              padding: '0.75rem 1.5rem',
-              background: '#3b82f6',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600'
-            }}>
-              Clerk Users →
-            </a>
-            <a href="https://vercel.com/dashboard" target="_blank" style={{
-              padding: '0.75rem 1.5rem',
-              background: '#1e293b',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              border: '1px solid #334155'
-            }}>
-              Vercel Dashboard →
-            </a>
-          </div>
-        </div>
-
-        {/* Recent Users */}
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', marginBottom: '2rem'}}>
-          <div style={{padding: '1.5rem', borderBottom: '1px solid #334155'}}>
-            <h2 style={{margin: 0}}>Recent Users</h2>
-          </div>
-          <div style={{padding: '1.5rem'}}>
-            {users.length === 0 ? (
-              <div style={{color: '#64748b', textAlign: 'center', padding: '2rem'}}>
-                No users yet.
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#fef2f2',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              flexShrink: 0
+            }}>{section.icon}</div>
+            <div style={{flex: 1}}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#111827'
+                }}>{section.title}</h3>
+                {section.count && (
+                  <span style={{
+                    padding: '4px 10px',
+                    background: '#f3f4f6',
+                    color: '#6b7280',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    {section.count}
+                  </span>
+                )}
               </div>
-            ) : (
-              <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                <thead>
-                  <tr style={{textAlign: 'left', color: '#94a3b8', fontSize: '0.875rem'}}>
-                    <th style={{padding: '0.75rem', borderBottom: '1px solid #334155'}}>Email</th>
-                    <th style={{padding: '0.75rem', borderBottom: '1px solid #334155'}}>Joined</th>
-                    <th style={{padding: '0.75rem', borderBottom: '1px solid #334155'}}>Status</th>
-                    <th style={{padding: '0.75rem', borderBottom: '1px solid #334155'}}>MRR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u: any) => (
-                    <tr key={u.id} style={{borderBottom: '1px solid #334155'}}>
-                      <td style={{padding: '0.75rem'}}>{u.email}</td>
-                      <td style={{padding: '0.75rem', color: '#64748b'}}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                      <td style={{padding: '0.75rem'}}>
-                        <span style={{
-                          padding: '0.25rem 0.5rem',
-                          background: u.stripeCustomerId ? '#10b981' : '#64748b',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem'
-                        }}>
-                          {u.stripeCustomerId ? 'Paid' : 'Free'}
-                        </span>
-                      </td>
-                      <td style={{padding: '0.75rem'}}>${u.mrr || 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem'}}>
-          <h2 style={{margin: '0 0 1rem 0'}}>System Status</h2>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <div style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></div>
-              <span>Database: Connected</span>
+              <p style={{
+                margin: 0,
+                fontSize: '14px',
+                color: '#6b7280',
+                lineHeight: '1.5'
+              }}>{section.description}</p>
             </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <div style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></div>
-              <span>Stripe: Connected</span>
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <div style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></div>
-              <span>Slack: Connected</span>
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <div style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></div>
-              <span>Auth: Connected</span>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+            <div style={{
+              color: '#9ca3af',
+              fontSize: '20px'
+            }}>→</div>
+          </Link>
+        ))}
+      </div>
+    </Layout>
   );
 }
