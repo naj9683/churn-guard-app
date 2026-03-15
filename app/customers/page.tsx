@@ -42,15 +42,16 @@ export default function CustomersPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+        background: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        marginLeft: '260px'
       }}>
         <div style={{
-          width: '48px',
-          height: '48px',
-          border: '3px solid rgba(99, 102, 241, 0.1)',
+          width: '40px',
+          height: '40px',
+          border: '3px solid #e2e8f0',
           borderTop: '3px solid #6366f1',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -63,26 +64,30 @@ export default function CustomersPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
-      display: 'flex',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+      background: '#f8fafc',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex'
     }}>
       <Sidebar />
       
       <div style={{
-        marginLeft: '280px',
+        marginLeft: '260px',
         flex: 1,
-        padding: '32px',
-        overflowY: 'auto'
+        padding: '32px'
       }}>
         {/* Header */}
-        <div style={{marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px'
+        }}>
           <div>
             <h1 style={{
-              margin: '0 0 8px 0',
+              margin: '0 0 4px 0',
               fontSize: '28px',
               fontWeight: '700',
-              color: '#fff',
+              color: '#0f172a',
               letterSpacing: '-0.02em'
             }}>
               Customers
@@ -97,18 +102,19 @@ export default function CustomersPage() {
           </div>
           <Link href="/dashboard/customers/new" style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            color: 'white',
+            background: '#6366f1',
+            color: '#fff',
             textDecoration: 'none',
             borderRadius: '8px',
             fontWeight: '500',
-            fontSize: '14px'
+            fontSize: '14px',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
           }}>
             + Add Customer
           </Link>
         </div>
 
-        {/* Stats Summary */}
+        {/* Stats */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
@@ -116,54 +122,83 @@ export default function CustomersPage() {
           marginBottom: '32px'
         }}>
           <div style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#fff',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '20px'
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{color: '#64748b', fontSize: '12px', textTransform: 'uppercase', marginBottom: '4px'}}>Total Customers</div>
-            <div style={{fontSize: '24px', fontWeight: '700', color: '#6366f1'}}>{customers.length}</div>
+            <div style={{
+              color: '#64748b',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Total Customers</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#0f172a'
+            }}>{customers.length}</div>
           </div>
           <div style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
+            background: '#fff',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '20px'
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{color: '#64748b', fontSize: '12px', textTransform: 'uppercase', marginBottom: '4px'}}>High Risk</div>
-            <div style={{fontSize: '24px', fontWeight: '700', color: '#ef4444'}}>
-              {customers.filter(c => c.riskScore >= 70).length}
-            </div>
+            <div style={{
+              color: '#64748b',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>High Risk</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#ef4444'
+            }}>{customers.filter(c => c.riskScore >= 70).length}</div>
           </div>
           <div style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
+            background: '#fff',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '20px'
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{color: '#64748b', fontSize: '12px', textTransform: 'uppercase', marginBottom: '4px'}}>Total MRR</div>
-            <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>
-              ${customers.reduce((sum, c) => sum + (c.mrr || 0), 0).toLocaleString()}
-            </div>
+            <div style={{
+              color: '#64748b',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Total MRR</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#10b981'
+            }}>${customers.reduce((sum, c) => sum + (c.mrr || 0), 0).toLocaleString()}</div>
           </div>
         </div>
 
-        {/* Customers Table */}
+        {/* Table */}
         <div style={{
-          background: 'rgba(30, 41, 59, 0.6)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#fff',
+          border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          padding: '24px'
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '16px',
             fontWeight: '600',
-            color: '#fff'
+            color: '#0f172a'
           }}>All Customers</h3>
 
           {customers.length === 0 ? (
@@ -173,26 +208,26 @@ export default function CustomersPage() {
           ) : (
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
               <thead>
-                <tr style={{borderBottom: '1px solid rgba(255, 255, 255, 0.1)'}}>
-                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase'}}>Name</th>
-                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase'}}>Email</th>
-                  <th style={{textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase'}}>Risk Score</th>
-                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase'}}>MRR</th>
-                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase'}}>Actions</th>
+                <tr style={{borderBottom: '1px solid #e2e8f0'}}>
+                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Name</th>
+                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Email</th>
+                  <th style={{textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Risk Score</th>
+                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>MRR</th>
+                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((customer) => (
-                  <tr key={customer.id} style={{borderBottom: '1px solid rgba(255, 255, 255, 0.05)'}}>
-                    <td style={{padding: '12px', color: '#fff', fontWeight: '500'}}>
+                  <tr key={customer.id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                    <td style={{padding: '16px 12px', color: '#0f172a', fontWeight: '500'}}>
                       {customer.name || 'Unknown'}
                     </td>
-                    <td style={{padding: '12px', color: '#94a3b8'}}>{customer.email}</td>
-                    <td style={{padding: '12px', textAlign: 'center'}}>
+                    <td style={{padding: '16px 12px', color: '#64748b'}}>{customer.email}</td>
+                    <td style={{padding: '16px 12px', textAlign: 'center'}}>
                       <span style={{
                         padding: '6px 12px',
                         borderRadius: '20px',
-                        background: customer.riskScore >= 70 ? '#ef444420' : customer.riskScore >= 40 ? '#f59e0b20' : '#10b98120',
+                        background: customer.riskScore >= 70 ? '#fef2f2' : customer.riskScore >= 40 ? '#fffbeb' : '#f0fdf4',
                         color: customer.riskScore >= 70 ? '#ef4444' : customer.riskScore >= 40 ? '#f59e0b' : '#10b981',
                         fontWeight: '600',
                         fontSize: '13px'
@@ -200,18 +235,19 @@ export default function CustomersPage() {
                         {customer.riskScore}
                       </span>
                     </td>
-                    <td style={{padding: '12px', textAlign: 'right', color: '#fff', fontWeight: '500'}}>
+                    <td style={{padding: '16px 12px', textAlign: 'right', color: '#0f172a', fontWeight: '500'}}>
                       ${customer.mrr || 0}
                     </td>
-                    <td style={{padding: '12px', textAlign: 'right'}}>
+                    <td style={{padding: '16px 12px', textAlign: 'right'}}>
                       <Link href={`/customers/${customer.id}`} style={{
                         padding: '6px 12px',
-                        background: 'rgba(99, 102, 241, 0.15)',
+                        background: '#f8fafc',
                         color: '#6366f1',
                         textDecoration: 'none',
                         borderRadius: '6px',
                         fontSize: '13px',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        border: '1px solid #e2e8f0'
                       }}>
                         View
                       </Link>

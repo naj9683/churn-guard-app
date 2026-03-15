@@ -32,15 +32,16 @@ export default function PlaybooksPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+        background: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        marginLeft: '260px'
       }}>
         <div style={{
-          width: '48px',
-          height: '48px',
-          border: '3px solid rgba(99, 102, 241, 0.1)',
+          width: '40px',
+          height: '40px',
+          border: '3px solid #e2e8f0',
           borderTop: '3px solid #6366f1',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -53,25 +54,29 @@ export default function PlaybooksPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
-      display: 'flex',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+      background: '#f8fafc',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex'
     }}>
       <Sidebar />
       
       <div style={{
-        marginLeft: '280px',
+        marginLeft: '260px',
         flex: 1,
-        padding: '32px',
-        overflowY: 'auto'
+        padding: '32px'
       }}>
-        <div style={{marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px'
+        }}>
           <div>
             <h1 style={{
-              margin: '0 0 8px 0',
+              margin: '0 0 4px 0',
               fontSize: '28px',
               fontWeight: '700',
-              color: '#fff',
+              color: '#0f172a',
               letterSpacing: '-0.02em'
             }}>
               Playbooks
@@ -86,12 +91,13 @@ export default function PlaybooksPage() {
           </div>
           <Link href="/playbooks/new" style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            color: 'white',
+            background: '#6366f1',
+            color: '#fff',
             textDecoration: 'none',
             borderRadius: '8px',
             fontWeight: '500',
-            fontSize: '14px'
+            fontSize: '14px',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
           }}>
             + Create Playbook
           </Link>
@@ -99,52 +105,63 @@ export default function PlaybooksPage() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
           gap: '24px'
         }}>
           {playbooks.map((playbook) => (
             <div key={playbook.id} style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#fff',
+              border: '1px solid #e2e8f0',
               borderRadius: '12px',
-              padding: '24px'
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px',
-                fontSize: '20px'
-              }}>🔮</div>
-              <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#fff'}}>{playbook.name}</h3>
-              <p style={{margin: '0 0 16px 0', fontSize: '14px', color: '#64748b'}}>{playbook.description}</p>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600', color: '#0f172a'}}>{playbook.name}</h3>
                 <span style={{
-                  padding: '4px 8px',
+                  padding: '4px 10px',
                   borderRadius: '6px',
-                  background: playbook.isActive ? '#10b98120' : '#64748b20',
+                  background: playbook.isActive ? '#f0fdf4' : '#f1f5f9',
                   color: playbook.isActive ? '#10b981' : '#64748b',
                   fontSize: '12px',
                   fontWeight: '500'
                 }}>
                   {playbook.isActive ? 'Active' : 'Inactive'}
                 </span>
+              </div>
+              <p style={{margin: '0 0 20px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.5'}}>{playbook.description}</p>
+              <div style={{display: 'flex', gap: '8px'}}>
                 <Link href={`/playbooks/${playbook.id}`} style={{
-                  padding: '6px 12px',
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  color: '#6366f1',
+                  padding: '8px 16px',
+                  background: '#f8fafc',
+                  color: '#0f172a',
                   textDecoration: 'none',
                   borderRadius: '6px',
                   fontSize: '13px',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  border: '1px solid #e2e8f0',
+                  flex: 1,
+                  textAlign: 'center'
                 }}>
                   Edit
                 </Link>
+                <button style={{
+                  padding: '8px 16px',
+                  background: '#fef2f2',
+                  color: '#ef4444',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}>
+                  Delete
+                </button>
               </div>
             </div>
           ))}

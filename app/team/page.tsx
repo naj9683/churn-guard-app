@@ -10,15 +10,16 @@ export default function TeamPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
+        background: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        marginLeft: '260px'
       }}>
         <div style={{
-          width: '48px',
-          height: '48px',
-          border: '3px solid rgba(99, 102, 241, 0.1)',
+          width: '40px',
+          height: '40px',
+          border: '3px solid #e2e8f0',
           borderTop: '3px solid #6366f1',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -31,24 +32,23 @@ export default function TeamPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
-      display: 'flex',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+      background: '#f8fafc',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex'
     }}>
       <Sidebar />
       
       <div style={{
-        marginLeft: '280px',
+        marginLeft: '260px',
         flex: 1,
-        padding: '32px',
-        overflowY: 'auto'
+        padding: '32px'
       }}>
         <div style={{marginBottom: '32px'}}>
           <h1 style={{
-            margin: '0 0 8px 0',
+            margin: '0 0 4px 0',
             fontSize: '28px',
             fontWeight: '700',
-            color: '#fff',
+            color: '#0f172a',
             letterSpacing: '-0.02em'
           }}>
             Team
@@ -63,57 +63,77 @@ export default function TeamPage() {
         </div>
 
         <div style={{
-          background: 'rgba(30, 41, 59, 0.6)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#fff',
+          border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          padding: '24px'
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
-          <h3 style={{margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#fff'}}>Team Members</h3>
-          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
-            {user && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a'}}>Team Members</h3>
+            <button style={{
+              padding: '8px 16px',
+              background: '#6366f1',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              + Invite Member
+            </button>
+          </div>
+
+          {user && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '16px',
+              background: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0'
+            }}>
               <div style={{
+                width: '44px',
+                height: '44px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
-                padding: '16px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '8px'
+                justifyContent: 'center',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#fff'
               }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '600',
-                  color: '#fff'
-                }}>
-                  {user.firstName?.[0] || user.emailAddresses[0]?.emailAddress?.[0] || 'U'}
-                </div>
-                <div style={{flex: 1}}>
-                  <div style={{fontWeight: '500', color: '#fff'}}>
-                    {user.firstName || user.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User'}
-                  </div>
-                  <div style={{fontSize: '13px', color: '#64748b'}}>
-                    {user.emailAddresses[0]?.emailAddress}
-                  </div>
-                </div>
-                <span style={{
-                  padding: '4px 8px',
-                  background: '#6366f120',
-                  color: '#6366f1',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>
-                  Admin
-                </span>
+                {user.firstName?.[0] || user.emailAddresses[0]?.emailAddress?.[0] || 'U'}
               </div>
-            )}
-          </div>
+              <div style={{flex: 1}}>
+                <div style={{fontWeight: '600', color: '#0f172a', marginBottom: '2px'}}>
+                  {user.firstName || user.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User'}
+                </div>
+                <div style={{fontSize: '14px', color: '#64748b'}}>
+                  {user.emailAddresses[0]?.emailAddress}
+                </div>
+              </div>
+              <span style={{
+                padding: '4px 12px',
+                background: '#6366f1',
+                color: '#fff',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: '500'
+              }}>
+                Admin
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

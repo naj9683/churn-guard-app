@@ -31,24 +31,23 @@ export default function ExportPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0f1c 0%, #111827 100%)',
-      display: 'flex',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+      background: '#f8fafc',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex'
     }}>
       <Sidebar />
       
       <div style={{
-        marginLeft: '280px',
+        marginLeft: '260px',
         flex: 1,
-        padding: '32px',
-        overflowY: 'auto'
+        padding: '32px'
       }}>
         <div style={{marginBottom: '32px'}}>
           <h1 style={{
-            margin: '0 0 8px 0',
+            margin: '0 0 4px 0',
             fontSize: '28px',
             fontWeight: '700',
-            color: '#fff',
+            color: '#0f172a',
             letterSpacing: '-0.02em'
           }}>
             Export
@@ -68,44 +67,33 @@ export default function ExportPage() {
           gap: '24px'
         }}>
           {[
-            { type: 'customers', label: 'Customers', desc: 'All customer data including risk scores', icon: '👥' },
-            { type: 'interventions', label: 'Interventions', desc: 'History of all playbook interventions', icon: '🎯' },
-            { type: 'analytics', label: 'Analytics', desc: 'Monthly trends and metrics data', icon: '📊' },
-            { type: 'revenue', label: 'Revenue Impact', desc: 'MRR and revenue saved reports', icon: '💰' }
+            { type: 'customers', title: 'Customers', desc: 'All customer data including risk scores' },
+            { type: 'interventions', title: 'Interventions', desc: 'History of all playbook interventions' },
+            { type: 'analytics', title: 'Analytics', desc: 'Monthly trends and metrics data' },
+            { type: 'revenue', title: 'Revenue Impact', desc: 'MRR and revenue saved reports' }
           ].map((item) => (
             <div key={item.type} style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#fff',
+              border: '1px solid #e2e8f0',
               borderRadius: '12px',
-              padding: '24px'
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px',
-                fontSize: '20px'
-              }}>{item.icon}</div>
-              <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#fff'}}>{item.label}</h3>
+              <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#0f172a'}}>{item.title}</h3>
               <p style={{margin: '0 0 20px 0', fontSize: '14px', color: '#64748b'}}>{item.desc}</p>
               <button
                 onClick={() => handleExport(item.type)}
                 disabled={exporting}
                 style={{
                   padding: '10px 20px',
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                  color: 'white',
+                  background: exporting ? '#e2e8f0' : '#6366f1',
+                  color: exporting ? '#64748b' : '#fff',
                   border: 'none',
                   borderRadius: '8px',
                   fontWeight: '500',
                   fontSize: '14px',
                   cursor: exporting ? 'not-allowed' : 'pointer',
-                  opacity: exporting ? 0.7 : 1
+                  width: '100%'
                 }}
               >
                 {exporting ? 'Exporting...' : 'Download CSV'}
