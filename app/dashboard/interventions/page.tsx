@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import Layout from '@/app/components/Layout';
+import Sidebar from '@/app/components/Sidebar';
 
 export default function InterventionsPage() {
   const { user, isLoaded } = useUser();
@@ -51,32 +51,61 @@ export default function InterventionsPage() {
   }
 
   return (
-    <Layout 
-      title="Interventions"
-      subtitle="Track and manage playbook interventions"
-      actions={
-        <button style={{
-          padding: '10px 20px',
-          background: '#6366f1',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          fontWeight: '500',
-          fontSize: '14px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-        }}>
-          + New Intervention
-        </button>
-      }
-    >
+    <div style={{
+      minHeight: '100vh',
+      background: '#f8fafc',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex'
+    }}>
+      <Sidebar />
+      
       <div style={{
-        background: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '12px',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        marginLeft: '260px',
+        flex: 1,
+        padding: '32px',
+        overflowY: 'auto'
       }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px'
+        }}>
+          <div>
+            <h1 style={{
+              margin: '0 0 4px 0',
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#111827',
+              letterSpacing: '-0.02em'
+            }}>
+              Interventions
+            </h1>
+            <p style={{
+              margin: 0,
+              color: '#6b7280',
+              fontSize: '14px'
+            }}>
+              Track and manage playbook interventions
+            </p>
+          </div>
+          <button style={{
+            padding: '10px 20px',
+            background: '#6366f1',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '500',
+            fontSize: '14px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+          }}>
+            + New Intervention
+          </button>
+        </div>
+
+        {/* Stats Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -90,10 +119,11 @@ export default function InterventionsPage() {
             { label: 'Pending', value: interventions.filter((i: any) => i.status === 'pending').length, color: '#f59e0b' }
           ].map((stat, idx) => (
             <div key={idx} style={{
-              padding: '20px',
-              background: '#f9fafb',
-              borderRadius: '10px',
-              border: '1px solid #e5e7eb'
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{
                 color: '#6b7280',
@@ -112,52 +142,71 @@ export default function InterventionsPage() {
           ))}
         </div>
 
-        <h3 style={{
-          margin: '0 0 20px 0',
-          fontSize: '16px',
-          fontWeight: '600',
-          color: '#111827'
-        }}>Recent Interventions</h3>
+        {/* Table */}
+        <div style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#111827'
+          }}>Recent Interventions</h3>
 
-        <table style={{width: '100%', borderCollapse: 'collapse'}}>
-          <thead>
-            <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-              <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Customer</th>
-              <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Playbook</th>
-              <th style={{textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Status</th>
-              <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {interventions.map((intervention: any) => (
-              <tr key={intervention.id} style={{borderBottom: '1px solid #f3f4f6'}}>
-                <td style={{padding: '16px 12px', color: '#111827', fontWeight: '500'}}>
-                  {intervention.customer?.name || 'Unknown'}
-                </td>
-                <td style={{padding: '16px 12px', color: '#6b7280'}}>
-                  {intervention.playbook?.name || 'Unknown'}
-                </td>
-                <td style={{padding: '16px 12px', textAlign: 'center'}}>
-                  <span style={{
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    background: intervention.status === 'success' ? '#f0fdf4' : intervention.status === 'failed' ? '#fef2f2' : '#fffbeb',
-                    color: intervention.status === 'success' ? '#10b981' : intervention.status === 'failed' ? '#ef4444' : '#f59e0b',
-                    fontWeight: '600',
-                    fontSize: '13px',
-                    textTransform: 'capitalize'
-                  }}>
-                    {intervention.status}
-                  </span>
-                </td>
-                <td style={{padding: '16px 12px', textAlign: 'right', color: '#6b7280'}}>
-                  {new Date(intervention.createdAt).toLocaleDateString()}
-                </td>
+          <table style={{width: '100%', borderCollapse: 'collapse'}}>
+            <thead>
+              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
+                <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Customer</th>
+                <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Playbook</th>
+                <th style={{textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Status</th>
+                <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {interventions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{padding: '40px', textAlign: 'center', color: '#6b7280'}}>
+                    <div style={{fontSize: '48px', marginBottom: '16px'}}>🎯</div>
+                    <div style={{fontSize: '16px', fontWeight: '500', marginBottom: '8px'}}>No interventions yet</div>
+                    <div>Create your first intervention to get started</div>
+                  </td>
+                </tr>
+              ) : (
+                interventions.map((intervention: any) => (
+                  <tr key={intervention.id} style={{borderBottom: '1px solid #f3f4f6'}}>
+                    <td style={{padding: '16px 12px', color: '#111827', fontWeight: '500'}}>
+                      {intervention.customer?.name || intervention.customer?.email || 'Unknown'}
+                    </td>
+                    <td style={{padding: '16px 12px', color: '#6b7280'}}>
+                      {intervention.playbook?.name || 'Unknown'}
+                    </td>
+                    <td style={{padding: '16px 12px', textAlign: 'center'}}>
+                      <span style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        background: intervention.status === 'success' ? '#f0fdf4' : intervention.status === 'failed' ? '#fef2f2' : '#fffbeb',
+                        color: intervention.status === 'success' ? '#10b981' : intervention.status === 'failed' ? '#ef4444' : '#f59e0b',
+                        fontWeight: '600',
+                        fontSize: '13px',
+                        textTransform: 'capitalize'
+                      }}>
+                        {intervention.status || 'pending'}
+                      </span>
+                    </td>
+                    <td style={{padding: '16px 12px', textAlign: 'right', color: '#6b7280'}}>
+                      {intervention.createdAt ? new Date(intervention.createdAt).toLocaleDateString() : '-'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </Layout>
+    </div>
   );
 }
