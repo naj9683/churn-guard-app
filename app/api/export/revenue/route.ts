@@ -45,11 +45,9 @@ export async function GET() {
       }
     }
 
-    const outcomes = await prisma.interventionOutcome.findMany({
-      where: { userId: user.id, status: 'success' }
-    });
-    
-    savedMRR = outcomes.reduce((sum, o) => sum + (o.revenueSaved || 0), 0);
+    // Calculate saved MRR from customers whose risk improved
+    const improvedCustomers = customers.filter(c => c.healthScore && c.healthScore > 70 && c.riskScore < 50);
+    savedMRR = improvedCustomers.reduce((sum, c) => sum + (c.mrr || 0), 0);
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
