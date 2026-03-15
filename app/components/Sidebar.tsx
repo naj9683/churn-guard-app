@@ -24,6 +24,8 @@ export default function Sidebar() {
     { href: '/integrations', label: 'Integrations', icon: '🔌', adminOnly: true },
     { href: '/admin', label: 'Admin Panel', icon: '🔐', adminOnly: true },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
+    { href: '/audit', label: 'Audit Logs', icon: '📊' },
+    { href: '/team', label: 'Team', icon: '👥' },
   ];
 
   return (
