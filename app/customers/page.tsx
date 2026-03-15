@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import Sidebar from '@/app/components/Sidebar';
 
 interface Customer {
   id: string;
@@ -45,16 +44,15 @@ export default function CustomersPage() {
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
-      <Sidebar />
-      <header style={{background: '#1e293b', borderBottom: '1px solid #334155', padding: '1.5rem 2rem', marginLeft: '250px'}}>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui'}}>
+      <header style={{background: '#1e293b', borderBottom: '1px solid #334155', padding: '1.5rem 2rem'}}>
         <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <h1 style={{margin: 0}}>Customers</h1>
           <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none'}}>← Back to Dashboard</Link>
         </div>
       </header>
 
-      <main style={{maxWidth: '1200px', margin: '2rem auto', padding: '0 2rem', marginLeft: '250px'}}>
+      <main style={{maxWidth: '1200px', margin: '2rem auto', padding: '0 2rem'}}>
         <div style={{background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem'}}>
           {customers.length === 0 ? (
             <div style={{textAlign: 'center', padding: '3rem', color: '#64748b'}}>
