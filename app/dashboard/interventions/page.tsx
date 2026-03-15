@@ -1,33 +1,50 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
 import Sidebar from '@/app/components/Sidebar';
 
 export default function InterventionsPage() {
-  const { user, isLoaded } = useUser();
   const [interventions, setInterventions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoaded && user) fetchInterventions();
-  }, [isLoaded, user]);
+    fetchInterventions();
+  }, []);
 
   async function fetchInterventions() {
     try {
       const res = await fetch('/api/interventions');
       if (res.ok) {
         const data = await res.json();
-        setInterventions(data || []);
+        console.log('API Response:', data); // Debug log
+        
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setInterventions(data);
+        } else if (data && Array.isArray(data.interventions)) {
+          setInterventions(data.interventions);
+        } else if (data && Array.isArray(data.data)) {
+          setInterventions(data.data);
+        } else {
+          console.error('Unexpected data format:', data);
+          setInterventions([]);
+        }
+      } else {
+        console.error('API error:', res.status);
+        setInterventions([]);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Fetch error:', error);
+      setInterventions([]);
     } finally {
       setLoading(false);
     }
   }
 
-  if (!isLoaded || loading) {
+  // Ensure interventions is always an array
+  const safeInterventions = Array.isArray(interventions) ? interventions : [];
+
+  if (loading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -62,8 +79,7 @@ export default function InterventionsPage() {
       <div style={{
         marginLeft: '260px',
         flex: 1,
-        padding: '32px',
-        overflowY: 'auto'
+        padding: '32px'
       }}>
         {/* Header */}
         <div style={{
@@ -112,34 +128,93 @@ export default function InterventionsPage() {
           gap: '24px',
           marginBottom: '32px'
         }}>
-          {[
-            { label: 'Total Interventions', value: interventions.length, color: '#6366f1' },
-            { label: 'Successful', value: interventions.filter((i: any) => i.status === 'success').length, color: '#10b981' },
-            { label: 'Failed', value: interventions.filter((i: any) => i.status === 'failed').length, color: '#ef4444' },
-            { label: 'Pending', value: interventions.filter((i: any) => i.status === 'pending').length, color: '#f59e0b' }
-          ].map((stat, idx) => (
-            <div key={idx} style={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{
-                color: '#6b7280',
-                fontSize: '13px',
-                fontWeight: '500',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                marginBottom: '8px'
-              }}>{stat.label}</div>
-              <div style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: stat.color
-              }}>{stat.value}</div>
-            </div>
-          ))}
+          <div style={{
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              color: '#6b7280',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Total Interventions</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#6366f1'
+            }}>{safeInterventions.length}</div>
+          </div>
+          
+          <div style={{
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              color: '#6b7280',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Successful</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#10b981'
+            }}>{safeInterventions.filter((i: any) => i?.status === 'success').length}</div>
+          </div>
+          
+          <div style={{
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              color: '#6b7280',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Failed</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#ef4444'
+            }}>{safeInterventions.filter((i: any) => i?.status === 'failed').length}</div>
+          </div>
+          
+          <div style={{
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              color: '#6b7280',
+              fontSize: '13px',
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>Pending</div>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#f59e0b'
+            }}>{safeInterventions.filter((i: any) => i?.status === 'pending').length}</div>
+          </div>
         </div>
 
         {/* Table */}
@@ -167,7 +242,7 @@ export default function InterventionsPage() {
               </tr>
             </thead>
             <tbody>
-              {interventions.length === 0 ? (
+              {safeInterventions.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{padding: '40px', textAlign: 'center', color: '#6b7280'}}>
                     <div style={{fontSize: '48px', marginBottom: '16px'}}>🎯</div>
@@ -176,29 +251,29 @@ export default function InterventionsPage() {
                   </td>
                 </tr>
               ) : (
-                interventions.map((intervention: any) => (
-                  <tr key={intervention.id} style={{borderBottom: '1px solid #f3f4f6'}}>
+                safeInterventions.map((intervention: any, idx: number) => (
+                  <tr key={intervention?.id || idx} style={{borderBottom: '1px solid #f3f4f6'}}>
                     <td style={{padding: '16px 12px', color: '#111827', fontWeight: '500'}}>
-                      {intervention.customer?.name || intervention.customer?.email || 'Unknown'}
+                      {intervention?.customer?.name || intervention?.customer?.email || 'Unknown'}
                     </td>
                     <td style={{padding: '16px 12px', color: '#6b7280'}}>
-                      {intervention.playbook?.name || 'Unknown'}
+                      {intervention?.playbook?.name || 'Unknown'}
                     </td>
                     <td style={{padding: '16px 12px', textAlign: 'center'}}>
                       <span style={{
                         padding: '6px 12px',
                         borderRadius: '20px',
-                        background: intervention.status === 'success' ? '#f0fdf4' : intervention.status === 'failed' ? '#fef2f2' : '#fffbeb',
-                        color: intervention.status === 'success' ? '#10b981' : intervention.status === 'failed' ? '#ef4444' : '#f59e0b',
+                        background: intervention?.status === 'success' ? '#f0fdf4' : intervention?.status === 'failed' ? '#fef2f2' : '#fffbeb',
+                        color: intervention?.status === 'success' ? '#10b981' : intervention?.status === 'failed' ? '#ef4444' : '#f59e0b',
                         fontWeight: '600',
                         fontSize: '13px',
                         textTransform: 'capitalize'
                       }}>
-                        {intervention.status || 'pending'}
+                        {intervention?.status || 'pending'}
                       </span>
                     </td>
                     <td style={{padding: '16px 12px', textAlign: 'right', color: '#6b7280'}}>
-                      {intervention.createdAt ? new Date(intervention.createdAt).toLocaleDateString() : '-'}
+                      {intervention?.createdAt ? new Date(intervention.createdAt).toLocaleDateString() : '-'}
                     </td>
                   </tr>
                 ))
