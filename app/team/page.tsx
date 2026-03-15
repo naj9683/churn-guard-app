@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import Sidebar from '@/app/components/Sidebar';
 
 const ROLES = [
   { value: 'admin', label: 'Admin' },
@@ -79,7 +80,9 @@ export default function TeamPage() {
   }
 
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', padding: '2rem'}}>
+    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', display: 'flex'}}>
+      <Sidebar />
+      <div style={{flex: 1, marginLeft: 250, padding: 2}}>
       <Link href="/dashboard" style={{color: '#94a3b8'}}>← Back</Link>
       <h1 style={{marginTop: '2rem'}}>👥 Team Management</h1>
       
@@ -111,6 +114,7 @@ export default function TeamPage() {
           <button onClick={() => removeMember(member.id)} style={{padding: '0.5rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem'}}>Remove</button>
         </div>
       ))}
+      </div>
     </div>
   );
 }
