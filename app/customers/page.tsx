@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/app/components/Sidebar';
 
 interface Customer {
@@ -17,8 +18,11 @@ interface Customer {
 
 export default function CustomersPage() {
   const { user, isLoaded } = useUser();
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'high'>('all');
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isLoaded && user) fetchCustomers();
@@ -37,6 +41,17 @@ export default function CustomersPage() {
       setLoading(false);
     }
   }
+
+  const scrollToTable = () => {
+    tableRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const filteredCustomers = filter === 'high' 
+    ? customers.filter(c => c.riskScore >= 70)
+    : customers;
+
+  const highRiskCount = customers.filter(c => c.riskScore >= 70).length;
+  const totalMRR = customers.reduce((sum, c) => sum + (c.mrr || 0), 0);
 
   if (!isLoaded || loading) {
     return (
@@ -69,7 +84,7 @@ export default function CustomersPage() {
       display: 'flex'
     }}>
       <Sidebar />
-      
+
       <div style={{
         marginLeft: '260px',
         flex: 1,
@@ -114,20 +129,55 @@ export default function CustomersPage() {
           </Link>
         </div>
 
-        {/* Stats */}
+        {/* Stats - CLICKABLE */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '24px',
           marginBottom: '32px'
         }}>
-          <div style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
+          {/* Total Customers */}
+          <div 
+            onClick={() => {
+              setFilter('all');
+              scrollToTable();
+            }}
+            style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+              e.currentTarget.style.borderColor = '#6366f1';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              padding: '12px',
+              opacity: 0.1
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
             <div style={{
               color: '#64748b',
               fontSize: '13px',
@@ -137,18 +187,59 @@ export default function CustomersPage() {
               marginBottom: '8px'
             }}>Total Customers</div>
             <div style={{
-              fontSize: '28px',
+              fontSize: '32px',
               fontWeight: '700',
               color: '#0f172a'
             }}>{customers.length}</div>
+            <div style={{
+              fontSize: '12px',
+              color: '#6366f1',
+              marginTop: '8px',
+              fontWeight: '500'
+            }}>View all →</div>
           </div>
-          <div style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
+
+          {/* High Risk */}
+          <div 
+            onClick={() => {
+              setFilter('high');
+              scrollToTable();
+            }}
+            style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(239,68,68,0.15)';
+              e.currentTarget.style.borderColor = '#ef4444';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              padding: '12px',
+              opacity: 0.1
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
             <div style={{
               color: '#64748b',
               fontSize: '13px',
@@ -158,18 +249,55 @@ export default function CustomersPage() {
               marginBottom: '8px'
             }}>High Risk</div>
             <div style={{
-              fontSize: '28px',
+              fontSize: '32px',
               fontWeight: '700',
               color: '#ef4444'
-            }}>{customers.filter(c => c.riskScore >= 70).length}</div>
+            }}>{highRiskCount}</div>
+            <div style={{
+              fontSize: '12px',
+              color: '#ef4444',
+              marginTop: '8px',
+              fontWeight: '500'
+            }}>View at-risk →</div>
           </div>
-          <div style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
+
+          {/* Total MRR */}
+          <div 
+            onClick={() => router.push('/analytics')}
+            style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(16,185,129,0.15)';
+              e.currentTarget.style.borderColor = '#10b981';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              padding: '12px',
+              opacity: 0.1
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
             <div style={{
               color: '#64748b',
               fontSize: '13px',
@@ -179,84 +307,131 @@ export default function CustomersPage() {
               marginBottom: '8px'
             }}>Total MRR</div>
             <div style={{
-              fontSize: '28px',
+              fontSize: '32px',
               fontWeight: '700',
               color: '#10b981'
-            }}>${customers.reduce((sum, c) => sum + (c.mrr || 0), 0).toLocaleString()}</div>
+            }}>${totalMRR.toLocaleString()}</div>
+            <div style={{
+              fontSize: '12px',
+              color: '#10b981',
+              marginTop: '8px',
+              fontWeight: '500'
+            }}>View analytics →</div>
           </div>
         </div>
 
-        {/* Table */}
-        <div style={{
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <h3 style={{
-            margin: '0 0 20px 0',
-            fontSize: '16px',
-            fontWeight: '600',
-            color: '#0f172a'
-          }}>All Customers</h3>
+        {/* Filter indicator */}
+        {filter === 'high' && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{color: '#ef4444', fontSize: '14px', fontWeight: '500'}}>
+              Showing high risk customers only
+            </span>
+            <button 
+              onClick={() => setFilter('all')}
+              style={{
+                background: '#fff',
+                border: '1px solid #fecaca',
+                color: '#ef4444',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
 
-          {customers.length === 0 ? (
-            <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-              No customers found. Add your first customer to get started.
+        {/* Table */}
+        <div 
+          ref={tableRef}
+          style={{
+            background: '#fff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{
+              margin: 0,
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#0f172a'
+            }}>
+              Customer List {filter === 'high' && <span style={{color: '#ef4444'}}>(High Risk)</span>}
+            </h3>
+            <div style={{fontSize: '14px', color: '#64748b'}}>
+              {filteredCustomers.length} customers
             </div>
-          ) : (
-            <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr style={{borderBottom: '1px solid #e2e8f0'}}>
-                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Name</th>
-                  <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Email</th>
-                  <th style={{textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Risk Score</th>
-                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>MRR</th>
-                  <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Actions</th>
+          </div>
+
+          <table style={{width: '100%', borderCollapse: 'collapse'}}>
+            <thead>
+              <tr style={{borderBottom: '1px solid #e2e8f0'}}>
+                <th style={{textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Customer</th>
+                <th style={{textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Risk Score</th>
+                <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>MRR</th>
+                <th style={{textAlign: 'right', padding: '12px', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCustomers.map((customer) => (
+                <tr key={customer.id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                  <td style={{padding: '16px 12px'}}>
+                    <div style={{fontWeight: '500', color: '#0f172a'}}>{customer.name || customer.email}</div>
+                    <div style={{fontSize: '13px', color: '#64748b'}}>{customer.email}</div>
+                  </td>
+                  <td style={{padding: '16px 12px', textAlign: 'center'}}>
+                    <span style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      background: customer.riskScore >= 70 ? '#fef2f2' : customer.riskScore >= 40 ? '#fffbeb' : '#f0fdf4',
+                      color: customer.riskScore >= 70 ? '#ef4444' : customer.riskScore >= 40 ? '#f59e0b' : '#10b981',
+                      fontWeight: '600',
+                      fontSize: '13px'
+                    }}>
+                      {customer.riskScore}%
+                    </span>
+                  </td>
+                  <td style={{padding: '16px 12px', textAlign: 'right', fontWeight: '500', color: '#0f172a'}}>
+                    ${customer.mrr || 0}
+                  </td>
+                  <td style={{padding: '16px 12px', textAlign: 'right'}}>
+                    <Link href={`/dashboard/customers/${customer.id}`} style={{
+                      padding: '6px 12px',
+                      background: '#f8fafc',
+                      color: '#6366f1',
+                      textDecoration: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      View
+                    </Link>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr key={customer.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                    <td style={{padding: '16px 12px', color: '#0f172a', fontWeight: '500'}}>
-                      {customer.name || 'Unknown'}
-                    </td>
-                    <td style={{padding: '16px 12px', color: '#64748b'}}>{customer.email}</td>
-                    <td style={{padding: '16px 12px', textAlign: 'center'}}>
-                      <span style={{
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        background: customer.riskScore >= 70 ? '#fef2f2' : customer.riskScore >= 40 ? '#fffbeb' : '#f0fdf4',
-                        color: customer.riskScore >= 70 ? '#ef4444' : customer.riskScore >= 40 ? '#f59e0b' : '#10b981',
-                        fontWeight: '600',
-                        fontSize: '13px'
-                      }}>
-                        {customer.riskScore}
-                      </span>
-                    </td>
-                    <td style={{padding: '16px 12px', textAlign: 'right', color: '#0f172a', fontWeight: '500'}}>
-                      ${customer.mrr || 0}
-                    </td>
-                    <td style={{padding: '16px 12px', textAlign: 'right'}}>
-                      <Link href={`/customers/${customer.id}`} style={{
-                        padding: '6px 12px',
-                        background: '#f8fafc',
-                        color: '#6366f1',
-                        textDecoration: 'none',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
