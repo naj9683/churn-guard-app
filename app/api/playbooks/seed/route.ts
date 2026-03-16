@@ -6,80 +6,68 @@ const DEFAULT_PLAYBOOKS = [
   {
     name: 'High Risk Alert',
     description: 'Automatically alerts when customer risk score exceeds 70%. Triggers email to success team and creates intervention task.',
-    triggerType: 'risk_score',
-    triggerValue: '70',
-    actionType: 'email',
-    actionConfig: {
-      subject: 'High Risk Alert: {{customer.name}} needs attention',
-      body: 'Customer {{customer.email}} has a risk score of {{customer.riskScore}}%. Recommended action: Schedule check-in call.'
+    trigger: 'risk_score>=70',
+    actions: {
+      type: 'email',
+      subject: 'High Risk Alert: Customer needs attention',
+      body: 'Customer has a risk score above 70%. Recommended action: Schedule check-in call.'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   },
   {
     name: 'Login Drop Alert',
     description: 'Detects when customer has not logged in for 7+ days. Sends re-engagement email with helpful resources.',
-    triggerType: 'days_since_login',
-    triggerValue: '7',
-    actionType: 'email',
-    actionConfig: {
+    trigger: 'days_since_login>=7',
+    actions: {
+      type: 'email',
       subject: 'We miss you at ChurnGuard',
-      body: 'Hi {{customer.name}}, we noticed you haven\'t logged in recently. Here are some quick tips to get value from our platform...'
+      body: 'We noticed you haven\'t logged in recently. Here are some quick tips to get value...'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   },
   {
     name: 'Feature Adoption Boost',
     description: 'Triggers when customer uses less than 3 core features. Sends onboarding guide for unused features.',
-    triggerType: 'feature_usage',
-    triggerValue: '3',
-    actionType: 'email',
-    actionConfig: {
+    trigger: 'feature_usage<3',
+    actions: {
+      type: 'email',
       subject: 'Unlock more value with these features',
-      body: 'Hi {{customer.name}}, you\'re using {{features.used}} of {{features.total}} features. Here\'s how to get more value...'
+      body: 'Here\'s how to get more value from unused features...'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   },
   {
     name: 'Revenue At Risk',
     description: 'Monitors MRR changes. Triggers when MRR drops by 20% or more. Alerts sales team for immediate intervention.',
-    triggerType: 'mrr_drop',
-    triggerValue: '20',
-    actionType: 'slack',
-    actionConfig: {
+    trigger: 'mrr_drop>=20',
+    actions: {
+      type: 'slack',
       channel: '#revenue-alerts',
-      message: '🚨 Revenue Alert: {{customer.name}} MRR dropped by {{mrr.change}}%. Immediate action required.'
+      message: '🚨 Revenue Alert: MRR dropped significantly. Immediate action required.'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   },
   {
     name: 'Expansion Opportunity',
     description: 'Identifies power users (high engagement, low risk) and sends upgrade offers automatically.',
-    triggerType: 'expansion_ready',
-    triggerValue: '90',
-    actionType: 'email',
-    actionConfig: {
+    trigger: 'health_score>=90',
+    actions: {
+      type: 'email',
       subject: 'Ready to scale? 🚀',
-      body: 'Hi {{customer.name}}, we\'ve noticed you\'re getting amazing results. Here\'s how you can scale even further...'
+      body: 'We\'ve noticed you\'re getting amazing results. Here\'s how you can scale...'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   },
   {
     name: 'Churn Recovery',
     description: 'Last-ditch effort when cancellation is initiated. Offers discount and connects to retention specialist.',
-    triggerType: 'cancellation_intent',
-    triggerValue: '1',
-    actionType: 'webhook',
-    actionConfig: {
+    trigger: 'cancellation_intent',
+    actions: {
+      type: 'webhook',
       url: '/api/webhooks/retention',
-      data: { priority: 'urgent', offer_discount: true }
+      priority: 'urgent'
     },
-    isActive: true,
-    isSystem: true
+    isActive: true
   }
 ];
 
@@ -92,8 +80,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user already has playbooks
     const existing = await prisma.playbook.findMany({
-      where: { isSystem: true }
+      where: { userId: userId }
     });
 
     if (existing.length > 0) {
@@ -108,9 +97,7 @@ export async function POST(req: Request) {
         prisma.playbook.create({
           data: {
             ...pb,
-            userId: userId,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            userId: userId
           }
         })
       )

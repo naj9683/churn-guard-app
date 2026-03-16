@@ -62,6 +62,21 @@ export default function PlaybooksPage() {
     }
   }
 
+  function getTriggerDisplay(trigger: string) {
+    if (trigger.includes('risk_score')) return 'Risk Score';
+    if (trigger.includes('days_since_login')) return 'Login Activity';
+    if (trigger.includes('feature_usage')) return 'Feature Usage';
+    if (trigger.includes('mrr_drop')) return 'MRR Change';
+    if (trigger.includes('health_score')) return 'Health Score';
+    if (trigger.includes('cancellation')) return 'Cancellation';
+    return 'Custom';
+  }
+
+  function getTriggerValue(trigger: string) {
+    const match = trigger.match(/[<>!=]+(\d+)/);
+    return match ? match[1] : 'N/A';
+  }
+
   if (!isLoaded || loading) {
     return (
       <div style={{
@@ -124,7 +139,7 @@ export default function PlaybooksPage() {
             <div>
               <h2 style={{margin: '0 0 4px 0', fontSize: '20px', fontWeight: '600'}}>AI-Driven Playbooks</h2>
               <p style={{margin: 0, opacity: 0.9, fontSize: '14px'}}>
-                ChurnGuard automatically monitors customer behavior and triggers smart interventions. No manual setup required.
+                ChurnGuard automatically monitors customer behavior and triggers smart interventions.
               </p>
             </div>
           </div>
@@ -144,12 +159,6 @@ export default function PlaybooksPage() {
                 {playbooks.reduce((sum, p) => sum + (p.triggerCount || 0), 0)}
               </div>
               <div style={{fontSize: '12px', opacity: 0.8}}>Auto-Triggers This Week</div>
-            </div>
-            <div>
-              <div style={{fontSize: '24px', fontWeight: '700'}}>
-                {playbooks.reduce((sum, p) => sum + (p.successRate || 0), 0) / (playbooks.length || 1)}%
-              </div>
-              <div style={{fontSize: '12px', opacity: 0.8}}>Avg. Success Rate</div>
             </div>
           </div>
         </div>
@@ -191,34 +200,13 @@ export default function PlaybooksPage() {
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
               padding: '24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              position: 'relative',
-              overflow: 'hidden'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              {playbook.isSystem && (
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  padding: '4px 8px',
-                  background: '#f0fdf4',
-                  color: '#10b981',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  borderRadius: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  AI Managed
-                </div>
-              )}
-              
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                marginBottom: '12px',
-                marginTop: playbook.isSystem ? '8px' : '0'
+                marginBottom: '12px'
               }}>
                 <div style={{
                   width: '40px',
@@ -230,23 +218,13 @@ export default function PlaybooksPage() {
                   justifyContent: 'center'
                 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={playbook.isActive ? '#10b981' : '#64748b'} strokeWidth="2">
-                    {playbook.triggerType === 'risk_score' && <><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></>}
-                    {playbook.triggerType === 'days_since_login' && <><path d="M12 2v20M2 12h20"/></>}
-                    {playbook.triggerType === 'mrr_drop' && <><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
-                    {playbook.triggerType === 'feature_usage' && <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/></>}
-                    {playbook.triggerType === 'expansion_ready' && <><path d="M23 6l-9.5 5.5-5.5-3.5L1 14"/><path d="M17 6h6v6"/></>}
-                    {playbook.triggerType === 'cancellation_intent' && <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
                 </div>
                 <div>
                   <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a'}}>{playbook.name}</h3>
                   <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>
-                    Triggers: {playbook.triggerType === 'risk_score' ? `Risk ≥ ${playbook.triggerValue}%` : 
-                              playbook.triggerType === 'days_since_login' ? `No login ≥ ${playbook.triggerValue} days` :
-                              playbook.triggerType === 'mrr_drop' ? `MRR drop ≥ ${playbook.triggerValue}%` :
-                              playbook.triggerType === 'feature_usage' ? `Uses < ${playbook.triggerValue} features` :
-                              playbook.triggerType === 'expansion_ready' ? `Health score ≥ ${playbook.triggerValue}%` :
-                              'Cancellation detected'}
+                    Trigger: {getTriggerDisplay(playbook.trigger)}
                   </div>
                 </div>
               </div>
@@ -263,17 +241,21 @@ export default function PlaybooksPage() {
                 marginBottom: '16px'
               }}>
                 <div>
-                  <div style={{fontSize: '12px', color: '#64748b'}}>Last 7 days</div>
-                  <div style={{fontSize: '18px', fontWeight: '700', color: '#0f172a'}}>
-                    {playbook.triggerCount || 0} <span style={{fontSize: '12px', fontWeight: '400', color: '#64748b'}}>triggers</span>
+                  <div style={{fontSize: '12px', color: '#64748b'}}>Last triggered</div>
+                  <div style={{fontSize: '14px', fontWeight: '600', color: '#0f172a'}}>
+                    {playbook.lastRun ? new Date(playbook.lastRun).toLocaleDateString() : 'Never'}
                   </div>
                 </div>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{fontSize: '12px', color: '#64748b'}}>Success rate</div>
-                  <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>
-                    {playbook.successRate || 0}%
-                  </div>
-                </div>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: playbook.isActive ? '#f0fdf4' : '#f1f5f9',
+                  color: playbook.isActive ? '#10b981' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {playbook.isActive ? 'AI Active' : 'Paused'}
+                </span>
               </div>
 
               <div style={{display: 'flex', gap: '8px'}}>
