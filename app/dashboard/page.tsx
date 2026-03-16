@@ -161,10 +161,10 @@ export default function Dashboard() {
   ];
 
   const activities = [
-    { text: 'High risk alert: Acme Corp', time: '2m ago', color: '#ef4444' },
-    { text: 'Playbook "Winback" completed', time: '1h ago', color: '#10b981' },
-    { text: 'New customer: TechStart Inc', time: '3h ago', color: '#6366f1' },
-    { text: '$2,400 MRR saved this month', time: '5h ago', color: '#3b82f6' }
+    { text: 'High risk alert: Acme Corp', time: '2m ago', color: '#ef4444', href: '/customers' },
+    { text: 'Playbook "Winback" completed', time: '1h ago', color: '#10b981', href: '/playbooks' },
+    { text: 'New customer: TechStart Inc', time: '3h ago', color: '#6366f1', href: '/customers' },
+    { text: '$2,400 MRR saved this month', time: '5h ago', color: '#3b82f6', href: '/analytics' }
   ];
 
   return (
@@ -450,16 +450,34 @@ export default function Dashboard() {
               fontWeight: '600',
               color: '#111827'
             }}>Recent Activity</h3>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
               {activities.map((activity, idx) => (
-                <div key={idx} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  background: '#f9fafb',
-                  borderRadius: '8px'
-                }}>
+                <Link 
+                  key={idx} 
+                  href={activity.href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: '#f9fafb',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    border: '1px solid transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f3f4f6';
+                    e.currentTarget.style.border = '1px solid #e5e7eb';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.border = '1px solid transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -467,23 +485,30 @@ export default function Dashboard() {
                     borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}>
                     <IconActivity color={activity.color} />
                   </div>
-                  <div style={{flex: 1}}>
+                  <div style={{flex: 1, minWidth: 0}}>
                     <div style={{
                       fontSize: '14px',
                       fontWeight: '500',
                       color: '#111827',
-                      marginBottom: '2px'
+                      marginBottom: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}>{activity.text}</div>
                     <div style={{
                       fontSize: '12px',
                       color: '#9ca3af'
                     }}>{activity.time}</div>
                   </div>
-                </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0}}>
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </Link>
               ))}
             </div>
           </div>
