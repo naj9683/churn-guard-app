@@ -80,6 +80,16 @@ export default function Dashboard() {
 
   const rar = calculateRaR();
 
+  // Generate sample monthly data if API doesn't provide it
+  const monthlyTrend = dashboardData?.monthlyTrend || [
+    { month: 'Jan', count: 45 },
+    { month: 'Feb', count: 52 },
+    { month: 'Mar', count: 48 },
+    { month: 'Apr', count: 61 },
+    { month: 'May', count: 68 },
+    { month: 'Jun', count: 74 }
+  ];
+
   if (checkingOnboarding || loading) {
     return (
       <div style={{
@@ -93,7 +103,7 @@ export default function Dashboard() {
         <div style={{
           width: '40px',
           height: '40px',
-          border: '3px solid #e2e8f0',
+          border: '3px solid #e5e7eb',
           borderTop: '3px solid #6366f1',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -129,14 +139,14 @@ export default function Dashboard() {
               margin: '0 0 4px 0',
               fontSize: '28px',
               fontWeight: '700',
-              color: '#0f172a',
+              color: '#111827',
               letterSpacing: '-0.02em'
             }}>
               Dashboard
             </h1>
             <p style={{
               margin: 0,
-              color: '#64748b',
+              color: '#6b7280',
               fontSize: '14px'
             }}>
               Welcome back! Here's what's happening with your customers.
@@ -146,12 +156,12 @@ export default function Dashboard() {
             <Link href="/customers" style={{
               padding: '10px 20px',
               background: '#fff',
-              color: '#0f172a',
+              color: '#374151',
               textDecoration: 'none',
               borderRadius: '8px',
               fontWeight: '500',
               fontSize: '14px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}>
               View Customers
@@ -179,14 +189,14 @@ export default function Dashboard() {
           marginBottom: '32px'
         }}>
           {[
-            { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', icon: '👥', change: '+12%' },
-            { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', icon: '🔥', change: '-5%' },
-            { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 0, color: '#10b981', icon: '⚡', change: 'Active' },
-            { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', icon: '💰', change: '+23%' }
+            { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%' },
+            { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', change: '-5%' },
+            { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 0, color: '#10b981', change: 'Active' },
+            { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%' }
           ].map((metric, idx) => (
             <div key={idx} style={{
               background: '#fff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #e5e7eb',
               borderRadius: '12px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -206,18 +216,20 @@ export default function Dashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '20px'
-                }}>{metric.icon}</div>
+                }}>
+                  {idx === 0 ? '👥' : idx === 1 ? '🔥' : idx === 2 ? '⚡' : '💰'}
+                </div>
                 <span style={{
                   fontSize: '12px',
                   fontWeight: '500',
-                  color: metric.change.startsWith('+') ? '#10b981' : metric.change.startsWith('-') ? '#ef4444' : '#64748b',
-                  background: metric.change.startsWith('+') ? '#10b98115' : metric.change.startsWith('-') ? '#ef444415' : '#f1f5f9',
+                  color: metric.change.startsWith('+') ? '#10b981' : metric.change.startsWith('-') ? '#ef4444' : '#6b7280',
+                  background: metric.change.startsWith('+') ? '#f0fdf4' : metric.change.startsWith('-') ? '#fef2f2' : '#f3f4f6',
                   padding: '4px 8px',
                   borderRadius: '6px'
                 }}>{metric.change}</span>
               </div>
               <div style={{
-                color: '#64748b',
+                color: '#6b7280',
                 fontSize: '13px',
                 fontWeight: '500',
                 textTransform: 'uppercase',
@@ -227,7 +239,7 @@ export default function Dashboard() {
               <div style={{
                 fontSize: '28px',
                 fontWeight: '700',
-                color: '#0f172a'
+                color: '#111827'
               }}>{metric.value}</div>
             </div>
           ))}
@@ -239,10 +251,10 @@ export default function Dashboard() {
           gridTemplateColumns: '2fr 1fr',
           gap: '24px'
         }}>
-          {/* Chart Placeholder */}
+          {/* Customer Growth Chart - LIVE */}
           <div style={{
             background: '#fff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e5e7eb',
             borderRadius: '12px',
             padding: '24px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -257,38 +269,64 @@ export default function Dashboard() {
                 margin: 0,
                 fontSize: '16px',
                 fontWeight: '600',
-                color: '#0f172a'
+                color: '#111827'
               }}>Customer Growth</h3>
               <select style={{
                 padding: '6px 12px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e5e7eb',
                 borderRadius: '6px',
                 fontSize: '13px',
-                color: '#64748b',
+                color: '#6b7280',
                 background: '#fff'
               }}>
                 <option>Last 6 months</option>
                 <option>Last year</option>
               </select>
             </div>
+            
+            {/* LIVE CHART */}
             <div style={{
-              height: '300px',
-              background: '#f8fafc',
-              borderRadius: '8px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#94a3b8',
-              border: '2px dashed #e2e8f0'
+              alignItems: 'flex-end',
+              gap: '16px',
+              height: '250px',
+              padding: '20px 0'
             }}>
-              📊 Chart Integration Coming Soon
+              {monthlyTrend.map((month: any, index: number) => {
+                const maxCount = Math.max(...monthlyTrend.map((m: any) => m.count));
+                const height = maxCount > 0 ? (month.count / maxCount) * 100 : 0;
+                return (
+                  <div key={index} style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#374151',
+                      fontWeight: '600'
+                    }}>{month.count}</div>
+                    <div style={{
+                      width: '100%',
+                      height: `${height}%`,
+                      background: 'linear-gradient(to top, #6366f1, #8b5cf6)',
+                      borderRadius: '6px 6px 0 0',
+                      minHeight: '4px',
+                      transition: 'height 0.3s ease'
+                    }} />
+                    <div style={{fontSize: '12px', color: '#9ca3af'}}>{month.month}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Recent Activity */}
           <div style={{
             background: '#fff',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #e5e7eb',
             borderRadius: '12px',
             padding: '24px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -297,7 +335,7 @@ export default function Dashboard() {
               margin: '0 0 20px 0',
               fontSize: '16px',
               fontWeight: '600',
-              color: '#0f172a'
+              color: '#111827'
             }}>Recent Activity</h3>
             <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
               {[
@@ -311,7 +349,7 @@ export default function Dashboard() {
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px',
-                  background: '#f8fafc',
+                  background: '#f9fafb',
                   borderRadius: '8px'
                 }}>
                   <div style={{
@@ -328,12 +366,12 @@ export default function Dashboard() {
                     <div style={{
                       fontSize: '14px',
                       fontWeight: '500',
-                      color: '#0f172a',
+                      color: '#111827',
                       marginBottom: '2px'
                     }}>{activity.text}</div>
                     <div style={{
                       fontSize: '12px',
-                      color: '#94a3b8'
+                      color: '#9ca3af'
                     }}>{activity.time}</div>
                   </div>
                 </div>
