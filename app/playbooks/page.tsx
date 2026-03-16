@@ -59,7 +59,7 @@ export default function PlaybooksPage() {
       display: 'flex'
     }}>
       <Sidebar />
-      
+
       <div style={{
         marginLeft: '260px',
         flex: 1,
@@ -135,34 +135,22 @@ export default function PlaybooksPage() {
                 </span>
               </div>
               <p style={{margin: '0 0 20px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.5'}}>{playbook.description}</p>
-              <div style={{display: 'flex', gap: '8px'}}>
-                <Link href={`/playbooks/${playbook.id}`} style={{
-                  padding: '8px 16px',
-                  background: '#f8fafc',
-                  color: '#0f172a',
-                  textDecoration: 'none',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  border: '1px solid #e2e8f0',
-                  flex: 1,
-                  textAlign: 'center'
-                }}>
-                  Edit
-                </Link>
-                <button style={{
-                  padding: '8px 16px',
-                  background: '#fef2f2',
-                  color: '#ef4444',
-                  border: '1px solid #fecaca',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}>
-                  Delete
-                </button>
-              </div>
+              <Link href={`/playbooks/${playbook.id}`} style={{
+                padding: '10px 16px',
+                background: '#f8fafc',
+                color: '#0f172a',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '500',
+                border: '1px solid #e2e8f0',
+                display: 'inline-block',
+                textAlign: 'center',
+                width: '100%',
+                transition: 'all 0.2s ease'
+              }}>
+                Edit Playbook
+              </Link>
             </div>
           ))}
         </div>
