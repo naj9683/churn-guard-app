@@ -8,6 +8,46 @@ import Sidebar from '@/app/components/Sidebar';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
+// SVG Icon Components (No Emojis)
+const IconUsers = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
+const IconAlert = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
+const IconPlaybook = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+  </svg>
+);
+
+const IconRevenue = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"></line>
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+  </svg>
+);
+
+const IconActivity = ({ color }: { color: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+  </svg>
+);
+
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useUser();
@@ -113,52 +153,11 @@ export default function Dashboard() {
 
   const maxCount = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.count)) : 100;
 
-  // Icon components (SVG - no emojis)
-  const IconUsers = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-      <circle cx="9" cy="7" r="4"></circle>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-    </svg>
-  );
-
-  const IconAlert = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-      <line x1="12" y1="9" x2="12" y2="13"></line>
-      <line x1="12" y1="17" x2="12.01" y2="17"></line>
-    </svg>
-  );
-
-  const IconPlaybook = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-      <line x1="16" y1="13" x2="8" y2="13"></line>
-      <line x1="16" y1="17" x2="8" y2="17"></line>
-      <polyline points="10 9 9 9 8 9"></polyline>
-    </svg>
-  );
-
-  const IconRevenue = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"></line>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-    </svg>
-  );
-
-  const IconActivity = ({ color }: { color: string }) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-    </svg>
-  );
-
   const stats = [
-    { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%', icon: IconUsers },
-    { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', change: '-5%', icon: IconAlert },
-    { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 0, color: '#10b981', change: 'Active', icon: IconPlaybook },
-    { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%', icon: IconRevenue }
+    { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%', Icon: IconUsers },
+    { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', change: '-5%', Icon: IconAlert },
+    { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 0, color: '#10b981', change: 'Active', Icon: IconPlaybook },
+    { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%', Icon: IconRevenue }
   ];
 
   const activities = [
@@ -204,7 +203,7 @@ export default function Dashboard() {
               color: '#6b7280',
               fontSize: '14px'
             }}>
-              Welcome back! Here's what's happening with your customers.
+              Welcome back! Here&apos;s what&apos;s happening with your customers.
             </p>
           </div>
           <div style={{display: 'flex', gap: '12px'}}>
@@ -244,7 +243,7 @@ export default function Dashboard() {
           marginBottom: '32px'
         }}>
           {stats.map((metric, idx) => {
-            const Icon = metric.icon;
+            const IconComponent = metric.Icon;
             return (
               <div key={idx} style={{
                 background: '#fff',
@@ -269,7 +268,7 @@ export default function Dashboard() {
                     justifyContent: 'center',
                     color: metric.color
                   }}>
-                    <Icon />
+                    <IconComponent />
                   </div>
                   <span style={{
                     fontSize: '12px',
@@ -403,18 +402,18 @@ export default function Dashboard() {
                       height: `${Math.max(height, 5)}%`,
                       background: isToday 
                         ? 'linear-gradient(to top, #6366f1, #4f46e5)' 
-                        : 'linear-gradient(to top, '#818cf8', '#6366f1')',
+                        : 'linear-gradient(to top, #818cf8, #6366f1)',
                       borderRadius: '3px 3px 0 0',
                       minHeight: '4px',
                       transition: 'all 0.3s ease',
                       cursor: 'pointer'
                     }} 
                     onMouseEnter={(e) => {
-                      const tooltip = (e.currentTarget as HTMLElement).previousSibling as HTMLElement;
+                      const tooltip = e.currentTarget.previousSibling as HTMLElement;
                       if (tooltip) tooltip.style.opacity = '1';
                     }}
                     onMouseLeave={(e) => {
-                      const tooltip = (e.currentTarget as HTMLElement).previousSibling as HTMLElement;
+                      const tooltip = e.currentTarget.previousSibling as HTMLElement;
                       if (tooltip) tooltip.style.opacity = '0';
                     }}
                     />
