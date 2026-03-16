@@ -12,16 +12,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const { id } = params;
 
-    // Find customer by ID (internal UUID) or externalId
-    const customer = await prisma.customer.findFirst({
-      where: { 
-        userId: user.id,
-        OR: [
-          { id: id },
-          { externalId: id }
-        ]
+    // STEP 1: Try to find by ID only (no userId restriction)
+    let customer = await prisma.customer.findFirst({
+      where: {
+        OR: [{ id: id }, { externalId: id }]
       }
     });
+
+    // STEP 2: If found but wrong/missing userId, update to current user
+    if (customer && (!customer.userId || customer.userId === 'system')) {
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: { userId: user.id }
+      });
+    }
+
+    // STEP 3: If still not found, try strict search
+    if (!customer) {
+      customer = await prisma.customer.findFirst({
+        where: {
+          userId: user.id,
+          OR: [{ id: id }, { externalId: id }]
+        }
+      });
+    }
 
     if (!customer) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
@@ -34,7 +48,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       take: 20
     });
 
-    // Calculate stats
     const totalEvents = await prisma.event.count({
       where: { customerId: customer.id }
     });
@@ -44,8 +57,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         id: customer.id,
         externalId: customer.externalId,
         email: customer.email,
+        name: customer.name,
         riskScore: customer.riskScore,
         mrr: customer.mrr,
+        arr: customer.arr,
+        plan: customer.plan,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt
       },
