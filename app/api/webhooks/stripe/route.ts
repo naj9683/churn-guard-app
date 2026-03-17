@@ -37,11 +37,35 @@ export async function POST(req: Request) {
       await markInterventionAsSaved(customerId);
     }
 
+    // Handle subscription cancelled
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const stripeCustomerId = subscription.customer as string;
+      console.log('Subscription cancelled for Stripe customer:', stripeCustomerId);
+      await cancelCustomer(stripeCustomerId);
+    }
+
     return NextResponse.json({ received: true });
 
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json({ error: 'Webhook failed' }, { status: 500 });
+  }
+}
+
+async function cancelCustomer(stripeCustomerId: string) {
+  try {
+    const updated = await prisma.customer.updateMany({
+      where: { externalId: stripeCustomerId },
+      data: { plan: 'cancelled' },
+    });
+    if (updated.count > 0) {
+      console.log(`✅ Marked ${updated.count} customer(s) as cancelled for Stripe ID: ${stripeCustomerId}`);
+    } else {
+      console.warn(`⚠️ No customer found with externalId: ${stripeCustomerId}`);
+    }
+  } catch (error) {
+    console.error('Error cancelling customer:', error);
   }
 }
 
