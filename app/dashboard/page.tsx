@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
+import { track, page, identify } from '@/lib/analytics';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
@@ -62,15 +63,55 @@ export default function Dashboard() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [aiInsights, setAiInsights] = useState<any[]>([]);
+  const [runningAnalysis, setRunningAnalysis] = useState(false);
+  const [analysisMsg, setAnalysisMsg] = useState<string | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
   useEffect(() => {
-    if (user) checkOnboarding();
+    if (user) {
+      const email = user.primaryEmailAddress?.emailAddress;
+      // Identify user in Segment so all events are attributed correctly
+      identify(user.id, { email, name: user.fullName ?? undefined });
+      track('User Logged In', { userId: user.id, email });
+      page('Dashboard');
+      checkOnboarding();
+    }
   }, [user]);
+
+  async function runRiskAnalysis() {
+    setRunningAnalysis(true);
+    setAnalysisMsg(null);
+    try {
+      const res = await fetch('/api/risk/analyze/batch', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setAnalysisMsg(`Done — ${data.updated} customers analyzed, ${data.failed} failed`);
+        fetchDashboardData();
+      } else {
+        setAnalysisMsg(data.error ?? 'Analysis failed');
+      }
+    } catch {
+      setAnalysisMsg('Network error');
+    } finally {
+      setRunningAnalysis(false);
+    }
+  }
 
   async function checkOnboarding() {
     try {
+      // Check subscription access (admin email bypasses this check)
+      const subRes = await fetch('/api/subscription/status');
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        if (!subData.hasAccess) {
+          router.push('/pricing');
+          return;
+        }
+        // Admin email bypasses onboarding checks entirely
+        if (subData.isAdmin) return;
+      }
+
       const res = await fetch('/api/onboarding/status');
       if (res.ok) {
         const data = await res.json();
@@ -267,7 +308,28 @@ export default function Dashboard() {
               AI is monitoring your customers and preventing churn automatically
             </p>
           </div>
-          <div style={{display: 'flex', gap: '12px'}}>
+          <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+            {analysisMsg && (
+              <span style={{ fontSize: '13px', color: '#6b7280' }}>{analysisMsg}</span>
+            )}
+            <button
+              onClick={runRiskAnalysis}
+              disabled={runningAnalysis}
+              style={{
+                padding: '10px 20px',
+                background: runningAnalysis ? '#e5e7eb' : '#f0fdf4',
+                color: runningAnalysis ? '#9ca3af' : '#15803d',
+                border: '1px solid',
+                borderColor: runningAnalysis ? '#e5e7eb' : '#bbf7d0',
+                borderRadius: '8px',
+                fontWeight: '500',
+                fontSize: '14px',
+                cursor: runningAnalysis ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {runningAnalysis ? 'Analyzing...' : 'Run Risk Analysis'}
+            </button>
             <Link href="/customers" style={{
               padding: '10px 20px',
               background: '#fff',
@@ -605,6 +667,55 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* AI Risk Analysis — high-risk customers with AI-generated reasons */}
+        {(dashboardData?.highRiskCustomers?.length ?? 0) > 0 && (
+          <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>AI Risk Analysis</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>OpenAI-generated churn risk reasons for your highest-risk customers</p>
+              </div>
+              <Link href="/customers" style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
+                View all →
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {dashboardData.highRiskCustomers.map((c: any) => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: '8px' }}>
+                  {/* Risk score badge */}
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
+                    background: c.riskScore >= 80 ? '#fef2f2' : c.riskScore >= 60 ? '#fff7ed' : '#f0fdf4',
+                    border: `2px solid ${c.riskScore >= 80 ? '#fecaca' : c.riskScore >= 60 ? '#fed7aa' : '#bbf7d0'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '14px', fontWeight: '700',
+                    color: c.riskScore >= 80 ? '#ef4444' : c.riskScore >= 60 ? '#f97316' : '#22c55e',
+                  }}>
+                    {c.riskScore}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '3px' }}>
+                      {c.name || c.email}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.riskReason ?? `Risk score ${c.riskScore} — run AI analysis to get detailed reasons`}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#374151', fontWeight: '500', flexShrink: 0 }}>
+                    ${c.mrr}/mo
+                  </div>
+                  <Link
+                    href={`/api/risk/analyze/${c.id}`}
+                    style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none', border: '1px solid #e0d9ff', padding: '5px 10px', borderRadius: '6px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  >
+                    Re-analyze
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
