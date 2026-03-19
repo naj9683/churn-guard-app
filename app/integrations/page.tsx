@@ -123,7 +123,7 @@ function SlackModal({ onSave, onCancel, saving, error }: {
 function StripeInfoPanel({ onClose }: { onClose: () => void }) {
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/webhooks/stripe`
-    : 'https://churn-guard-app.vercel.app/api/webhooks/stripe';
+    : 'https://churnguardapp.com/api/webhooks/stripe';
   const [copied, setCopied] = useState(false);
   function copy() {
     navigator.clipboard.writeText(webhookUrl);
@@ -153,6 +153,98 @@ function StripeInfoPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── CRM Sync Panel ───────────────────────────────────────────────────────────
+
+function CrmSyncPanel({
+  crm, syncInfo, syncResult, syncing, onSync,
+}: {
+  crm: string;
+  syncInfo?: { lastSyncAt: string | null; syncStatus: string; lastError: string | null };
+  syncResult: { pulled: number; pushed: number; created: number; updated: number; errors: string[] } | null;
+  syncing: boolean;
+  onSync: () => void;
+}) {
+  const statusColor = syncInfo?.syncStatus === 'synced' ? '#10b981'
+    : syncInfo?.syncStatus === 'error' ? '#ef4444'
+    : syncInfo?.syncStatus === 'partial' ? '#f59e0b'
+    : '#9ca3af';
+
+  return (
+    <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor }} />
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151', textTransform: 'capitalize' }}>
+              {syncInfo?.syncStatus ?? 'never synced'}
+            </span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+            {syncInfo?.lastSyncAt
+              ? `Last sync: ${new Date(syncInfo.lastSyncAt).toLocaleString()}`
+              : 'No sync yet — click "Sync Now" to start'}
+          </div>
+        </div>
+        <button
+          onClick={onSync}
+          disabled={syncing}
+          style={{
+            padding: '8px 18px', background: syncing ? '#e5e7eb' : '#6366f1',
+            color: syncing ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px',
+            fontSize: '13px', fontWeight: '600', cursor: syncing ? 'not-allowed' : 'pointer',
+            flexShrink: 0, fontFamily: 'inherit',
+          }}
+        >
+          {syncing ? 'Syncing…' : 'Sync Now'}
+        </button>
+      </div>
+
+      {syncInfo?.lastError && (
+        <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', color: '#dc2626' }}>
+          Last error: {syncInfo.lastError}
+        </div>
+      )}
+
+      {syncResult && (
+        <div style={{ marginTop: '12px', padding: '12px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '7px' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Sync completed</div>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Pulled', value: syncResult.pulled, color: '#6366f1' },
+              { label: 'Created', value: syncResult.created, color: '#10b981' },
+              { label: 'Updated', value: syncResult.updated, color: '#3b82f6' },
+              { label: 'Pushed', value: syncResult.pushed, color: '#8b5cf6' },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          {syncResult.errors.length > 0 && (
+            <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fef2f2', borderRadius: '6px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#dc2626', marginBottom: '4px' }}>
+                {syncResult.errors.length} error{syncResult.errors.length > 1 ? 's' : ''}:
+              </div>
+              {syncResult.errors.slice(0, 3).map((e, i) => (
+                <div key={i} style={{ fontSize: '11px', color: '#dc2626', fontFamily: 'monospace' }}>{e}</div>
+              ))}
+              {syncResult.errors.length > 3 && (
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>…and {syncResult.errors.length - 3} more</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ marginTop: '10px', fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>
+        Pull: {crm === 'hubspot' ? 'HubSpot contacts → ChurnGuard customers' : 'Salesforce contacts → ChurnGuard customers'}<br />
+        Push: ChurnGuard risk scores → {crm === 'hubspot' ? 'HubSpot contact properties (churnguard_risk_score, churnguard_health_score, churnguard_risk_reason)' : 'Salesforce contact Description field (+ custom fields if created)'}
+      </div>
+    </div>
+  );
+}
+
 export default function IntegrationsPage() {
   const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
@@ -162,8 +254,10 @@ export default function IntegrationsPage() {
   const [slackSaving, setSlackSaving] = useState(false);
   const [slackError, setSlackError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
+  const [syncResult, setSyncResult] = useState<Record<string, { pulled: number; pushed: number; created: number; updated: number; errors: string[]; lastSyncAt?: string } | null>>({});
+  const [syncInfo, setSyncInfo] = useState<Record<string, { lastSyncAt: string | null; syncStatus: string; lastError: string | null }>>({});
 
-  useEffect(() => { loadStatus(); }, []);
+  useEffect(() => { loadStatus(); loadSyncInfo(); }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -186,6 +280,34 @@ export default function IntegrationsPage() {
 
   function setBusyFor(key: string, val: boolean) { setBusy(b => ({ ...b, [key]: val })); }
   function setErrorFor(key: string, msg: string) { setError(e => ({ ...e, [key]: msg })); }
+
+  async function loadSyncInfo() {
+    const [hs, sf] = await Promise.all([
+      fetch('/api/integrations/hubspot/sync').then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('/api/integrations/salesforce/sync').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    setSyncInfo({
+      hubspot:    { lastSyncAt: hs?.lastSyncAt ?? null,    syncStatus: hs?.syncStatus ?? 'disconnected', lastError: hs?.lastError ?? null },
+      salesforce: { lastSyncAt: sf?.lastSyncAt ?? null, syncStatus: sf?.syncStatus ?? 'disconnected', lastError: sf?.lastError ?? null },
+    });
+  }
+
+  async function syncNow(crm: 'hubspot' | 'salesforce') {
+    setBusyFor(`sync_${crm}`, true);
+    setErrorFor(crm, '');
+    setSyncResult(r => ({ ...r, [crm]: null }));
+    try {
+      const res = await fetch(`/api/integrations/${crm}/sync`, { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? 'Sync failed');
+      setSyncResult(r => ({ ...r, [crm]: d }));
+      loadSyncInfo();
+    } catch (e: any) {
+      setErrorFor(crm, e.message);
+    } finally {
+      setBusyFor(`sync_${crm}`, false);
+    }
+  }
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
   async function connectHubSpot() {
@@ -302,7 +424,16 @@ export default function IntegrationsPage() {
               onConnect={connectHubSpot}
               onDisconnect={disconnectHubSpot}
             >
-              {error.hubspot && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.hubspot}</div>}
+              {error.hubspot && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px', marginBottom: '10px' }}>{error.hubspot}</div>}
+              {status.hubspot && (
+                <CrmSyncPanel
+                  crm="hubspot"
+                  syncInfo={syncInfo.hubspot}
+                  syncResult={syncResult.hubspot ?? null}
+                  syncing={!!busy.sync_hubspot}
+                  onSync={() => syncNow('hubspot')}
+                />
+              )}
             </IntegrationCard>
 
             <IntegrationCard
@@ -313,7 +444,16 @@ export default function IntegrationsPage() {
               onConnect={connectSalesforce}
               onDisconnect={disconnectSalesforce}
             >
-              {error.salesforce && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.salesforce}</div>}
+              {error.salesforce && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px', marginBottom: '10px' }}>{error.salesforce}</div>}
+              {status.salesforce && (
+                <CrmSyncPanel
+                  crm="salesforce"
+                  syncInfo={syncInfo.salesforce}
+                  syncResult={syncResult.salesforce ?? null}
+                  syncing={!!busy.sync_salesforce}
+                  onSync={() => syncNow('salesforce')}
+                />
+              )}
             </IntegrationCard>
           </div>
         </Section>

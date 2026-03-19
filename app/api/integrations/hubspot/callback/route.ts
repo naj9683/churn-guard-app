@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET!;
-const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/hubspot/callback';
+const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/hubspot/callback';
 
 export async function GET(req: Request) {
   try {
@@ -14,11 +14,11 @@ export async function GET(req: Request) {
 
     if (error) {
       console.error('HubSpot OAuth error:', error);
-      return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=${error}`);
+      return NextResponse.redirect(`https://churnguardapp.com/settings/integrations?error=${error}`);
     }
 
     if (!code || !state) {
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=missing_params');
+      return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=missing_params');
     }
 
     // Decode the state back to userId
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
     if (!tokenResponse.ok) {
       console.error('Token exchange failed:', tokens);
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
+      return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=token_failed');
     }
 
     console.log('Token received, saving to database...');
@@ -70,10 +70,10 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?success=hubspot_connected');
+    return NextResponse.redirect('https://churnguardapp.com/settings/integrations?success=hubspot_connected');
   } catch (error: any) {
     console.error('HubSpot callback error:', error);
     const errorMessage = error?.message || 'Unknown error';
-    return NextResponse.redirect(`https://churn-guard-app.vercel.app/settings/integrations?error=callback_error&message=${encodeURIComponent(errorMessage)}`);
+    return NextResponse.redirect(`https://churnguardapp.com/settings/integrations?error=callback_error&message=${encodeURIComponent(errorMessage)}`);
   }
 }

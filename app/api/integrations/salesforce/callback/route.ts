@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 const SALESFORCE_CLIENT_ID = process.env.SALESFORCE_CLIENT_ID!;
 const SALESFORCE_CLIENT_SECRET = process.env.SALESFORCE_CLIENT_SECRET!;
-const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/salesforce/callback';
+const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/salesforce/callback';
 
 export async function GET(req: Request) {
   try {
@@ -13,11 +13,11 @@ export async function GET(req: Request) {
     const error = url.searchParams.get('error');
 
     if (error) {
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=' + error);
+      return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=' + error);
     }
 
     if (!code || !state) {
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=missing_params');
+      return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=missing_params');
     }
 
     // Decode state to get userId and codeVerifier
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 
     if (!tokenResponse.ok) {
       console.error('Token error:', tokens);
-      return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=token_failed');
+      return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=token_failed');
     }
 
     // Save to database
@@ -67,9 +67,9 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?success=salesforce_connected');
+    return NextResponse.redirect('https://churnguardapp.com/settings/integrations?success=salesforce_connected');
   } catch (error) {
     console.error('Callback error:', error);
-    return NextResponse.redirect('https://churn-guard-app.vercel.app/settings/integrations?error=callback_failed');
+    return NextResponse.redirect('https://churnguardapp.com/settings/integrations?error=callback_failed');
   }
 }

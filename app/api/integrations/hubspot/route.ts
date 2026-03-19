@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
-const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/hubspot/callback';
+const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/hubspot/callback';
 
 export async function GET() {
   try {

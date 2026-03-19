@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 
 const SALESFORCE_CLIENT_ID = process.env.SALESFORCE_CLIENT_ID!;
-const REDIRECT_URI = 'https://churn-guard-app.vercel.app/api/integrations/salesforce/callback';
+const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/salesforce/callback';
 
 function generatePKCE() {
   const verifier = crypto.randomBytes(32).toString('base64url');
