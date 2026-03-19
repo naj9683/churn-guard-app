@@ -309,27 +309,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-            {analysisMsg && (
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>{analysisMsg}</span>
-            )}
-            <button
-              onClick={runRiskAnalysis}
-              disabled={runningAnalysis}
-              style={{
-                padding: '10px 20px',
-                background: runningAnalysis ? '#e5e7eb' : '#f0fdf4',
-                color: runningAnalysis ? '#9ca3af' : '#15803d',
-                border: '1px solid',
-                borderColor: runningAnalysis ? '#e5e7eb' : '#bbf7d0',
-                borderRadius: '8px',
-                fontWeight: '500',
-                fontSize: '14px',
-                cursor: runningAnalysis ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              {runningAnalysis ? 'Analyzing...' : 'Run Risk Analysis'}
-            </button>
             <Link href="/customers" style={{
               padding: '10px 20px',
               background: '#fff',
@@ -668,22 +647,70 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* AI Risk Analysis — high-risk customers with AI-generated reasons */}
-        {(dashboardData?.highRiskCustomers?.length ?? 0) > 0 && (
-          <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>AI Risk Analysis</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>OpenAI-generated churn risk reasons for your highest-risk customers</p>
-              </div>
+        {/* AI Risk Analysis — always visible */}
+        <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>AI Risk Analysis</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>OpenAI-generated churn risk reasons for your highest-risk customers</p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={runRiskAnalysis}
+                disabled={runningAnalysis}
+                style={{
+                  padding: '8px 16px',
+                  background: runningAnalysis ? '#e5e7eb' : '#6366f1',
+                  color: runningAnalysis ? '#9ca3af' : '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: runningAnalysis ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: runningAnalysis ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
+                }}
+              >
+                {runningAnalysis ? 'Running...' : 'Run AI Analysis'}
+              </button>
               <Link href="/customers" style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
                 View all →
               </Link>
             </div>
+          </div>
+
+          {analysisMsg && (
+            <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '13px', color: '#15803d' }}>
+              {analysisMsg}
+            </div>
+          )}
+
+          {(dashboardData?.highRiskCustomers?.length ?? 0) === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 24px' }}>
+              <div style={{ width: '48px', height: '48px', background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '22px' }}>✓</div>
+              <p style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '600', color: '#111827' }}>No high-risk customers found</p>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>
+                {dashboardData?.totalCustomers > 0
+                  ? 'All customers are below the risk threshold. Click "Run AI Analysis" to get fresh scores.'
+                  : 'Add customers and run AI Analysis to see risk scores here.'}
+              </p>
+              <button
+                onClick={runRiskAnalysis}
+                disabled={runningAnalysis}
+                style={{
+                  padding: '9px 20px', background: runningAnalysis ? '#e5e7eb' : '#6366f1',
+                  color: runningAnalysis ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px',
+                  fontSize: '14px', fontWeight: '600', cursor: runningAnalysis ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {runningAnalysis ? 'Running Analysis...' : 'Run AI Analysis Now'}
+              </button>
+            </div>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {dashboardData.highRiskCustomers.map((c: any) => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: '8px' }}>
-                  {/* Risk score badge */}
                   <div style={{
                     width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
                     background: c.riskScore >= 80 ? '#fef2f2' : c.riskScore >= 60 ? '#fff7ed' : '#f0fdf4',
@@ -718,8 +745,8 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
