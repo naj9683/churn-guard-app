@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
+import RiskAnalysisModal, { type RiskAnalysisData } from '@/app/components/RiskAnalysisModal';
 import { track, page, identify } from '@/lib/analytics';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
@@ -65,6 +66,8 @@ export default function Dashboard() {
   const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [analysisMsg, setAnalysisMsg] = useState<string | null>(null);
+  const [riskModal, setRiskModal] = useState<RiskAnalysisData | null>(null);
+  const [analyzingCustomer, setAnalyzingCustomer] = useState<string | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -95,6 +98,24 @@ export default function Dashboard() {
       setAnalysisMsg('Network error');
     } finally {
       setRunningAnalysis(false);
+    }
+  }
+
+  async function reanalyzeCustomer(customerId: string, email: string, name?: string) {
+    setAnalyzingCustomer(customerId);
+    try {
+      const res = await fetch(`/api/risk/analyze/${customerId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setRiskModal({ ...data, name });
+        fetchDashboardData();
+      } else {
+        alert(data.error ?? 'Analysis failed');
+      }
+    } catch {
+      alert('Network error');
+    } finally {
+      setAnalyzingCustomer(null);
     }
   }
 
@@ -668,6 +689,18 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Risk Analysis Modal */}
+        {riskModal && (
+          <RiskAnalysisModal
+            data={riskModal}
+            onClose={() => setRiskModal(null)}
+            onCreateIntervention={(id) => {
+              setRiskModal(null);
+              window.location.href = `/dashboard/interventions?customerId=${id}`;
+            }}
+          />
+        )}
+
         {/* AI Risk Analysis — high-risk customers with AI-generated reasons */}
         {(dashboardData?.highRiskCustomers?.length ?? 0) > 0 && (
           <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -705,12 +738,18 @@ export default function Dashboard() {
                   <div style={{ fontSize: '13px', color: '#374151', fontWeight: '500', flexShrink: 0 }}>
                     ${c.mrr}/mo
                   </div>
-                  <Link
-                    href={`/api/risk/analyze/${c.id}`}
-                    style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none', border: '1px solid #e0d9ff', padding: '5px 10px', borderRadius: '6px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  <button
+                    onClick={() => reanalyzeCustomer(c.id, c.email, c.name)}
+                    disabled={analyzingCustomer === c.id}
+                    style={{
+                      fontSize: '12px', color: '#6366f1', background: 'transparent',
+                      border: '1px solid #e0d9ff', padding: '5px 10px', borderRadius: '6px',
+                      flexShrink: 0, whiteSpace: 'nowrap', cursor: analyzingCustomer === c.id ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', opacity: analyzingCustomer === c.id ? 0.5 : 1,
+                    }}
                   >
-                    Re-analyze
-                  </Link>
+                    {analyzingCustomer === c.id ? 'Analyzing...' : 'Re-analyze'}
+                  </button>
                 </div>
               ))}
             </div>
