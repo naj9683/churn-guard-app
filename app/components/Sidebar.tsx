@@ -35,6 +35,7 @@ export default function Sidebar() {
     { href: '/customers', label: 'Customers', icon: Icons.customers },
     { href: '/playbooks', label: 'Playbooks', icon: Icons.playbooks },
     { href: '/dashboard/interventions', label: 'Interventions', icon: Icons.interventions },
+    { href: '/dashboard/automation/rules', label: 'Automations', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
     { href: '/widget-messages', label: 'Widget', icon: Icons.widget },
     { href: '/email-campaigns', label: 'Email Campaigns', icon: Icons.email },
     { href: '/analytics', label: 'Analytics', icon: Icons.analytics },

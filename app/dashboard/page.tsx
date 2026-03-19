@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [analysisMsg, setAnalysisMsg] = useState<string | null>(null);
+  const [activeRules, setActiveRules] = useState<number | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -83,6 +84,9 @@ export default function Dashboard() {
       MP.dashboardVisit(1);
       MP.firstDashboardView();
       checkOnboarding();
+      fetch('/api/automation/rules').then(r => r.ok ? r.json() : null).then(d => {
+        if (d?.rules) setActiveRules(d.rules.filter((r: any) => r.isActive).length);
+      });
     }
   }, [user]);
 
@@ -273,7 +277,7 @@ export default function Dashboard() {
   const stats = [
     { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%', Icon: IconUsers },
     { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', change: '-5%', Icon: IconAlert },
-    { label: 'Active Playbooks', value: dashboardData?.activePlaybooks || 6, color: '#10b981', change: 'AI Active', Icon: IconPlaybook },
+    { label: 'Active Automations', value: activeRules ?? dashboardData?.activePlaybooks ?? 0, color: '#10b981', change: 'AI Active', Icon: IconPlaybook, href: '/dashboard/automation/rules' },
     { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%', Icon: IconRevenue }
   ];
 
@@ -354,8 +358,8 @@ export default function Dashboard() {
         }}>
           {stats.map((metric, idx) => {
             const IconComponent = metric.Icon;
-            return (
-              <div key={idx} style={{
+            const card = (
+              <div style={{
                 background: '#fff',
                 border: '1px solid #e5e7eb',
                 borderRadius: '12px',
@@ -404,6 +408,9 @@ export default function Dashboard() {
                 }}>{metric.value}</div>
               </div>
             );
+            return (metric as any).href
+              ? <Link key={idx} href={(metric as any).href} style={{ textDecoration: 'none', color: 'inherit' }}>{card}</Link>
+              : <div key={idx}>{card}</div>;
           })}
         </div>
 

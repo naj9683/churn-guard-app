@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
   }
 
   const valid = {
-    triggerTypes: ['risk_threshold', 'payment_failed', 'feature_abandonment'],
-    actionTypes: ['send_email', 'send_slack', 'create_intervention'],
+    triggerTypes: ['risk_threshold', 'payment_failed', 'feature_abandonment', 'multi_condition'],
+    actionTypes: ['send_email', 'send_slack', 'create_intervention', 'send_sms', 'escalate_to_human', 'trigger_sequence'],
   };
   if (!valid.triggerTypes.includes(triggerType))
     return NextResponse.json({ error: `triggerType must be one of: ${valid.triggerTypes.join(', ')}` }, { status: 400 });

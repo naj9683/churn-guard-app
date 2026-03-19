@@ -25,7 +25,7 @@ const STEP_HOURS: Record<string, number[]> = {
 
 // ── SMS (Twilio) ───────────────────────────────────────────────────────────
 
-async function sendSms(to: string, body: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendSms(to: string, body: string): Promise<{ ok: boolean; error?: string }> {
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     return { ok: false, error: 'Twilio env vars not configured' };
