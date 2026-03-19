@@ -649,39 +649,57 @@ export default function Dashboard() {
 
         {/* AI Risk Analysis — always visible */}
         <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          {/* Section title row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>AI Risk Analysis</h3>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>OpenAI-generated churn risk reasons for your highest-risk customers</p>
             </div>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button
-                onClick={runRiskAnalysis}
-                disabled={runningAnalysis}
-                style={{
-                  padding: '8px 16px',
-                  background: runningAnalysis ? '#e5e7eb' : '#6366f1',
-                  color: runningAnalysis ? '#9ca3af' : '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: runningAnalysis ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                  boxShadow: runningAnalysis ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
-                }}
-              >
-                {runningAnalysis ? 'Running...' : 'Run AI Analysis'}
-              </button>
-              <Link href="/customers" style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
-                View all →
-              </Link>
+            <Link href="/customers" style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
+              View all →
+            </Link>
+          </div>
+
+          {/* Prominent Run AI Analysis action bar — always visible */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 18px', marginBottom: '16px',
+            background: 'linear-gradient(135deg, #eef2ff, #f5f3ff)',
+            border: '1px solid #c7d2fe', borderRadius: '10px',
+          }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#3730a3' }}>
+                Run AI Analysis
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6366f1' }}>
+                Use OpenAI to score all customers and detect churn risk
+              </p>
             </div>
+            <button
+              onClick={runRiskAnalysis}
+              disabled={runningAnalysis}
+              style={{
+                padding: '10px 22px',
+                background: runningAnalysis ? '#a5b4fc' : '#6366f1',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '700',
+                fontSize: '14px',
+                cursor: runningAnalysis ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                flexShrink: 0,
+                boxShadow: runningAnalysis ? 'none' : '0 4px 12px rgba(99,102,241,0.4)',
+                transition: 'box-shadow 0.2s',
+              }}
+            >
+              {runningAnalysis ? '⏳ Running...' : '▶ Run AI Analysis Now'}
+            </button>
           </div>
 
           {analysisMsg && (
             <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '13px', color: '#15803d' }}>
-              {analysisMsg}
+              ✓ {analysisMsg}
             </div>
           )}
 
