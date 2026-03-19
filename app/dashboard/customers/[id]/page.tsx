@@ -5,7 +5,6 @@ import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Sidebar from '@/app/components/Sidebar';
-import RiskAnalysisModal, { type RiskAnalysisData } from '@/app/components/RiskAnalysisModal';
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
   success: { bg: '#f0fdf4', color: '#15803d', label: 'Success' },
@@ -50,10 +49,6 @@ export default function CustomerDetailPage() {
   // SMS test
   const [testingSmS, setTestingSms] = useState(false);
   const [smsTestMsg, setSmsTestMsg] = useState('');
-
-  // Risk analysis modal
-  const [riskModal, setRiskModal] = useState<RiskAnalysisData | null>(null);
-  const [analyzingRisk, setAnalyzingRisk] = useState(false);
 
   // Manual sequence trigger
   const [triggerSeqType, setTriggerSeqType] = useState<string>('dunning');
@@ -125,28 +120,6 @@ export default function CustomerDetailPage() {
     } finally {
       setTriggeringSeq(false);
       setTimeout(() => setSeqTriggerMsg(''), 8000);
-    }
-  }
-
-  async function runRiskAnalysis() {
-    if (!data?.customer) return;
-    setAnalyzingRisk(true);
-    try {
-      const res = await fetch(`/api/risk/analyze/${params.id}`);
-      const d = await res.json();
-      if (res.ok) {
-        setRiskModal({ ...d, name: data.customer.name ?? undefined });
-        setData((prev: any) => ({
-          ...prev,
-          customer: { ...prev.customer, riskScore: d.churnProbability, riskReason: d.summary },
-        }));
-      } else {
-        alert(d.error ?? 'Analysis failed');
-      }
-    } catch {
-      alert('Network error');
-    } finally {
-      setAnalyzingRisk(false);
     }
   }
 
@@ -227,19 +200,17 @@ export default function CustomerDetailPage() {
               <span style={{ padding: '8px 16px', borderRadius: '8px', background: riskBg, color: riskColor, fontWeight: '600', fontSize: '14px' }}>
                 Risk: {customer.riskScore}
               </span>
-              <button
-                onClick={runRiskAnalysis}
-                disabled={analyzingRisk}
+              <Link
+                href={`/dashboard/risk-analysis/${params.id}`}
                 style={{
-                  padding: '8px 16px', background: analyzingRisk ? '#f3f4f6' : '#f0f0ff',
-                  color: analyzingRisk ? '#9ca3af' : '#6366f1',
-                  border: '1px solid #e0d9ff', borderRadius: '8px', fontSize: '14px',
-                  fontWeight: '600', cursor: analyzingRisk ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
+                  padding: '8px 16px', background: '#f0f0ff',
+                  color: '#6366f1', border: '1px solid #e0d9ff',
+                  borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                  textDecoration: 'none',
                 }}
               >
-                {analyzingRisk ? 'Analyzing...' : 'Analyze Risk'}
-              </button>
+                Analyze Risk
+              </Link>
             </div>
           </div>
           {customer.riskReason && (
@@ -436,18 +407,6 @@ export default function CustomerDetailPage() {
               })}
             </div>
           </div>
-        )}
-
-        {/* Risk Analysis Modal */}
-        {riskModal && (
-          <RiskAnalysisModal
-            data={riskModal}
-            onClose={() => setRiskModal(null)}
-            onCreateIntervention={(id) => {
-              setRiskModal(null);
-              window.location.href = `/dashboard/interventions?customerId=${id}`;
-            }}
-          />
         )}
 
         {/* Activity timeline */}

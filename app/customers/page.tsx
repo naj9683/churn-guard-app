@@ -5,7 +5,6 @@ import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/app/components/Sidebar';
-import RiskAnalysisModal, { type RiskAnalysisData } from '@/app/components/RiskAnalysisModal';
 import { track, page } from '@/lib/analytics';
 
 interface Customer {
@@ -25,8 +24,6 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'high'>('all');
   const tableRef = useRef<HTMLDivElement>(null);
-  const [riskModal, setRiskModal] = useState<RiskAnalysisData | null>(null);
-  const [analyzingCustomer, setAnalyzingCustomer] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -47,20 +44,6 @@ export default function CustomersPage() {
       console.error('Error:', error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function analyzeRisk(customer: Customer) {
-    setAnalyzingCustomer(customer.id);
-    try {
-      const res = await fetch(`/api/risk/analyze/${customer.id}`);
-      const data = await res.json();
-      if (res.ok) setRiskModal({ ...data, name: customer.name ?? undefined });
-      else alert(data.error ?? 'Analysis failed');
-    } catch {
-      alert('Network error');
-    } finally {
-      setAnalyzingCustomer(null);
     }
   }
 
@@ -438,24 +421,22 @@ export default function CustomersPage() {
                   </td>
                   <td style={{padding: '16px 12px', textAlign: 'right'}}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => analyzeRisk(customer)}
-                        disabled={analyzingCustomer === customer.id}
+                      <Link
+                        href={`/dashboard/risk-analysis/${customer.id}`}
                         style={{
                           padding: '6px 12px',
-                          background: analyzingCustomer === customer.id ? '#f3f4f6' : '#fafafa',
-                          color: analyzingCustomer === customer.id ? '#9ca3af' : '#6366f1',
+                          background: '#fafafa',
+                          color: '#6366f1',
                           border: '1px solid #e0d9ff',
                           borderRadius: '6px',
                           fontSize: '13px',
                           fontWeight: '500',
-                          cursor: analyzingCustomer === customer.id ? 'not-allowed' : 'pointer',
-                          fontFamily: 'inherit',
+                          textDecoration: 'none',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {analyzingCustomer === customer.id ? 'Analyzing...' : 'Analyze Risk'}
-                      </button>
+                        Analyze Risk
+                      </Link>
                       <Link href={`/dashboard/customers/${customer.id}`} style={{
                         padding: '6px 12px',
                         background: '#f8fafc',
@@ -477,16 +458,6 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {riskModal && (
-        <RiskAnalysisModal
-          data={riskModal}
-          onClose={() => setRiskModal(null)}
-          onCreateIntervention={(id) => {
-            setRiskModal(null);
-            router.push(`/dashboard/interventions?customerId=${id}`);
-          }}
-        />
-      )}
     </div>
   );
 }
