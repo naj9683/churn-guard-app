@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import { track, page, identify } from '@/lib/analytics';
+import { mpIdentify, mpRegister, MP } from '@/lib/mixpanel';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
@@ -71,10 +72,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       const email = user.primaryEmailAddress?.emailAddress;
-      // Identify user in Segment so all events are attributed correctly
-      identify(user.id, { email, name: user.fullName ?? undefined });
+      const name = user.fullName ?? undefined;
+      // Segment — behavioral automation
+      identify(user.id, { email, name });
       track('User Logged In', { userId: user.id, email });
       page('Dashboard');
+      // Mixpanel — product analytics
+      mpIdentify(user.id, { email, name, plan: 'unknown' });
+      mpRegister({ userId: user.id, email });
+      MP.dashboardVisit(1);
+      MP.firstDashboardView();
       checkOnboarding();
     }
   }, [user]);
@@ -87,6 +94,7 @@ export default function Dashboard() {
       const data = await res.json();
       if (res.ok) {
         setAnalysisMsg(`Done — ${data.updated} customers analyzed, ${data.failed} failed`);
+        MP.riskAnalysisRun(data.updated ?? 0);
         fetchDashboardData();
       } else {
         setAnalysisMsg(data.error ?? 'Analysis failed');

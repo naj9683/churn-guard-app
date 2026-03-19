@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
 import SegmentScript from '@/app/components/SegmentScript';
+import MixpanelInit from '@/app/components/MixpanelInit';
 import "./globals.css";
 
 const inter = Inter({
@@ -25,6 +26,7 @@ export default function RootLayout({
         <body className={`${inter.variable} font-sans antialiased`}>
           {children}
           <SegmentScript />
+          <MixpanelInit />
         </body>
       </html>
     </ClerkProvider>

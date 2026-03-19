@@ -8,6 +8,7 @@ import {
   AlertTriangle, Clock, CreditCard, TrendingDown, UserX, Zap,
   CheckCircle, Shield, MessageSquare, Phone, ArrowLeft, BarChart2,
 } from 'lucide-react';
+import { MP } from '@/lib/mixpanel';
 
 interface RiskResult {
   customerId: string;
@@ -108,7 +109,10 @@ export default function RiskAnalysisPage() {
     try {
       const res = await fetch(`/api/risk/analyze/${customerId}`);
       const data = await res.json();
-      if (res.ok) setResult(data);
+      if (res.ok) {
+        setResult(data);
+        MP.riskScoreViewed(data.customerId, data.churnProbability);
+      }
       else setError(data.error ?? 'Analysis failed');
     } catch {
       setError('Network error — please try again');

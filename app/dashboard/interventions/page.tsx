@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import { track, page } from '@/lib/analytics';
+import { MP, mpPage } from '@/lib/mixpanel';
 
 export default function InterventionsPage() {
   const [interventions, setInterventions] = useState<any[]>([]);
@@ -16,6 +17,7 @@ export default function InterventionsPage() {
 
   useEffect(() => {
     page('Interventions');
+    mpPage('Interventions');
     fetchInterventions();
   }, []);
 
@@ -56,6 +58,8 @@ export default function InterventionsPage() {
           customerId: selectedCustomerId,
           interventionType,
         });
+        MP.interventionCreated(interventionType, selectedCustomerId);
+        MP.firstInterventionCreated();
         setShowModal(false);
         setSelectedCustomerId('');
         fetchInterventions();

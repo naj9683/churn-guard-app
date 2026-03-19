@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/app/components/Sidebar';
 import { track, page } from '@/lib/analytics';
+import { MP, mpPage } from '@/lib/mixpanel';
 
 interface Customer {
   id: string;
@@ -29,6 +30,8 @@ export default function CustomersPage() {
     if (isLoaded && user) {
       page('Customers');
       track('Feature Used', { feature: 'Risk Score Viewed' });
+      mpPage('Customers');
+      MP.riskScoreViewed('list', 0);
       fetchCustomers();
     }
   }, [isLoaded, user]);
