@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LoginButton from '@/app/components/LoginButton';
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
         <div style={{display: 'flex', gap: '2rem', alignItems: 'center'}}>
           <Link href="#features" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>Features</Link>
           <Link href="/pricing" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>Pricing</Link>
+          <LoginButton />
           <Link href="/pricing" style={{padding: '0.5rem 1rem', background: '#6366f1', color: 'white', textDecoration: 'none', borderRadius: '0.5rem', fontSize: '0.875rem'}}>
             Get Started
           </Link>

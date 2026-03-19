@@ -42,12 +42,21 @@ export async function GET() {
       where: { userId: user.id, status: 'saved' }
     });
 
+    // Top high-risk customers with AI-generated risk reasons for dashboard display
+    const highRiskCustomers = await prisma.customer.findMany({
+      where: { userId: user.id, riskScore: { gte: 60 } },
+      orderBy: { riskScore: 'desc' },
+      take: 5,
+      select: { id: true, email: true, name: true, riskScore: true, riskReason: true, mrr: true },
+    });
+
     return NextResponse.json({
       totalCustomers,
       atRisk,
       monthlyRevenue: monthlyRevenue._sum?.mrr || 0,
       activePlaybooks,
-      savedInterventions
+      savedInterventions,
+      highRiskCustomers,
     });
 
   } catch (error) {

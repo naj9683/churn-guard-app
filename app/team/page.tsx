@@ -1,10 +1,44 @@
 'use client';
 
+import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Sidebar from '@/app/components/Sidebar';
 
 export default function TeamPage() {
   const { user, isLoaded } = useUser();
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
+  const [inviting, setInviting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState('');
+
+  async function submitInvite() {
+    if (!inviteEmail) return;
+    setInviting(true);
+    setInviteMessage('');
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, name: inviteName, role: inviteRole })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setInviteMessage(`Invitation sent to ${inviteEmail}`);
+        setInviteEmail('');
+        setInviteName('');
+        setInviteRole('viewer');
+        setTimeout(() => { setShowInviteModal(false); setInviteMessage(''); }, 1500);
+      } else {
+        setInviteMessage(data.error || 'Failed to send invitation');
+      }
+    } catch {
+      setInviteMessage('Failed to send invitation');
+    } finally {
+      setInviting(false);
+    }
+  }
 
   if (!isLoaded) {
     return (
@@ -76,16 +110,18 @@ export default function TeamPage() {
             marginBottom: '24px'
           }}>
             <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a'}}>Team Members</h3>
-            <button style={{
-              padding: '8px 16px',
-              background: '#6366f1',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              style={{
+                padding: '8px 16px',
+                background: '#6366f1',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}>
               + Invite Member
             </button>
           </div>
@@ -136,6 +172,88 @@ export default function TeamPage() {
           )}
         </div>
       </div>
+
+      {showInviteModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '12px', padding: '32px',
+            width: '440px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{margin: '0 0 24px', fontSize: '20px', fontWeight: '700', color: '#0f172a'}}>
+              Invite Team Member
+            </h2>
+            <div style={{marginBottom: '16px'}}>
+              <label style={{display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px'}}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                placeholder="colleague@company.com"
+                style={{width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box'}}
+              />
+            </div>
+            <div style={{marginBottom: '16px'}}>
+              <label style={{display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px'}}>
+                Name
+              </label>
+              <input
+                type="text"
+                value={inviteName}
+                onChange={e => setInviteName(e.target.value)}
+                placeholder="Full name"
+                style={{width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box'}}
+              />
+            </div>
+            <div style={{marginBottom: '24px'}}>
+              <label style={{display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px'}}>
+                Role
+              </label>
+              <select
+                value={inviteRole}
+                onChange={e => setInviteRole(e.target.value)}
+                style={{width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px'}}
+              >
+                <option value="viewer">Viewer</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            {inviteMessage && (
+              <div style={{
+                marginBottom: '16px', padding: '10px 16px', borderRadius: '8px',
+                background: inviteMessage.startsWith('Invitation') ? '#f0fdf4' : '#fef2f2',
+                color: inviteMessage.startsWith('Invitation') ? '#10b981' : '#ef4444',
+                fontSize: '14px'
+              }}>
+                {inviteMessage}
+              </div>
+            )}
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => { setShowInviteModal(false); setInviteMessage(''); }}
+                style={{padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500'}}>
+                Cancel
+              </button>
+              <button
+                onClick={submitInvite}
+                disabled={!inviteEmail || inviting}
+                style={{
+                  padding: '10px 20px',
+                  background: inviteEmail && !inviting ? '#6366f1' : '#9ca3af',
+                  color: '#fff', border: 'none', borderRadius: '8px',
+                  cursor: inviteEmail && !inviting ? 'pointer' : 'not-allowed', fontWeight: '500'
+                }}>
+                {inviting ? 'Sending...' : 'Send Invite'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

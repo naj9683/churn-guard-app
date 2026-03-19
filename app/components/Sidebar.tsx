@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useClerk } from '@clerk/nextjs';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
@@ -26,6 +26,7 @@ const Icons = {
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -243,7 +244,10 @@ export default function Sidebar() {
       {isLoaded && user && (
         <div style={{
           padding: '16px',
-          borderTop: '1px solid #e5e7eb'
+          borderTop: '1px solid #e5e7eb',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
         }}>
           <div style={{
             display: 'flex',
@@ -264,7 +268,8 @@ export default function Sidebar() {
               justifyContent: 'center',
               fontSize: '14px',
               fontWeight: '600',
-              color: '#fff'
+              color: '#fff',
+              flexShrink: 0,
             }}>
               {user.firstName?.[0] || user.emailAddresses[0]?.emailAddress?.[0] || 'U'}
             </div>
@@ -287,6 +292,42 @@ export default function Sidebar() {
               </div>
             </div>
           </div>
+
+          <button
+            onClick={() => signOut({ redirectUrl: '/auth/login' })}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: '100%',
+              padding: '9px 12px',
+              background: 'transparent',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              color: '#6b7280',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'left',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2';
+              (e.currentTarget as HTMLButtonElement).style.color = '#dc2626';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#fecaca';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.color = '#6b7280';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#e5e7eb';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign Out
+          </button>
         </div>
       )}
     </aside>

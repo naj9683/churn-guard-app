@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
+import { runAutomationEngine } from '@/lib/automation-engine';
+import { enrollInSequence } from '@/lib/sequences';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -35,6 +37,36 @@ export async function POST(req: Request) {
       const customerId = session.customer as string;
       console.log('Checkout completed for customer:', customerId);
       await markInterventionAsSaved(customerId);
+    }
+
+    // Handle payment failure — record event + fire automation rules
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeCustomerId = invoice.customer as string;
+      const customer = await prisma.customer.findFirst({
+        where: { externalId: stripeCustomerId },
+      });
+      if (customer) {
+        // Record the failure as an Event so the automation engine can detect it
+        await prisma.event.create({
+          data: {
+            customerId: customer.id,
+            event: 'payment_failed',
+            metadata: { invoiceId: invoice.id, amount: invoice.amount_due },
+            timestamp: BigInt(Date.now()),
+          },
+        });
+        // Fire single-step automation rules immediately
+        await runAutomationEngine({
+          triggerTypes: ['payment_failed'],
+          customerId: customer.id,
+        });
+        // Enroll in the multi-step dunning sequence
+        await enrollInSequence(customer.userId, customer.id, 'dunning', {
+          invoiceId: invoice.id,
+          amount: invoice.amount_due ? Math.round(invoice.amount_due / 100) : null,
+        });
+      }
     }
 
     // Handle subscription cancelled

@@ -15,7 +15,7 @@ export default function AuditPage() {
 
   async function fetchLogs() {
     try {
-      const res = await fetch('/api/audit-logs');
+      const res = await fetch('/api/audit');
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
@@ -51,12 +51,11 @@ export default function AuditPage() {
   }
 
   const getActionColor = (action: string) => {
-    switch (action) {
-      case 'CREATE': return '#10b981';
-      case 'UPDATE': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      default: return '#6b7280';
-    }
+    const upper = (action || '').toUpperCase();
+    if (upper.includes('CREATE') || upper.includes('ADD')) return '#10b981';
+    if (upper.includes('UPDATE') || upper.includes('EDIT') || upper.includes('CHANGE')) return '#f59e0b';
+    if (upper.includes('DELETE') || upper.includes('REMOVE')) return '#ef4444';
+    return '#6b7280';
   };
 
   return (
@@ -139,23 +138,23 @@ export default function AuditPage() {
                     {new Date(log.createdAt).toLocaleString()}
                   </td>
                   <td style={{padding: '16px 12px', color: '#111827', fontWeight: '500'}}>
-                    {log.user?.email || 'System'}
+                    {log.customerName || log.user?.email || 'System'}
                   </td>
                   <td style={{padding: '16px 12px'}}>
                     <span style={{
                       padding: '6px 12px',
                       borderRadius: '20px',
-                      background: `${getActionColor(log.action)}15`,
-                      color: getActionColor(log.action),
+                      background: `${getActionColor(log.type || log.action)}15`,
+                      color: getActionColor(log.type || log.action),
                       fontWeight: '600',
                       fontSize: '12px',
                       textTransform: 'uppercase'
                     }}>
-                      {log.action}
+                      {log.type || log.action || 'ACTION'}
                     </span>
                   </td>
                   <td style={{padding: '16px 12px', color: '#6b7280'}}>
-                    {log.resourceType}
+                    {log.customerEmail || log.resourceType || '—'}
                   </td>
                   <td style={{padding: '16px 12px', color: '#6b7280', fontSize: '14px'}}>
                     {log.description}

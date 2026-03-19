@@ -9,10 +9,28 @@ export default function WidgetMessagesPage() {
   const { user, isLoaded } = useUser();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) fetchMessages();
   }, [isLoaded, user]);
+
+  async function deleteMessage(id: string) {
+    if (!confirm('Delete this message?')) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/widget/messages/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== id));
+      } else {
+        alert('Failed to delete message.');
+      }
+    } catch {
+      alert('Failed to delete message.');
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   async function fetchMessages() {
     try {
@@ -70,6 +88,21 @@ export default function WidgetMessagesPage() {
         </Link>
       }
     >
+      {messages.length === 0 && (
+        <div style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
+          padding: '60px',
+          textAlign: 'center',
+          color: '#6b7280',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{fontSize: '48px', marginBottom: '16px'}}>💬</div>
+          <div style={{fontSize: '16px', fontWeight: '500', marginBottom: '8px', color: '#111827'}}>No widget messages yet</div>
+          <div>Create your first message to engage at-risk customers</div>
+        </div>
+      )}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
@@ -130,17 +163,21 @@ export default function WidgetMessagesPage() {
               }}>
                 Edit
               </Link>
-              <button style={{
-                padding: '8px 16px',
-                background: '#fef2f2',
-                color: '#ef4444',
-                border: '1px solid #fecaca',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}>
-                Delete
+              <button
+                onClick={() => deleteMessage(message.id)}
+                disabled={deleting === message.id}
+                style={{
+                  padding: '8px 16px',
+                  background: deleting === message.id ? '#f3f4f6' : '#fef2f2',
+                  color: deleting === message.id ? '#9ca3af' : '#ef4444',
+                  border: `1px solid ${deleting === message.id ? '#e5e7eb' : '#fecaca'}`,
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: deleting === message.id ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {deleting === message.id ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

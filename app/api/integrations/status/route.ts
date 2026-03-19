@@ -4,27 +4,38 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await auth();
-    const userId = session?.userId;
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const integration = await prisma.crmIntegration.findUnique({
-      where: { userId },
+    // Look up by clerkId first, then find the CRM integration by internal DB user ID
+    const user = await prisma.user.findFirst({
+      where: { clerkId: userId },
+      select: { id: true, slackWebhookUrl: true, stripeCustomerId: true, crmType: true }
     });
 
-    if (!integration) {
-      return NextResponse.json({ connected: false });
+    if (!user) {
+      return NextResponse.json({
+        connected: false, type: null, syncStatus: null,
+        slackConnected: false, stripeConnected: false
+      });
     }
+
+    const integration = await prisma.crmIntegration.findFirst({
+      where: { userId: user.id }
+    });
 
     return NextResponse.json({
-      connected: true,
-      type: integration.type,
-      syncStatus: integration.syncStatus,
+      connected: integration?.enabled ?? false,
+      type: integration?.type ?? user.crmType ?? null,
+      syncStatus: integration?.syncStatus ?? null,
+      slackConnected: !!user.slackWebhookUrl,
+      stripeConnected: !!user.stripeCustomerId,
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to check status' }, { status: 500 });
+    console.error('Integration status error:', error);
+    return NextResponse.json({
+      connected: false, type: null, syncStatus: null,
+      slackConnected: false, stripeConnected: false
+    });
   }
 }
