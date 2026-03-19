@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChurnGuard Tracker Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 60px auto; padding: 0 24px; background: #f8fafc; }
+    h1 { color: #111827; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+    button { padding: 10px 20px; background: #6366f1; color: #fff; border: none; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 600; margin: 6px 4px; }
+    button.secondary { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
+    button.danger { background: #ef4444; }
+    button.success { background: #10b981; }
+    #log { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; min-height: 160px; white-space: pre-wrap; overflow-y: auto; max-height: 320px; }
+    .status { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block; margin-bottom: 12px; }
+    .status.ok { background: #f0fdf4; color: #15803d; }
+    .status.err { background: #fef2f2; color: #dc2626; }
+    input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<h1>ChurnGuard Tracker — Test Page</h1>
+<p style="color:#6b7280; margin-top:0;">Tests that <code>churnguard.js</code> correctly sends events to <code>/api/track</code>.</p>
+
+<div class="card">
+  <h3 style="margin:0 0 16px">Configuration</h3>
+  <label>ChurnGuard API Key</label>
+  <input id="apiKey" type="text" placeholder="Paste your API key from /settings/api-keys" />
+  <label>Test Customer ID</label>
+  <input id="customerId" type="text" value="test-customer-001" />
+  <label>Customer Email</label>
+  <input id="customerEmail" type="text" value="testuser@example.com" />
+  <button onclick="initTracker()">Initialize Tracker</button>
+  <div id="initStatus"></div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 16px">Fire Test Events</h3>
+  <button onclick="fireEvent('login')">Track Login</button>
+  <button onclick="fireEvent('payment_failed')" class="danger">Track Payment Failed</button>
+  <button onclick="fireEvent('payment_success')" class="success">Track Payment Success</button>
+  <button onclick="fireEvent('downgrade_attempt')" class="danger">Track Downgrade Attempt</button>
+  <button onclick="fireFeature('analytics')">Track Feature: Analytics</button>
+  <button onclick="fireFeature('dashboard')">Track Feature: Dashboard</button>
+  <button onclick="fireEvent('no_login_7_days')">Track Inactivity</button>
+  <button onclick="fireChurnSignal('too-expensive')" class="danger">Track Churn Signal</button>
+  <button onclick="clearLog()" class="secondary">Clear Log</button>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 12px">Event Log</h3>
+  <div id="log">Waiting for events...</div>
+</div>
+
+<div class="card" style="background:#fffbeb; border-color:#fde68a;">
+  <h3 style="margin:0 0 8px; color:#92400e">Expected risk score changes</h3>
+  <p style="margin:0; font-size:13px; color:#78350f;">
+    login → -5 | payment_failed → +20 | payment_success → -10 |
+    downgrade_attempt → +30 | no_login_7_days → +15<br>
+    Response includes <code>riskScore</code>, <code>oldRiskScore</code>, and <code>playbookTriggered</code>.
+  </p>
+</div>
+
+<!-- Load the tracker -->
+<script src="/churnguard.js"></script>
+<script>
+  let initialized = false;
+
+  function log(msg, color) {
+    const el = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    const line = `[${time}] ${msg}\n`;
+    if (el.textContent === 'Waiting for events...') el.textContent = '';
+    el.textContent += line;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('log').textContent = 'Log cleared.\n';
+  }
+
+  function initTracker() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const customerId = document.getElementById('customerId').value.trim();
+    const email = document.getElementById('customerEmail').value.trim();
+
+    if (!apiKey) {
+      alert('Please enter your API key');
+      return;
+    }
+
+    // Patch window.currentUser so churnguard.js getUser() finds it
+    window.currentUser = { id: customerId, email: email, name: 'Test User' };
+
+    // Override the apiUrl to use relative path (works locally and in prod)
+    window.ChurnGuard.config.apiUrl = window.location.origin + '/api/track';
+    window.ChurnGuard.config.apiKey = apiKey;
+    window.ChurnGuard.config.debug = true;
+
+    initialized = true;
+
+    const statusEl = document.getElementById('initStatus');
+    statusEl.innerHTML = '<div class="status ok" style="margin-top:12px">✓ Initialized — API key set, user identified as ' + email + '</div>';
+    log('Tracker initialized. API URL: ' + window.ChurnGuard.config.apiUrl);
+    log('User set: ' + JSON.stringify(window.currentUser));
+  }
+
+  function fireEvent(eventName) {
+    if (!initialized) { alert('Click "Initialize Tracker" first'); return; }
+    log('Firing event: ' + eventName + '...');
+
+    const user = window.ChurnGuard.getUser();
+    const payload = {
+      apiKey: window.ChurnGuard.config.apiKey,
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      event: eventName,
+      metadata: {
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        testMode: true
+      }
+    };
+
+    fetch(window.ChurnGuard.config.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        log('ERROR: ' + data.error);
+      } else {
+        log('SUCCESS: ' + eventName + ' | riskScore: ' + data.oldRiskScore + ' → ' + data.riskScore + (data.playbookTriggered ? ' ⚡ PLAYBOOK TRIGGERED' : ''));
+      }
+    })
+    .catch(err => log('FETCH ERROR: ' + err.message));
+  }
+
+  function fireFeature(featureName) {
+    if (!initialized) { alert('Click "Initialize Tracker" first'); return; }
+    log('Firing feature usage: ' + featureName + '...');
+
+    const user = window.ChurnGuard.getUser();
+    const payload = {
+      apiKey: window.ChurnGuard.config.apiKey,
+      userId: user.id,
+      userEmail: user.email,
+      event: 'feature_used',
+      metadata: { feature: featureName, url: window.location.href, testMode: true }
+    };
+
+    fetch(window.ChurnGuard.config.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) log('ERROR: ' + data.error);
+      else log('SUCCESS: feature_used (' + featureName + ') | riskScore: ' + data.riskScore);
+    })
+    .catch(err => log('FETCH ERROR: ' + err.message));
+  }
+
+  function fireChurnSignal(reason) {
+    if (!initialized) { alert('Click "Initialize Tracker" first'); return; }
+    fireEvent('churn_signal');
+    log('Churn signal reason: ' + reason);
+  }
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   window.ChurnGuard = window.ChurnGuard || {};
   
   const CONFIG = {
-    apiUrl: 'https://churn-guard-app.vercel.app',
+    apiUrl: 'https://churnguardapp.com',
     debug: false
   };
   
@@ -205,7 +205,7 @@
     
     // Redirect to dashboard or show success
     alert('Thanks! Redirecting you to claim your offer...');
-    window.location.href = 'https://churn-guard-app.vercel.app/dashboard';
+    window.location.href = 'https://churnguardapp.com/dashboard';
   };
   
   // Log helper

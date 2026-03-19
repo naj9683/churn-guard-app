@@ -19,7 +19,7 @@ export default function WidgetInstallPage() {
       .catch(() => {});
   }, []);
 
-  const installCode = `<script src="https://churn-guard-app.vercel.app/widget.js"></script>
+  const installCode = `<script src="https://churnguardapp.com/widget.js"></script>
 <script>
   ChurnGuard.init({
     apiKey: '${apiKey}',

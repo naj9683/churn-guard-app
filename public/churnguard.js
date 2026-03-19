@@ -9,7 +9,7 @@
   window.ChurnGuard = {
     config: {
       apiKey: null,
-      apiUrl: 'https://churn-guard-app.vercel.app/api/tracking',
+      apiUrl: 'https://churnguardapp.com/api/track',
       debug: false
     },
     
@@ -48,12 +48,12 @@
       
       const payload = {
         apiKey: this.config.apiKey,
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name || user.email,
+        customerId: user.id,
         event: eventName,
         metadata: {
           ...metadata,
+          email: user.email,
+          name: user.name || user.email,
           url: window.location.href,
           timestamp: new Date().toISOString(),
           userAgent: navigator.userAgent
