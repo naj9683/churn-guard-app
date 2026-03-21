@@ -134,13 +134,13 @@ export default function LandingPage() {
             >
               Login
             </Link>
-            <Link
-              href="/pricing"
+            <a
+              href="#pricing"
               className="text-sm px-4 py-2 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
               Get Started
-            </Link>
+            </a>
           </div>
 
           {/* Mobile hamburger */}
@@ -163,8 +163,8 @@ export default function LandingPage() {
             <a href="#features" className="text-slate-300 text-sm" onClick={() => setMobileMenuOpen(false)}>Features</a>
             <a href="#pricing" className="text-slate-300 text-sm" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <Link href="/auth/login" className="text-slate-300 text-sm">Login</Link>
-            <Link
-              href="/pricing"
+            <a
+              href="#pricing"
               className="text-sm px-4 py-2 rounded-lg font-semibold text-white text-center"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
@@ -220,13 +220,13 @@ export default function LandingPage() {
 
           {/* CTA row */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/pricing"
+            <a
+              href="#pricing"
               className="px-8 py-4 rounded-xl font-semibold text-white text-base transition-all hover:opacity-90 hover:scale-105 shadow-lg"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.4)' }}
             >
               Get Started
-            </Link>
+            </a>
             <Link
               href="/dashboard"
               className="px-8 py-4 rounded-xl font-semibold text-slate-300 text-base border border-slate-600 hover:border-slate-400 hover:text-white transition-colors"
@@ -614,13 +614,13 @@ export default function LandingPage() {
             Join teams saving $10K+ MRR monthly with automated churn prevention.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/pricing"
+            <a
+              href="#pricing"
               className="px-8 py-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 shadow-lg"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.4)' }}
             >
               Get Started
-            </Link>
+            </a>
             <Link
               href="/dashboard"
               className="px-8 py-4 rounded-xl font-semibold text-slate-300 border border-slate-600 hover:border-slate-400 hover:text-white transition-colors"
