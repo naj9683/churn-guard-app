@@ -189,26 +189,22 @@ export default function IntegrationsPage() {
   function setErrorFor(key: string, msg: string) { setError(e => ({ ...e, [key]: msg })); }
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
-  async function connectHubSpot() {
+  function connectHubSpot() {
     setBusyFor('hubspot', true);
     setErrorFor('hubspot', '');
-    try {
-      const res = await fetch('/api/integrations/hubspot/auth');
-      const d = await res.json();
-      if (!res.ok || !d.authUrl) throw new Error(d.error || 'Failed to get auth URL');
-      const popup = window.open(d.authUrl, 'hubspotAuth', 'width=800,height=600,scrollbars=yes');
-      // Poll for popup close then refresh status
-      const timer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(timer);
-          loadStatus();
-          setBusyFor('hubspot', false);
-        }
-      }, 500);
-    } catch (e: any) {
-      setErrorFor('hubspot', e.message || 'Failed to start HubSpot OAuth.');
+    const popup = window.open('/api/integrations/hubspot/auth', 'hubspotAuth', 'width=800,height=600,scrollbars=yes');
+    if (!popup) {
+      setErrorFor('hubspot', 'Popup blocked — please allow popups for this site and try again.');
       setBusyFor('hubspot', false);
+      return;
     }
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer);
+        loadStatus();
+        setBusyFor('hubspot', false);
+      }
+    }, 500);
   }
 
   async function disconnectHubSpot() {
@@ -221,25 +217,22 @@ export default function IntegrationsPage() {
   }
 
   // ── Salesforce ─────────────────────────────────────────────────────────────
-  async function connectSalesforce() {
+  function connectSalesforce() {
     setBusyFor('salesforce', true);
     setErrorFor('salesforce', '');
-    try {
-      const res = await fetch('/api/integrations/salesforce/auth');
-      const d = await res.json();
-      if (!res.ok || !d.authUrl) throw new Error(d.error || 'Failed to get auth URL');
-      const popup = window.open(d.authUrl, 'salesforceAuth', 'width=800,height=600,scrollbars=yes');
-      const timer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(timer);
-          loadStatus();
-          setBusyFor('salesforce', false);
-        }
-      }, 500);
-    } catch (e: any) {
-      setErrorFor('salesforce', e.message || 'Failed to start Salesforce OAuth.');
+    const popup = window.open('/api/integrations/salesforce/auth', 'salesforceAuth', 'width=800,height=600,scrollbars=yes');
+    if (!popup) {
+      setErrorFor('salesforce', 'Popup blocked — please allow popups for this site and try again.');
       setBusyFor('salesforce', false);
+      return;
     }
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer);
+        loadStatus();
+        setBusyFor('salesforce', false);
+      }
+    }, 500);
   }
 
   async function disconnectSalesforce() {

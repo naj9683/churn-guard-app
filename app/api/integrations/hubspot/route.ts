@@ -13,20 +13,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const state = userId;
+    const cleanUserId = userId.trim();
+    const state = encodeURIComponent(cleanUserId);
 
-    const scopes = [
-      'crm.objects.contacts.read',
-      'crm.objects.contacts.write',
-      'crm.objects.companies.read',
-      'crm.objects.companies.write'
-    ].join(' ');
+    const scopes = 'crm.objects.companies.read crm.objects.companies.write crm.objects.contacts.read crm.objects.contacts.write crm.schemas.contacts.read crm.schemas.contacts.write oauth';
 
-    const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
+    const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}&prompt=consent`;
 
-    return NextResponse.json({ authUrl });
+    return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error('HubSpot auth error:', error);
-    return NextResponse.json({ error: 'Failed to generate auth URL' }, { status: 500 });
+    return NextResponse.redirect('https://churnguardapp.com/integrations?error=hubspot_auth_failed');
   }
 }
