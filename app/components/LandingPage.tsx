@@ -83,13 +83,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 // ─── Reusable fade-in section wrapper ─────────────────────────────────────────
-function FadeSection({ children, className }: { children: React.ReactNode; className?: string }) {
+function FadeSection({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   const ref = useFadeIn();
   return (
     <div
       ref={ref}
       className={className}
-      style={{ opacity: 0, transform: 'translateY(32px)', transition: 'opacity 0.6s ease, transform 0.6s ease' }}
+      style={{ opacity: 0, transform: 'translateY(32px)', transition: 'opacity 0.6s ease, transform 0.6s ease', ...style }}
     >
       {children}
     </div>
