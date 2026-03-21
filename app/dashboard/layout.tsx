@@ -23,20 +23,27 @@ export default async function DashboardLayout({
     return <div style={{ minHeight: '100vh', background: '#0f172a' }}>{children}</div>;
   }
 
-  // Check for an active subscription
-  const user = await prisma.user.findFirst({
-    where: { clerkId: userId },
-    select: {
-      subscriptions: {
-        where: { status: 'active' },
-        take: 1,
-        select: { id: true },
+  // Check subscription — fail open on any DB error so paying customers are never blocked
+  try {
+    const user = await prisma.user.findFirst({
+      where: { clerkId: userId },
+      select: {
+        subscriptions: {
+          where: { status: 'active' },
+          take: 1,
+          select: { id: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!user || user.subscriptions.length === 0) {
-    redirect('/pricing?msg=subscribe');
+    // Only redirect to pricing if we definitively found the user and they have no active subscription
+    if (user && user.subscriptions.length === 0) {
+      redirect('/pricing?msg=subscribe');
+    }
+
+    // user === null means no DB record yet (new sign-up, onboarding in progress) — let them through
+  } catch {
+    // DB error — fail open, never block a potentially paying customer
   }
 
   return <div style={{ minHeight: '100vh', background: '#0f172a' }}>{children}</div>;
