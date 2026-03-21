@@ -46,27 +46,22 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`https://churnguardapp.com/auth/oauth-complete?error=${encodeURIComponent(errMsg)}`);
     }
 
-    await prisma.crmIntegration.upsert({
-      where:  { userId_type: { userId: dbUser.id, type: 'hubspot' } },
-      update: {
-        type:         'hubspot',
-        accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiresAt:    new Date(Date.now() + (tokens.expires_in ?? 1800) * 1000),
-        syncStatus:   'connected',
-        enabled:      true,
-        lastError:    null,
-      },
-      create: {
-        userId:       dbUser.id,
-        type:         'hubspot',
-        accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiresAt:    new Date(Date.now() + (tokens.expires_in ?? 1800) * 1000),
-        syncStatus:   'connected',
-        enabled:      true,
-      },
+    const tokenData = {
+      accessToken:  tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt:    new Date(Date.now() + (tokens.expires_in ?? 1800) * 1000),
+      syncStatus:   'connected',
+      enabled:      true,
+      lastError:    null,
+    };
+    const existing = await prisma.crmIntegration.findFirst({
+      where: { userId: dbUser.id, type: 'hubspot' },
     });
+    if (existing) {
+      await prisma.crmIntegration.update({ where: { id: existing.id }, data: tokenData });
+    } else {
+      await prisma.crmIntegration.create({ data: { userId: dbUser.id, type: 'hubspot', ...tokenData } });
+    }
 
     return NextResponse.redirect('https://churnguardapp.com/auth/oauth-complete?success=hubspot_connected');
   } catch (e: any) {

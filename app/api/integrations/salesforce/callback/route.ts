@@ -49,29 +49,23 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`https://churnguardapp.com/auth/oauth-complete?error=${encodeURIComponent(errMsg)}`);
     }
 
-    await prisma.crmIntegration.upsert({
-      where:  { userId_type: { userId: dbUser.id, type: 'salesforce' } },
-      update: {
-        type:         'salesforce',
-        accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        instanceUrl:  tokens.instance_url,
-        expiresAt:    new Date(Date.now() + 2 * 60 * 60 * 1000),
-        syncStatus:   'connected',
-        enabled:      true,
-        lastError:    null,
-      },
-      create: {
-        userId:       dbUser.id,
-        type:         'salesforce',
-        accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        instanceUrl:  tokens.instance_url,
-        expiresAt:    new Date(Date.now() + 2 * 60 * 60 * 1000),
-        syncStatus:   'connected',
-        enabled:      true,
-      },
+    const tokenData = {
+      accessToken:  tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      instanceUrl:  tokens.instance_url,
+      expiresAt:    new Date(Date.now() + 2 * 60 * 60 * 1000),
+      syncStatus:   'connected',
+      enabled:      true,
+      lastError:    null,
+    };
+    const existing = await prisma.crmIntegration.findFirst({
+      where: { userId: dbUser.id, type: 'salesforce' },
     });
+    if (existing) {
+      await prisma.crmIntegration.update({ where: { id: existing.id }, data: tokenData });
+    } else {
+      await prisma.crmIntegration.create({ data: { userId: dbUser.id, type: 'salesforce', ...tokenData } });
+    }
 
     return NextResponse.redirect('https://churnguardapp.com/auth/oauth-complete?success=salesforce_connected');
   } catch (e: any) {
