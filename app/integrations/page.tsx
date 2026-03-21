@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Layout from '@/app/components/Layout';
 
 type Status = {
@@ -290,7 +292,11 @@ function CrmSyncPanel({
   );
 }
 
-export default function IntegrationsPage() {
+function IntegrationsPageInner() {
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get('error');
+  const urlConnected = searchParams.get('connected');
+
   const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -423,6 +429,16 @@ export default function IntegrationsPage() {
   return (
     <Layout title="Integrations" subtitle="Connect ChurnGuard to your existing tools">
       <div style={{ maxWidth: '720px' }}>
+        {urlError && (
+          <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', fontSize: '13px', color: '#dc2626' }}>
+            <strong>Connection failed:</strong> {decodeURIComponent(urlError)}
+          </div>
+        )}
+        {urlConnected && (
+          <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', fontSize: '13px', color: '#15803d' }}>
+            <strong>Connected!</strong> {urlConnected} was successfully connected.
+          </div>
+        )}
         {showSlackModal && (
           <SlackModal
             onSave={saveSlackWebhook}
@@ -569,5 +585,13 @@ export default function IntegrationsPage() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={<Layout title="Integrations"><div style={{ color: '#9ca3af' }}>Loading…</div></Layout>}>
+      <IntegrationsPageInner />
+    </Suspense>
   );
 }

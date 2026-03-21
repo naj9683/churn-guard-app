@@ -6,11 +6,18 @@ const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/hubspot/callbac
 
 export async function GET() {
   try {
+    console.log('HubSpot auth route hit (root)');
+
+    if (!HUBSPOT_CLIENT_ID) {
+      console.error('HubSpot auth: HUBSPOT_CLIENT_ID env var is not set');
+      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('HUBSPOT_CLIENT_ID is not configured'));
+    }
+
     const session = await auth();
     const userId = session?.userId;
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.redirect('https://churnguardapp.com/sign-in?redirect_url=' + encodeURIComponent('/integrations'));
     }
 
     const cleanUserId = userId.trim();
@@ -21,8 +28,9 @@ export async function GET() {
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}&prompt=consent`;
 
     return NextResponse.redirect(authUrl);
-  } catch (error) {
+  } catch (error: any) {
     console.error('HubSpot auth error:', error);
-    return NextResponse.redirect('https://churnguardapp.com/integrations?error=hubspot_auth_failed');
+    const msg = error?.message ?? 'auth_failed';
+    return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent(msg));
   }
 }

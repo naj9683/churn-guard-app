@@ -20,9 +20,10 @@ function OAuthCompleteInner() {
       setTimeout(() => { window.close(); setClosed(true); }, 800);
     } else {
       // Main-window mode: redirect back to integrations after a short delay
+      const crm = success?.replace('_connected', '') ?? '';
       const dest = error
         ? `/integrations?error=${encodeURIComponent(error)}`
-        : '/integrations';
+        : `/integrations?connected=${encodeURIComponent(crm)}`;
       setTimeout(() => { window.location.href = dest; }, 1200);
     }
   }, [success, error]);
