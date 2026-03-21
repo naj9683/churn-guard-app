@@ -1,36 +1,28 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
 const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/hubspot/callback';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    console.log('HubSpot auth route hit (root)');
+    const url = new URL(req.url);
+    const userId = url.searchParams.get('uid');
 
     if (!HUBSPOT_CLIENT_ID) {
-      console.error('HubSpot auth: HUBSPOT_CLIENT_ID env var is not set');
-      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('HUBSPOT_CLIENT_ID is not configured'));
+      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('HubSpot client ID not configured'));
     }
-
-    const session = await auth();
-    const userId = session?.userId;
 
     if (!userId) {
-      return NextResponse.redirect('https://churnguardapp.com/sign-in?redirect_url=' + encodeURIComponent('/integrations'));
+      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('Not authenticated'));
     }
 
-    const cleanUserId = userId.trim();
-    const state = encodeURIComponent(cleanUserId);
-
+    const state = encodeURIComponent(userId.trim());
     const scopes = 'crm.objects.companies.read crm.objects.companies.write crm.objects.contacts.read crm.objects.contacts.write crm.schemas.contacts.read crm.schemas.contacts.write oauth';
-
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}&prompt=consent`;
 
     return NextResponse.redirect(authUrl);
   } catch (error: any) {
     console.error('HubSpot auth error:', error);
-    const msg = error?.message ?? 'auth_failed';
-    return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent(msg));
+    return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent(error?.message ?? 'auth_failed'));
   }
 }

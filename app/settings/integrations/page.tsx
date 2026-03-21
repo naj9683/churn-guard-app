@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import Layout from '@/app/components/Layout';
 
 type Status = {
@@ -155,6 +156,7 @@ function StripeInfoPanel({ onClose }: { onClose: () => void }) {
 }
 
 export default function IntegrationsPage() {
+  const { user } = useUser();
   const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -190,7 +192,8 @@ export default function IntegrationsPage() {
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
   function connectHubSpot() {
-    window.location.href = '/api/integrations/hubspot/auth';
+    if (!user?.id) { setErrorFor('hubspot', 'Not signed in — please refresh.'); return; }
+    window.location.href = `/api/integrations/hubspot/auth?uid=${encodeURIComponent(user.id)}`;
   }
 
   async function disconnectHubSpot() {
@@ -204,7 +207,8 @@ export default function IntegrationsPage() {
 
   // ── Salesforce ─────────────────────────────────────────────────────────────
   function connectSalesforce() {
-    window.location.href = '/api/integrations/salesforce/auth';
+    if (!user?.id) { setErrorFor('salesforce', 'Not signed in — please refresh.'); return; }
+    window.location.href = `/api/integrations/salesforce/auth?uid=${encodeURIComponent(user.id)}`;
   }
 
   async function disconnectSalesforce() {

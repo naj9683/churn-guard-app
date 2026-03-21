@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { useUser } from '@clerk/nextjs';
 import Layout from '@/app/components/Layout';
 
 type Status = {
@@ -296,6 +297,7 @@ function IntegrationsPageInner() {
   const searchParams = useSearchParams();
   const urlError = searchParams.get('error');
   const urlConnected = searchParams.get('connected');
+  const { user } = useUser();
 
   const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
@@ -370,7 +372,8 @@ function IntegrationsPageInner() {
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
   function connectHubSpot() {
-    window.location.href = '/api/integrations/hubspot/auth';
+    if (!user?.id) { setErrorFor('hubspot', 'Not signed in — please refresh and try again.'); return; }
+    window.location.href = `/api/integrations/hubspot/auth?uid=${encodeURIComponent(user.id)}`;
   }
 
   async function disconnectHubSpot() {
@@ -384,7 +387,8 @@ function IntegrationsPageInner() {
 
   // ── Salesforce ─────────────────────────────────────────────────────────────
   function connectSalesforce() {
-    window.location.href = '/api/integrations/salesforce/auth';
+    if (!user?.id) { setErrorFor('salesforce', 'Not signed in — please refresh and try again.'); return; }
+    window.location.href = `/api/integrations/salesforce/auth?uid=${encodeURIComponent(user.id)}`;
   }
 
   async function disconnectSalesforce() {

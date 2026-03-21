@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 
 const SALESFORCE_CLIENT_ID = process.env.SALESFORCE_CLIENT_ID!;
@@ -11,33 +10,29 @@ function generatePKCE() {
   return { verifier, challenge };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    console.log('Salesforce auth route hit');
+    const url = new URL(req.url);
+    const userId = url.searchParams.get('uid');
 
     if (!SALESFORCE_CLIENT_ID) {
-      console.error('Salesforce auth: SALESFORCE_CLIENT_ID env var is not set');
-      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('SALESFORCE_CLIENT_ID is not configured'));
+      console.error('Salesforce auth: SALESFORCE_CLIENT_ID not set');
+      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('Salesforce client ID not configured'));
     }
 
-    const session = await auth();
-    const userId = session?.userId;
-    console.log('Salesforce auth: userId =', userId ? 'found' : 'missing');
-
     if (!userId) {
-      return NextResponse.redirect('https://churnguardapp.com/sign-in?redirect_url=' + encodeURIComponent('/integrations'));
+      console.error('Salesforce auth: no uid param');
+      return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent('Not authenticated'));
     }
 
     const { verifier, challenge } = generatePKCE();
-    const state = Buffer.from(JSON.stringify({ userId, codeVerifier: verifier })).toString('base64');
-
+    const state = Buffer.from(JSON.stringify({ userId: userId.trim(), codeVerifier: verifier })).toString('base64');
     const authUrl = `https://login.salesforce.com/services/oauth2/authorize?response_type=code&client_id=${SALESFORCE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&scope=api%20refresh_token&code_challenge=${challenge}&code_challenge_method=S256`;
 
-    console.log('Salesforce auth: redirecting to Salesforce OAuth');
+    console.log('Salesforce auth: redirecting to Salesforce OAuth for user', userId.slice(0, 8) + '...');
     return NextResponse.redirect(authUrl);
   } catch (error: any) {
     console.error('Salesforce auth error:', error);
-    const msg = error?.message ?? 'auth_failed';
-    return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent(msg));
+    return NextResponse.redirect('https://churnguardapp.com/integrations?error=' + encodeURIComponent(error?.message ?? 'auth_failed'));
   }
 }
