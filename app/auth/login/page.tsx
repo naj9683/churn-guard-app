@@ -17,15 +17,11 @@ export default function LoginPage() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
-  // If already signed in, redirect immediately
+  // If already signed in, go straight to dashboard — don't check subscription here.
+  // The subscription gate lives in the dashboard, not on the login page.
   useEffect(() => {
     if (!userLoaded || !user) return;
-    const isAdmin = user.primaryEmailAddress?.emailAddress?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    if (isAdmin) {
-      router.replace('/dashboard');
-    } else {
-      checkSubscriptionAndRoute();
-    }
+    router.replace('/dashboard');
   }, [userLoaded, user]);
 
   async function checkSubscriptionAndRoute() {
