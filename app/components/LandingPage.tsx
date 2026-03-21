@@ -169,7 +169,7 @@ export default function LandingPage() {
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
               Get Started
-            </Link>
+            </a>
           </div>
         )}
       </header>
