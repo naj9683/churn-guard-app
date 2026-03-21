@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
+const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID || 'fca37c1f-fec2-4feb-ab8c-345fa617ab87';
 const REDIRECT_URI = 'https://churnguardapp.com/api/integrations/hubspot/callback';
 
 export async function GET(req: Request) {
