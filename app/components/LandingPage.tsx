@@ -48,8 +48,8 @@ const faqs = [
     a: 'No. Everything is automated—AI writes the messages and sends via Email, SMS (Twilio), and Slack based on your rules.',
   },
   {
-    q: 'Is there a free trial?',
-    a: 'Yes. 14-day free trial, no credit card required. Full feature access.',
+    q: 'How do I get started?',
+    a: 'Yes. You can start with our Seed plan at $79/month. Full feature access, cancel anytime.',
   },
 ];
 
@@ -225,7 +225,7 @@ export default function LandingPage() {
               className="px-8 py-4 rounded-xl font-semibold text-white text-base transition-all hover:opacity-90 hover:scale-105 shadow-lg"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.4)' }}
             >
-              Get Started Free
+              Get Started
             </Link>
             <Link
               href="/dashboard"
@@ -236,7 +236,7 @@ export default function LandingPage() {
           </div>
 
           {/* Trust micro-copy */}
-          <p className="text-slate-600 text-sm mt-6">14-day free trial · No credit card required · Cancel anytime</p>
+          <p className="text-slate-600 text-sm mt-6">No setup fees · Cancel anytime · Money-back guarantee</p>
 
           {/* Dashboard mockup */}
           <div className="mt-16 relative">
@@ -619,7 +619,7 @@ export default function LandingPage() {
               className="px-8 py-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 shadow-lg"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.4)' }}
             >
-              Get Started Free
+              Get Started
             </Link>
             <Link
               href="/dashboard"
@@ -628,7 +628,7 @@ export default function LandingPage() {
               Book Demo
             </Link>
           </div>
-          <p className="text-slate-600 text-sm mt-6">14-day free trial · No credit card required</p>
+          <p className="text-slate-600 text-sm mt-6">No setup fees · Cancel anytime · Money-back guarantee</p>
         </FadeSection>
       </section>
 
