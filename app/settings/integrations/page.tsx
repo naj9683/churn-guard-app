@@ -190,21 +190,7 @@ export default function IntegrationsPage() {
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
   function connectHubSpot() {
-    setBusyFor('hubspot', true);
-    setErrorFor('hubspot', '');
-    const popup = window.open('/api/integrations/hubspot/auth', 'hubspotAuth', 'width=800,height=600,scrollbars=yes');
-    if (!popup) {
-      setErrorFor('hubspot', 'Popup blocked — please allow popups for this site and try again.');
-      setBusyFor('hubspot', false);
-      return;
-    }
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        loadStatus();
-        setBusyFor('hubspot', false);
-      }
-    }, 500);
+    window.location.href = '/api/integrations/hubspot/auth';
   }
 
   async function disconnectHubSpot() {
@@ -218,21 +204,7 @@ export default function IntegrationsPage() {
 
   // ── Salesforce ─────────────────────────────────────────────────────────────
   function connectSalesforce() {
-    setBusyFor('salesforce', true);
-    setErrorFor('salesforce', '');
-    const popup = window.open('/api/integrations/salesforce/auth', 'salesforceAuth', 'width=800,height=600,scrollbars=yes');
-    if (!popup) {
-      setErrorFor('salesforce', 'Popup blocked — please allow popups for this site and try again.');
-      setBusyFor('salesforce', false);
-      return;
-    }
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        loadStatus();
-        setBusyFor('salesforce', false);
-      }
-    }, 500);
+    window.location.href = '/api/integrations/salesforce/auth';
   }
 
   async function disconnectSalesforce() {

@@ -305,21 +305,6 @@ export default function IntegrationsPage() {
   useEffect(() => {
     loadStatus();
     loadSyncInfo();
-
-    // Listen for OAuth popup completion
-    function handleOAuthMessage(e: MessageEvent) {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type !== 'oauth-complete') return;
-      loadStatus();
-      loadSyncInfo();
-      if (e.data.success) {
-        const crm = e.data.crm as string;
-        if (crm === 'hubspot') setBusyFor('hubspot', false);
-        if (crm === 'salesforce') setBusyFor('salesforce', false);
-      }
-    }
-    window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
   }, []);
 
   async function loadStatus() {
@@ -379,22 +364,7 @@ export default function IntegrationsPage() {
 
   // ── HubSpot ────────────────────────────────────────────────────────────────
   function connectHubSpot() {
-    setBusyFor('hubspot', true);
-    setErrorFor('hubspot', '');
-    const popup = window.open('/api/integrations/hubspot/auth', 'hubspotAuth', 'width=800,height=600,scrollbars=yes');
-    if (!popup) {
-      setErrorFor('hubspot', 'Popup blocked — please allow popups for this site and try again.');
-      setBusyFor('hubspot', false);
-      return;
-    }
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        loadStatus();
-        loadSyncInfo();
-        setBusyFor('hubspot', false);
-      }
-    }, 500);
+    window.location.href = '/api/integrations/hubspot/auth';
   }
 
   async function disconnectHubSpot() {
@@ -408,22 +378,7 @@ export default function IntegrationsPage() {
 
   // ── Salesforce ─────────────────────────────────────────────────────────────
   function connectSalesforce() {
-    setBusyFor('salesforce', true);
-    setErrorFor('salesforce', '');
-    const popup = window.open('/api/integrations/salesforce/auth', 'salesforceAuth', 'width=800,height=600,scrollbars=yes');
-    if (!popup) {
-      setErrorFor('salesforce', 'Popup blocked — please allow popups for this site and try again.');
-      setBusyFor('salesforce', false);
-      return;
-    }
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        loadStatus();
-        loadSyncInfo();
-        setBusyFor('salesforce', false);
-      }
-    }, 500);
+    window.location.href = '/api/integrations/salesforce/auth';
   }
 
   async function disconnectSalesforce() {
