@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { syncHubSpot } from '@/lib/crm/hubspot';
+import { syncHubSpot, HubSpotReconnectError } from '@/lib/crm/hubspot';
 
 // POST /api/integrations/hubspot/sync — run full bidirectional sync
 export async function POST() {
@@ -22,6 +22,13 @@ export async function POST() {
     const result = await syncHubSpot(user.id);
     return NextResponse.json({ success: true, ...result });
   } catch (e: any) {
+    if (e instanceof HubSpotReconnectError) {
+      await prisma.crmIntegration.updateMany({
+        where: { userId: user.id, type: 'hubspot' },
+        data: { syncStatus: 'error', lastError: 'Token expired — please reconnect HubSpot.' },
+      });
+      return NextResponse.json({ error: 'Please reconnect HubSpot — your authorization has expired.', reconnectRequired: true }, { status: 400 });
+    }
     await prisma.crmIntegration.updateMany({
       where: { userId: user.id, type: 'hubspot' },
       data: { syncStatus: 'error', lastError: e.message },
@@ -47,11 +54,16 @@ export async function GET() {
     }),
   ]);
 
+  const reconnectRequired = integration?.expiresAt
+    ? integration.expiresAt.getTime() < Date.now()
+    : false;
+
   return NextResponse.json({
     connected: integration?.enabled ?? false,
     syncStatus: integration?.syncStatus ?? 'disconnected',
     lastSyncAt: integration?.lastSyncAt ?? null,
     lastError: integration?.lastError ?? null,
+    reconnectRequired,
     logs,
   });
 }
