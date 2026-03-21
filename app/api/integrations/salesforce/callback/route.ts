@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     }
 
     await prisma.crmIntegration.upsert({
-      where:  { userId: dbUser.id },
+      where:  { userId_type: { userId: dbUser.id, type: 'salesforce' } },
       update: {
         type:         'salesforce',
         accessToken:  tokens.access_token,

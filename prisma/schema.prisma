@@ -186,7 +186,7 @@ model Task {
 
 model CrmIntegration {
   id            String    @id @default(cuid())
-  userId        String    @unique
+  userId        String
   type          String
   enabled       Boolean   @default(false)
   accessToken   String?
@@ -200,6 +200,9 @@ model CrmIntegration {
   fieldMappings String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
 }
 
 model CrmSyncLog {

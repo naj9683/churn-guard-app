@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     }
 
     await prisma.crmIntegration.upsert({
-      where:  { userId: dbUser.id },
+      where:  { userId_type: { userId: dbUser.id, type: 'hubspot' } },
       update: {
         type:         'hubspot',
         accessToken:  tokens.access_token,

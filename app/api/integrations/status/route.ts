@@ -9,30 +9,40 @@ export async function GET() {
 
     const user = await prisma.user.findFirst({
       where: { clerkId: userId },
-      select: { id: true, slackWebhookUrl: true, stripeCustomerId: true, crmType: true },
+      select: { id: true, slackWebhookUrl: true, stripeCustomerId: true },
     });
 
     if (!user) {
       return NextResponse.json({
-        connected: false, type: null, syncStatus: null,
+        hubspot:    { connected: false, syncStatus: null },
+        salesforce: { connected: false, syncStatus: null },
+        connected: false, type: null,
         slackConnected: false, stripeConnected: false,
       });
     }
 
-    const integration = await prisma.crmIntegration.findFirst({
+    const integrations = await prisma.crmIntegration.findMany({
       where: { userId: user.id },
     });
 
+    const hs = integrations.find(i => i.type === 'hubspot');
+    const sf = integrations.find(i => i.type === 'salesforce');
+
     return NextResponse.json({
-      connected:     integration?.enabled ?? false,
-      type:          integration?.type ?? user.crmType ?? null,
-      syncStatus:    integration?.syncStatus ?? null,
+      hubspot:    { connected: hs?.enabled ?? false, syncStatus: hs?.syncStatus ?? null },
+      salesforce: { connected: sf?.enabled ?? false, syncStatus: sf?.syncStatus ?? null },
+      // Legacy fields kept for backward compat
+      connected: (hs?.enabled || sf?.enabled) ?? false,
+      type: hs?.enabled ? 'hubspot' : sf?.enabled ? 'salesforce' : null,
+      syncStatus: (hs ?? sf)?.syncStatus ?? null,
       slackConnected:  !!user.slackWebhookUrl,
       stripeConnected: !!user.stripeCustomerId,
     });
   } catch (error) {
     console.error('Integration status error:', error);
     return NextResponse.json({
+      hubspot:    { connected: false, syncStatus: null },
+      salesforce: { connected: false, syncStatus: null },
       connected: false, type: null, syncStatus: null,
       slackConnected: false, stripeConnected: false,
     });

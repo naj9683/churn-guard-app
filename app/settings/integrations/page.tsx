@@ -175,8 +175,8 @@ export default function IntegrationsPage() {
       if (res.ok) {
         const d = await res.json();
         setStatus({
-          hubspot: d.type === 'hubspot' && d.connected,
-          salesforce: d.type === 'salesforce' && d.connected,
+          hubspot: d.hubspot?.connected ?? false,
+          salesforce: d.salesforce?.connected ?? false,
           slack: !!d.slackConnected,
           stripe: !!d.stripeConnected,
           crmType: d.type ?? null,
