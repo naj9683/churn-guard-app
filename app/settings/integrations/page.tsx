@@ -25,11 +25,11 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
 
 function IntegrationCard({
   icon, name, desc, connected, accentColor, onConnect, onDisconnect,
-  comingSoon, loading, children,
+  comingSoon, active, loading, children,
 }: {
   icon: string; name: string; desc: string; connected: boolean; accentColor: string;
   onConnect?: () => void; onDisconnect?: () => void;
-  comingSoon?: boolean; loading?: boolean; children?: React.ReactNode;
+  comingSoon?: boolean; active?: boolean; loading?: boolean; children?: React.ReactNode;
 }) {
   return (
     <div style={{ border: `1px solid ${connected ? accentColor + '40' : '#e5e7eb'}`, borderRadius: '10px', padding: '20px', background: connected ? accentColor + '05' : '#fff' }}>
@@ -42,12 +42,13 @@ function IntegrationCard({
             <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {name}
               {connected && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Connected</span>}
+              {active && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Active</span>}
               {comingSoon && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#f3f4f6', color: '#9ca3af', borderRadius: '20px' }}>Coming Soon</span>}
             </div>
             <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{desc}</div>
           </div>
         </div>
-        {!comingSoon && (
+        {!comingSoon && !active && (
           connected ? (
             <button
               onClick={onDisconnect}
@@ -172,8 +173,8 @@ export default function IntegrationsPage() {
       if (res.ok) {
         const d = await res.json();
         setStatus({
-          hubspot: d.type === 'hubspot' && d.connected,
-          salesforce: d.type === 'salesforce' && d.connected,
+          hubspot: d.hubspot?.connected ?? false,
+          salesforce: d.salesforce?.connected ?? false,
           slack: !!d.slackConnected,
           stripe: !!d.stripeConnected,
           crmType: d.type ?? null,
@@ -213,8 +214,8 @@ export default function IntegrationsPage() {
   async function disconnectHubSpot() {
     if (!confirm('Disconnect HubSpot? Data already synced will remain in ChurnGuard.')) return;
     setBusyFor('hubspot', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST' });
-    if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: null }));
+    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'hubspot' }) });
+    if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: s.crmType === 'hubspot' ? null : s.crmType }));
     else setErrorFor('hubspot', 'Failed to disconnect.');
     setBusyFor('hubspot', false);
   }
@@ -244,8 +245,8 @@ export default function IntegrationsPage() {
   async function disconnectSalesforce() {
     if (!confirm('Disconnect Salesforce? Data already synced will remain in ChurnGuard.')) return;
     setBusyFor('salesforce', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST' });
-    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: null }));
+    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'salesforce' }) });
+    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: s.crmType === 'salesforce' ? null : s.crmType }));
     else setErrorFor('salesforce', 'Failed to disconnect.');
     setBusyFor('salesforce', false);
   }
@@ -360,12 +361,12 @@ export default function IntegrationsPage() {
             <IntegrationCard
               icon="📊" name="Segment"
               desc="Receive customer events from Segment to power ChurnGuard risk scoring"
-              connected={false} accentColor="#52bd95" comingSoon
+              connected={false} accentColor="#52bd95" active
             />
             <IntegrationCard
               icon="🔬" name="Mixpanel"
               desc="Import product usage events to improve churn prediction accuracy"
-              connected={false} accentColor="#7856ff" comingSoon
+              connected={false} accentColor="#7856ff" active
             />
           </div>
         </Section>

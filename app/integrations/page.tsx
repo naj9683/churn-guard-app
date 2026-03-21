@@ -25,11 +25,11 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
 
 function IntegrationCard({
   icon, name, desc, connected, accentColor, onConnect, onDisconnect,
-  comingSoon, loading, children,
+  comingSoon, active, loading, children,
 }: {
   icon: string; name: string; desc: string; connected: boolean; accentColor: string;
   onConnect?: () => void; onDisconnect?: () => void;
-  comingSoon?: boolean; loading?: boolean; children?: React.ReactNode;
+  comingSoon?: boolean; active?: boolean; loading?: boolean; children?: React.ReactNode;
 }) {
   return (
     <div style={{ border: `1px solid ${connected ? accentColor + '40' : '#e5e7eb'}`, borderRadius: '10px', padding: '20px', background: connected ? accentColor + '05' : '#fff' }}>
@@ -42,12 +42,13 @@ function IntegrationCard({
             <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {name}
               {connected && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Connected</span>}
+              {active && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Active</span>}
               {comingSoon && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#f3f4f6', color: '#9ca3af', borderRadius: '20px' }}>Coming Soon</span>}
             </div>
             <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{desc}</div>
           </div>
         </div>
-        {!comingSoon && (
+        {!comingSoon && !active && (
           connected ? (
             <button
               onClick={onDisconnect}
@@ -164,6 +165,24 @@ function CrmSyncPanel({
   syncing: boolean;
   onSync: () => void;
 }) {
+  const [creatingProps, setCreatingProps] = useState(false);
+  const [propsResult, setPropsResult] = useState<{ created: string[]; errors: string[] } | null>(null);
+
+  async function createProperties() {
+    setCreatingProps(true);
+    setPropsResult(null);
+    try {
+      const res = await fetch(`/api/integrations/${crm}/properties`, { method: 'POST' });
+      const d = await res.json();
+      setPropsResult({ created: d.created ?? [], errors: d.errors ?? [] });
+    } catch (e: any) {
+      setPropsResult({ created: [], errors: [e.message] });
+    } finally {
+      setCreatingProps(false);
+    }
+  }
+
+  const hasPropertyError = syncResult?.errors.some(e => e.includes('Property setup') || e.includes('custom properties'));
   const statusColor = syncInfo?.syncStatus === 'synced' ? '#10b981'
     : syncInfo?.syncStatus === 'error' ? '#ef4444'
     : syncInfo?.syncStatus === 'partial' ? '#f59e0b'
@@ -232,6 +251,32 @@ function CrmSyncPanel({
               {syncResult.errors.length > 3 && (
                 <div style={{ fontSize: '11px', color: '#9ca3af' }}>…and {syncResult.errors.length - 3} more</div>
               )}
+              {hasPropertyError && crm === 'hubspot' && (
+                <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '12px', color: '#7f1d1d', marginBottom: '8px' }}>
+                    ChurnGuard needs 4 custom contact properties in HubSpot to push risk scores. Click to auto-create them:
+                  </div>
+                  <button
+                    onClick={createProperties}
+                    disabled={creatingProps}
+                    style={{ padding: '7px 16px', background: creatingProps ? '#e5e7eb' : '#dc2626', color: creatingProps ? '#9ca3af' : '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: creatingProps ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {creatingProps ? 'Creating…' : 'Create HubSpot Properties'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {propsResult && (
+            <div style={{ marginTop: '8px', padding: '8px 12px', background: propsResult.errors.length === 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${propsResult.errors.length === 0 ? '#bbf7d0' : '#fecaca'}`, borderRadius: '6px' }}>
+              {propsResult.created.length > 0 && (
+                <div style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px' }}>
+                  ✅ Properties ready: {propsResult.created.join(', ')}. Run Sync Now again.
+                </div>
+              )}
+              {propsResult.errors.length > 0 && propsResult.errors.map((e, i) => (
+                <div key={i} style={{ fontSize: '11px', color: '#dc2626', fontFamily: 'monospace' }}>{e}</div>
+              ))}
             </div>
           )}
         </div>
@@ -255,9 +300,27 @@ export default function IntegrationsPage() {
   const [slackError, setSlackError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
   const [syncResult, setSyncResult] = useState<Record<string, { pulled: number; pushed: number; created: number; updated: number; errors: string[]; lastSyncAt?: string } | null>>({});
-  const [syncInfo, setSyncInfo] = useState<Record<string, { lastSyncAt: string | null; syncStatus: string; lastError: string | null }>>({});
+  const [syncInfo, setSyncInfo] = useState<Record<string, { lastSyncAt: string | null; syncStatus: string; lastError: string | null; reconnectRequired?: boolean }>>({});
 
-  useEffect(() => { loadStatus(); loadSyncInfo(); }, []);
+  useEffect(() => {
+    loadStatus();
+    loadSyncInfo();
+
+    // Listen for OAuth popup completion
+    function handleOAuthMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== 'oauth-complete') return;
+      loadStatus();
+      loadSyncInfo();
+      if (e.data.success) {
+        const crm = e.data.crm as string;
+        if (crm === 'hubspot') setBusyFor('hubspot', false);
+        if (crm === 'salesforce') setBusyFor('salesforce', false);
+      }
+    }
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -266,8 +329,8 @@ export default function IntegrationsPage() {
       if (res.ok) {
         const d = await res.json();
         setStatus({
-          hubspot: d.type === 'hubspot' && d.connected,
-          salesforce: d.type === 'salesforce' && d.connected,
+          hubspot: d.hubspot?.connected ?? false,
+          salesforce: d.salesforce?.connected ?? false,
           slack: !!d.slackConnected,
           stripe: !!d.stripeConnected,
           crmType: d.type ?? null,
@@ -287,8 +350,8 @@ export default function IntegrationsPage() {
       fetch('/api/integrations/salesforce/sync').then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     setSyncInfo({
-      hubspot:    { lastSyncAt: hs?.lastSyncAt ?? null,    syncStatus: hs?.syncStatus ?? 'disconnected', lastError: hs?.lastError ?? null },
-      salesforce: { lastSyncAt: sf?.lastSyncAt ?? null, syncStatus: sf?.syncStatus ?? 'disconnected', lastError: sf?.lastError ?? null },
+      hubspot:    { lastSyncAt: hs?.lastSyncAt ?? null,    syncStatus: hs?.syncStatus ?? 'disconnected', lastError: hs?.lastError ?? null, reconnectRequired: hs?.reconnectRequired ?? false },
+      salesforce: { lastSyncAt: sf?.lastSyncAt ?? null, syncStatus: sf?.syncStatus ?? 'disconnected', lastError: sf?.lastError ?? null, reconnectRequired: sf?.reconnectRequired ?? false },
     });
   }
 
@@ -299,7 +362,12 @@ export default function IntegrationsPage() {
     try {
       const res = await fetch(`/api/integrations/${crm}/sync`, { method: 'POST' });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.error ?? 'Sync failed');
+      if (!res.ok) {
+        if (d.reconnectRequired) {
+          setSyncInfo(s => ({ ...s, [crm]: { ...s[crm], reconnectRequired: true, lastError: d.error } }));
+        }
+        throw new Error(d.error ?? 'Sync failed');
+      }
       setSyncResult(r => ({ ...r, [crm]: d }));
       loadSyncInfo();
     } catch (e: any) {
@@ -318,10 +386,12 @@ export default function IntegrationsPage() {
       const d = await res.json();
       if (!res.ok || !d.authUrl) throw new Error(d.error || 'Failed to get auth URL');
       const popup = window.open(d.authUrl, 'hubspotAuth', 'width=800,height=600,scrollbars=yes');
+      // Fallback: if popup is closed without postMessage (e.g. user dismissed), still refresh
       const timer = setInterval(() => {
         if (popup?.closed) {
           clearInterval(timer);
           loadStatus();
+          loadSyncInfo();
           setBusyFor('hubspot', false);
         }
       }, 500);
@@ -334,8 +404,8 @@ export default function IntegrationsPage() {
   async function disconnectHubSpot() {
     if (!confirm('Disconnect HubSpot? Data already synced will remain in ChurnGuard.')) return;
     setBusyFor('hubspot', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST' });
-    if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: null }));
+    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'hubspot' }) });
+    if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: s.crmType === 'hubspot' ? null : s.crmType }));
     else setErrorFor('hubspot', 'Failed to disconnect.');
     setBusyFor('hubspot', false);
   }
@@ -349,10 +419,12 @@ export default function IntegrationsPage() {
       const d = await res.json();
       if (!res.ok || !d.authUrl) throw new Error(d.error || 'Failed to get auth URL');
       const popup = window.open(d.authUrl, 'salesforceAuth', 'width=800,height=600,scrollbars=yes');
+      // Fallback: if popup is closed without postMessage, still refresh
       const timer = setInterval(() => {
         if (popup?.closed) {
           clearInterval(timer);
           loadStatus();
+          loadSyncInfo();
           setBusyFor('salesforce', false);
         }
       }, 500);
@@ -365,8 +437,8 @@ export default function IntegrationsPage() {
   async function disconnectSalesforce() {
     if (!confirm('Disconnect Salesforce? Data already synced will remain in ChurnGuard.')) return;
     setBusyFor('salesforce', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST' });
-    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: null }));
+    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'salesforce' }) });
+    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: s.crmType === 'salesforce' ? null : s.crmType }));
     else setErrorFor('salesforce', 'Failed to disconnect.');
     setBusyFor('salesforce', false);
   }
@@ -424,6 +496,24 @@ export default function IntegrationsPage() {
               onConnect={connectHubSpot}
               onDisconnect={disconnectHubSpot}
             >
+              {syncInfo.hubspot?.reconnectRequired && (
+                <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '7px', fontSize: '13px', color: '#c2410c', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <span>⚠️ Your HubSpot authorization has expired.</span>
+                  <button onClick={connectHubSpot} style={{ padding: '6px 14px', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
+                    Reconnect
+                  </button>
+                </div>
+              )}
+              {!status.hubspot && (
+                <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '7px', fontSize: '12px', color: '#92400e', marginBottom: '4px', lineHeight: '1.6' }}>
+                  <strong>Setup required in HubSpot:</strong> Go to{' '}
+                  <a href="https://app.hubspot.com/developer" target="_blank" rel="noreferrer" style={{ color: '#b45309' }}>app.hubspot.com/developer</a>
+                  {' '}→ Your App → Auth → add this redirect URL:<br />
+                  <code style={{ background: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', display: 'inline-block', marginTop: '4px', wordBreak: 'break-all' }}>
+                    https://churnguardapp.com/api/integrations/hubspot/callback
+                  </code>
+                </div>
+              )}
               {error.hubspot && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px', marginBottom: '10px' }}>{error.hubspot}</div>}
               {status.hubspot && (
                 <CrmSyncPanel
@@ -444,6 +534,22 @@ export default function IntegrationsPage() {
               onConnect={connectSalesforce}
               onDisconnect={disconnectSalesforce}
             >
+              {syncInfo.salesforce?.reconnectRequired && (
+                <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '7px', fontSize: '13px', color: '#c2410c', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <span>⚠️ Your Salesforce authorization has expired.</span>
+                  <button onClick={connectSalesforce} style={{ padding: '6px 14px', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
+                    Reconnect
+                  </button>
+                </div>
+              )}
+              {!status.salesforce && (
+                <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '7px', fontSize: '12px', color: '#1e40af', marginBottom: '4px', lineHeight: '1.6' }}>
+                  <strong>Setup required in Salesforce:</strong> In your Connected App settings, add this callback URL:<br />
+                  <code style={{ background: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', display: 'inline-block', marginTop: '4px', wordBreak: 'break-all' }}>
+                    https://churnguardapp.com/api/integrations/salesforce/callback
+                  </code>
+                </div>
+              )}
               {error.salesforce && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px', marginBottom: '10px' }}>{error.salesforce}</div>}
               {status.salesforce && (
                 <CrmSyncPanel
@@ -499,12 +605,12 @@ export default function IntegrationsPage() {
             <IntegrationCard
               icon="📊" name="Segment"
               desc="Receive customer events from Segment to power ChurnGuard risk scoring"
-              connected={false} accentColor="#52bd95" comingSoon
+              connected={false} accentColor="#52bd95" active
             />
             <IntegrationCard
               icon="🔬" name="Mixpanel"
               desc="Import product usage events to improve churn prediction accuracy"
-              connected={false} accentColor="#7856ff" comingSoon
+              connected={false} accentColor="#7856ff" active
             />
           </div>
         </Section>
