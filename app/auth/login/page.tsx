@@ -17,26 +17,11 @@ export default function LoginPage() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
-  // If already signed in, go straight to dashboard — don't check subscription here.
-  // The subscription gate lives in the dashboard, not on the login page.
+  // Already signed in → go to dashboard. Subscription gate is in the dashboard layout.
   useEffect(() => {
     if (!userLoaded || !user) return;
     router.replace('/dashboard');
   }, [userLoaded, user]);
-
-  async function checkSubscriptionAndRoute() {
-    try {
-      const res = await fetch('/api/subscription/status');
-      if (res.ok) {
-        const data = await res.json();
-        router.replace(data.hasAccess ? '/dashboard' : '/pricing?msg=subscribe');
-      } else {
-        router.replace('/pricing?msg=subscribe');
-      }
-    } catch {
-      router.replace('/pricing?msg=subscribe');
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +34,6 @@ export default function LoginPage() {
 
     try {
       if (isAdmin) {
-        // Admin bypass: server creates a Clerk sign-in token; no password required
         const res = await fetch('/api/auth/admin-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,7 +44,6 @@ export default function LoginPage() {
           throw new Error(d.error ?? 'Admin login failed');
         }
         const { ticket } = await res.json();
-
         const result = await signIn.create({ strategy: 'ticket', ticket });
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId });
@@ -78,7 +61,7 @@ export default function LoginPage() {
       const result = await signIn.create({ identifier: email.trim(), password });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        await checkSubscriptionAndRoute();
+        router.push('/dashboard');
       }
     } catch (err: any) {
       const msg =
