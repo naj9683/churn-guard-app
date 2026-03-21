@@ -1,74 +1,76 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// VIP Threshold - customers with MRR > $500
 const VIP_MRR_THRESHOLD = 500;
-// RaR Alert Threshold - alert when RaR exceeds $5000
 const RAR_ALERT_THRESHOLD = 5000;
 
-export async function POST(req: Request) {
+async function sendSlack(webhookUrl: string, text: string) {
+  await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+}
+
+/**
+ * GET /api/alerts/monitor
+ * Runs hourly. Sends Slack alerts for:
+ * - Revenue at Risk exceeding $5,000
+ * - VIP customers (MRR > $500) at high risk (score ≥ 70)
+ */
+export async function GET(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // Get all users
     const users = await prisma.user.findMany({
-      include: {
-        customers: true
-      }
+      include: { customers: true },
     });
-    
+
+    let alertsSent = 0;
+
     for (const user of users) {
-      // Skip if no Slack webhook configured (stored directly on User)
       if (!user.slackWebhookUrl) continue;
-      
-      // Calculate RaR
+
       let totalMRR = 0;
       let atRiskMRR = 0;
-      const highRiskCustomers: any[] = [];
-      const vipAtRisk: any[] = [];
-      
-      user.customers.forEach((customer: any) => {
+      const vipAtRisk: typeof user.customers = [];
+
+      for (const customer of user.customers) {
         const mrr = customer.mrr || 0;
         const riskScore = customer.riskScore || 0;
         totalMRR += mrr;
-        
+
         if (riskScore >= 70) {
           atRiskMRR += mrr * (riskScore / 100);
-          highRiskCustomers.push(customer);
-          
-          // Check if VIP (high MRR + high risk)
           if (mrr >= VIP_MRR_THRESHOLD) {
             vipAtRisk.push(customer);
           }
         }
-      });
-      
-      // Send RaR Threshold Alert
-      if (atRiskMRR >= RAR_ALERT_THRESHOLD) {
-        await fetch('https://churn-guard-app.vercel.app/api/slack/enhanced', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'rar_threshold',
-            rarAmount: Math.round(atRiskMRR)
-          })
-        });
       }
-      
-      // Send VIP Alerts
+
+      if (atRiskMRR >= RAR_ALERT_THRESHOLD) {
+        await sendSlack(
+          user.slackWebhookUrl,
+          `🚨 *Revenue at Risk Alert*: $${Math.round(atRiskMRR).toLocaleString()} of your MRR is at risk (total MRR: $${Math.round(totalMRR).toLocaleString()}). Check your ChurnGuard dashboard.`
+        );
+        alertsSent++;
+      }
+
       for (const vip of vipAtRisk) {
-        await fetch('https://churn-guard-app.vercel.app/api/slack/enhanced', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'vip_alert',
-            customerId: vip.id,
-            riskScore: vip.riskScore
-          })
-        });
+        await sendSlack(
+          user.slackWebhookUrl,
+          `⚠️ *VIP Customer Alert*: ${vip.name || vip.email} (MRR: $${vip.mrr}) has a risk score of ${vip.riskScore}. Immediate attention recommended.`
+        );
+        alertsSent++;
       }
     }
-    
-    return NextResponse.json({ success: true, message: 'Monitoring complete' });
-    
+
+    console.log(`[alerts-monitor] alertsSent=${alertsSent}`);
+    return NextResponse.json({ success: true, alertsSent });
   } catch (error) {
     console.error('Monitor error:', error);
     return NextResponse.json({ error: 'Monitoring failed' }, { status: 500 });

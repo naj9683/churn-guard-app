@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
 
 export async function GET(request: Request) {
   try {
@@ -62,8 +63,20 @@ export async function GET(request: Request) {
 
           // Send email via Resend if configured
           if (actions?.sendEmail) {
-            // Email sending logic here
-            console.log(`Would send email to ${customer.email}`);
+            try {
+              const subject = actions.emailSubject || `Action Required: ${playbook.name}`;
+              const html = actions.emailBody
+                ? actions.emailBody
+                    .replace(/{{name}}/g, customer.name || customer.email)
+                    .replace(/{{riskScore}}/g, String(customer.riskScore ?? 0))
+                    .replace(/{{email}}/g, customer.email)
+                : `<p>Hi ${customer.name || 'there'},</p>
+                   <p>Your account has been flagged by <strong>${playbook.name}</strong> (risk score: ${customer.riskScore ?? 0}).</p>
+                   <p>Please log in to review your account status.</p>`;
+              await sendEmail({ to: customer.email, subject, html });
+            } catch (e) {
+              console.error(`Playbook email failed for ${customer.email}:`, e);
+            }
           }
         }
 
