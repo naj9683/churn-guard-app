@@ -11,12 +11,7 @@ export async function POST() {
 
     await prisma.crmIntegration.updateMany({
       where: { userId: user.id },
-      data: { enabled: false, accessToken: null, refreshToken: null, syncStatus: 'disconnected' }
-    });
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { crmType: null, crmApiKey: null }
+      data: { enabled: false, accessToken: null, refreshToken: null, syncStatus: 'disconnected' },
     });
 
     return NextResponse.json({ success: true });

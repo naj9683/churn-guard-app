@@ -8,77 +8,75 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  clerkId          String?        @unique
-  email            String         @unique
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  stripeCustomerId String?
-  mrr              Int            @default(0)
-  apiKey           String?        @unique @default(cuid())
-  crmType          String?
-  crmApiKey        String?
-  slackWebhookUrl  String?        
-  widgetEnabled    Boolean?       @default(true)
-  widgetMessages   WidgetMessage[]
-  customers        Customer[]
-  playbooks        Playbook[]
-  subscriptions    Subscription[]
-  revenueMetrics   RevenueMetrics?
-  slackAlerts      SlackAlert[]
-  teamMembers      TeamMember[]
-  emailCampaigns   EmailCampaign[]
-  webhooks         Webhook[]
-  automationRules  AutomationRule[]
-  // General settings
-  name             String?
-  company          String?
-  timezone         String?   @default("UTC")
-  // Notification settings
-  notifEmail       Boolean   @default(true)
-  notifSlack       Boolean   @default(false)
-  alertFrequency   String    @default("immediate")
-  alertRiskThreshold Int     @default(70)
+  id                 String           @id @default(cuid())
+  clerkId            String?          @unique
+  email              String           @unique
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  stripeCustomerId   String?
+  mrr                Int              @default(0)
+  apiKey             String?          @unique @default(cuid())
+  crmType            String?
+  crmApiKey          String?
+  slackWebhookUrl    String?
+  widgetEnabled      Boolean?         @default(true)
+  alertFrequency     String           @default("immediate")
+  alertRiskThreshold Int              @default(70)
+  company            String?
+  name               String?
+  notifEmail         Boolean          @default(true)
+  notifSlack         Boolean          @default(false)
+  timezone           String?          @default("UTC")
+  automationRules    AutomationRule[]
+  customers          Customer[]
+  emailCampaigns     EmailCampaign[]
+  playbooks          Playbook[]
+  revenueMetrics     RevenueMetrics?
+  slackAlerts        SlackAlert[]
+  subscriptions      Subscription[]
+  teamMembers        TeamMember[]
+  webhooks           Webhook[]
+  widgetMessages     WidgetMessage[]
 }
 
 model Customer {
-  id          String   @id @default(cuid())
-  userId      String
-  externalId  String   
-  email       String
-  name        String?
-  mrr         Int      @default(0)
-  arr         Int      @default(0)
-  riskScore   Int      @default(50)
-  crmId       String?  
-  healthScore         Int?     @default(100)
-  plan                String?  @default("free")
-  lastLoginAt         DateTime?
-  loginCountThisMonth Int      @default(0)
+  id                  String                @id @default(cuid())
+  userId              String
+  externalId          String
+  email               String
+  name                String?
+  mrr                 Int                   @default(0)
+  arr                 Int                   @default(0)
+  riskScore           Int                   @default(50)
+  crmId               String?
+  healthScore         Int?                  @default(100)
+  plan                String?               @default("free")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   featuresUsed        Json?
-  lastFeatureUsedAt   DateTime?
+  lastLoginAt         DateTime?
+  loginCountThisMonth Int                   @default(0)
   riskReason          String?
+  lastFeatureUsedAt   DateTime?
+  csmStatus           String?
   phone               String?
-  csmStatus           String?   // 'critical_call_required' | null
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id])
-  events      Event[]
-  interventions InterventionOutcome[]
-  activityLogs  ActivityLog[]
+  activityLogs        ActivityLog[]
+  user                User                  @relation(fields: [userId], references: [id])
+  events              Event[]
+  interventions       InterventionOutcome[]
   sequenceEnrollments SequenceEnrollment[]
-  
+
   @@unique([userId, externalId])
 }
 
 model Event {
-  id          String   @id @default(cuid())
-  customerId  String
-  event       String   
-  metadata    Json?
-  timestamp   BigInt
-  createdAt   DateTime @default(now())
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  customerId String
+  event      String
+  metadata   Json?
+  timestamp  BigInt
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model Playbook {
@@ -104,31 +102,31 @@ model Subscription {
 }
 
 model RevenueMetrics {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  totalMrr        Int      @default(0)
-  atRiskMrr       Int      @default(0)
-  savedMrr        Int      @default(0)
-  totalArr        Int      @default(0)
-  atRiskArr       Int      @default(0)
-  highValueCount  Int      @default(0)
-  date            DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id])
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  totalMrr       Int      @default(0)
+  atRiskMrr      Int      @default(0)
+  savedMrr       Int      @default(0)
+  totalArr       Int      @default(0)
+  atRiskArr      Int      @default(0)
+  highValueCount Int      @default(0)
+  date           DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
 }
 
 model SlackAlert {
-  id            String   @id @default(cuid())
-  userId        String
-  customerId    String?
-  alertType     String?
-  mrrAtRisk     Int?     @default(0)
-  messageSent   Boolean? @default(false)
-  errorMessage  String?
-  message       String?
-  riskScore     Int?
-  sentAt        DateTime @default(now())
-  user          User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(cuid())
+  userId       String
+  customerId   String?
+  alertType    String?
+  mrrAtRisk    Int?     @default(0)
+  messageSent  Boolean? @default(false)
+  errorMessage String?
+  message      String?
+  riskScore    Int?
+  sentAt       DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 model WidgetMessage {
@@ -142,134 +140,108 @@ model WidgetMessage {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-// Add these models to track alerts and tasks
 model AlertLog {
-  id          String   @id @default(cuid())
-  userId      String
-  customerId  String?
-  type        String   // 'risk_alert', 'rar_threshold', 'vip_alert', 'digest'
-  message     String
-  sentAt      DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  userId     String
+  customerId String?
+  type       String
+  message    String
+  sentAt     DateTime @default(now())
+
   @@index([userId])
   @@index([customerId])
   @@index([sentAt])
 }
 
 model ActivityLog {
-  userId      String?
   id          String   @id @default(cuid())
   customerId  String
-  type        String   // 'contacted', 'task_created', etc.
+  type        String
   description String
   createdAt   DateTime @default(now())
-  
+  userId      String?
   customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+
   @@index([customerId])
   @@index([createdAt])
   @@index([userId])
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   customerId  String
   userId      String
   type        String
   title       String
-  status      String   @default("pending")
+  status      String    @default("pending")
   priority    String
   dueDate     DateTime
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
-  
+
   @@index([customerId])
   @@index([userId])
   @@index([status])
 }
 
-// CRM Integration Models
 model CrmIntegration {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  type            String   // 'salesforce' or 'hubspot'
-  enabled         Boolean  @default(false)
-  
-  // OAuth credentials
-  accessToken     String?
-  refreshToken    String?
-  expiresAt       DateTime?
-  instanceUrl     String?  // Salesforce instance URL or HubSpot portal URL
-  
-  // Sync settings
-  syncDirection   String   @default("bidirectional") // 'to_crm', 'from_crm', 'bidirectional'
-  lastSyncAt      DateTime?
-  syncStatus      String   @default("disconnected") // 'connected', 'syncing', 'error'
-  lastError       String?
-  
-  // Field mappings (JSON)
-  fieldMappings   String?  // JSON: { "riskScore": "ChurnGuard_Risk_Score__c", ... }
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@index([userId])
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  type          String
+  enabled       Boolean   @default(false)
+  accessToken   String?
+  refreshToken  String?
+  expiresAt     DateTime?
+  instanceUrl   String?
+  syncDirection String    @default("bidirectional")
+  lastSyncAt    DateTime?
+  syncStatus    String    @default("disconnected")
+  lastError     String?
+  fieldMappings String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model CrmSyncLog {
-  id              String   @id @default(cuid())
-  userId          String
-  crmType         String
-  direction       String   // 'to_crm' or 'from_crm'
-  entityType      String   // 'customer', 'opportunity', etc.
-  entityId        String
-  status          String   // 'success', 'error', 'skipped'
-  message         String?
-  createdAt       DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  userId     String
+  crmType    String
+  direction  String
+  entityType String
+  entityId   String
+  status     String
+  message    String?
+  createdAt  DateTime @default(now())
+
   @@index([userId])
   @@index([createdAt])
 }
 
-// Track which interventions actually saved revenue
 model InterventionOutcome {
-  id            String    @id @default(cuid())
-  userId        String
-  customerId    String
-  playbookId    String?
-  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  // Intervention details
-  interventionType  String    // 'discount_offer', 'training_session', 'ceo_call', 'webinar_invite', etc.
-  triggerEvent      String?   // What triggered it: 'risk_spike', 'login_streak_broken', 'support_ticket'
-  
-  // Financial tracking
-  mrrAtRisk         Int       // MRR value when intervention started
-  mrrSaved          Int       @default(0)  // Actual MRR retained
-  mrrLost           Int       @default(0)  // If churned anyway
-  interventionCost  Int       @default(0)  // Cost of discount/effort (optional)
-  
-  // Timeline
-  startedAt     DateTime  @default(now())
-  completedAt   DateTime?
-  churnedAt     DateTime?  // If they churned despite intervention
-  
-  // Pattern matching data
-  customerSegment   String?   // 'enterprise', 'smb', 'startup'
-  riskScoreAtStart  Int
-  daysSinceLogin    Int?
-  plan              String?
-  
-  // Outcome tracking
-  status        String    @default("pending") // 'pending', 'saved', 'churned', 'no_change'
-  notes         String?
-  
-  // For AI pattern learning
-  successful    Boolean?  // true if saved, false if churned
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  id               String    @id @default(cuid())
+  userId           String
+  customerId       String
+  playbookId       String?
+  interventionType String
+  triggerEvent     String?
+  mrrAtRisk        Int
+  mrrSaved         Int       @default(0)
+  mrrLost          Int       @default(0)
+  interventionCost Int       @default(0)
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  churnedAt        DateTime?
+  customerSegment  String?
+  riskScoreAtStart Int
+  daysSinceLogin   Int?
+  plan             String?
+  status           String    @default("pending")
+  notes            String?
+  successful       Boolean?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  customer         Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([customerId])
   @@index([interventionType])
@@ -277,33 +249,23 @@ model InterventionOutcome {
   @@index([successful])
 }
 
-// Store patterns for Next Best Action AI
 model RecommendationPattern {
-  id              String   @id @default(cuid())
-  userId          String
-  
-  // Pattern definition
-  customerSegment     String    // 'enterprise', 'smb', etc.
-  riskRangeMin        Int       // 0-100
-  riskRangeMax        Int       // 0-100
-  plan                String?   // 'pro', 'enterprise', etc.
-  
-  // What was recommended
-  recommendedAction   String    // 'discount', 'training', 'ceo_call', etc.
-  
-  // Success metrics
-  timesAttempted      Int       @default(0)
-  timesSuccessful     Int       @default(0)
-  avgMrrSaved         Int       @default(0)
-  successRate         Float     @default(0)  // Calculated: timesSuccessful / timesAttempted
-  
-  // Metadata
-  lastUsed            DateTime  @default(now())
-  isActive            Boolean   @default(true)
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
+  id                String   @id @default(cuid())
+  userId            String
+  customerSegment   String
+  riskRangeMin      Int
+  riskRangeMax      Int
+  plan              String?
+  recommendedAction String
+  timesAttempted    Int      @default(0)
+  timesSuccessful   Int      @default(0)
+  avgMrrSaved       Int      @default(0)
+  successRate       Float    @default(0)
+  lastUsed          DateTime @default(now())
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   @@index([userId])
   @@index([customerSegment])
   @@index([riskRangeMin, riskRangeMax])
@@ -316,13 +278,12 @@ model EmailCampaign {
   name        String
   subject     String
   content     String
-  segment     String    @default("all") // all, high_risk, medium_risk, low_risk
-  status      String    @default("draft") // draft, active, sent
+  segment     String    @default("all")
+  status      String    @default("draft")
   scheduledAt DateTime?
   sentAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -330,59 +291,53 @@ model EmailCampaign {
 }
 
 model Webhook {
-  id          String    @id @default(cuid())
-  userId      String
-  url         String
-  events      String    // JSON array of event names
-  label       String?
-  active      Boolean   @default(true)
-  secret      String?
+  id           String    @id @default(cuid())
+  userId       String
+  url          String
+  events       String
+  label        String?
+  active       Boolean   @default(true)
+  secret       String?
   lastTestedAt DateTime?
-  lastStatus  String?   // "ok" | "error" | null
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastStatus   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// Team/Multi-user support
 model TeamMember {
-  id          String   @id @default(cuid())
-  userId      String   // The owner/admin who invited them
-  email       String
-  name        String?
-  role        String   @default("viewer") // admin, manager, viewer
-  status      String   @default("pending") // pending, active, inactive
-  invitedAt   DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  name      String?
+  role      String   @default("viewer")
+  status    String   @default("pending")
+  invitedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, email])
   @@index([userId])
   @@index([email])
   @@index([status])
 }
 
-// ── Automation Engine ──────────────────────────────────────────────────────
-
 model AutomationRule {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   userId       String
   name         String
-  triggerType  String   // 'risk_threshold' | 'payment_failed' | 'feature_abandonment'
-  condition    Json     // { value: 70 } | { withinHours: 24 } | { days: 7 }
-  actionType   String   // 'send_email' | 'send_slack' | 'create_intervention'
-  actionConfig Json     // { template, subject, message, interventionType, … }
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggerType  String
+  condition    Json
+  actionType   String
+  actionConfig Json
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   logs         AutomationLog[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([triggerType])
@@ -390,16 +345,15 @@ model AutomationRule {
 }
 
 model AutomationLog {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   ruleId      String
   customerId  String
   userId      String
   triggerType String
   actionType  String
-  status      String   // 'success' | 'failed' | 'skipped'
+  status      String
   message     String?
-  executedAt  DateTime @default(now())
-
+  executedAt  DateTime       @default(now())
   rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
@@ -408,21 +362,18 @@ model AutomationLog {
   @@index([executedAt])
 }
 
-// ── Action Sequences ───────────────────────────────────────────────────────
-
 model SequenceEnrollment {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   userId       String
   customerId   String
-  sequenceType String   // 'dunning' | 'risk_retention' | 'welcome'
-  currentStep  Int      @default(0)
+  sequenceType String
+  currentStep  Int           @default(0)
   nextRunAt    DateTime
-  status       String   @default("active") // 'active' | 'completed' | 'cancelled'
+  status       String        @default("active")
   metadata     Json?
-  startedAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  customer     Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  startedAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   logs         SequenceLog[]
 
   @@index([status, nextRunAt])
@@ -431,14 +382,13 @@ model SequenceEnrollment {
 }
 
 model SequenceLog {
-  id           String   @id @default(cuid())
+  id           String             @id @default(cuid())
   enrollmentId String
   step         Int
   action       String
-  status       String   // 'success' | 'failed' | 'skipped'
+  status       String
   message      String?
-  executedAt   DateTime @default(now())
-
+  executedAt   DateTime           @default(now())
   enrollment   SequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
   @@index([enrollmentId])
