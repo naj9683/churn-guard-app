@@ -44,9 +44,13 @@ interface HsContact {
 
 // ─── Token management ─────────────────────────────────────────────────────────
 
+export class HubSpotReconnectError extends Error {
+  constructor() { super('RECONNECT_REQUIRED'); this.name = 'HubSpotReconnectError'; }
+}
+
 export async function getValidHubSpotToken(userId: string): Promise<string> {
   const integration = await prisma.crmIntegration.findFirst({ where: { userId, type: 'hubspot' } });
-  if (!integration?.accessToken) throw new Error('HubSpot not connected for this user');
+  if (!integration?.accessToken) throw new HubSpotReconnectError();
 
   // Refresh if expired (or within 5 minutes of expiry)
   const needsRefresh = integration.expiresAt
@@ -55,27 +59,38 @@ export async function getValidHubSpotToken(userId: string): Promise<string> {
 
   if (!needsRefresh) return integration.accessToken;
 
-  if (!integration.refreshToken) throw new Error('No refresh token — user must reconnect HubSpot');
+  if (!integration.refreshToken) throw new HubSpotReconnectError();
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    // Missing env vars — return current token and let the API call surface the real error
+    console.warn('[HubSpot] HUBSPOT_CLIENT_ID/SECRET not set, skipping refresh');
+    return integration.accessToken;
+  }
 
   const res = await fetch(`${HUBSPOT_API}/oauth/v1/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: CLIENT_ID,
+      grant_type:    'refresh_token',
+      client_id:     CLIENT_ID,
       client_secret: CLIENT_SECRET,
       refresh_token: integration.refreshToken,
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`HubSpot token refresh failed: ${data.message ?? res.status}`);
+
+  if (!res.ok) {
+    // 401/400 from HubSpot means the refresh token itself is invalid — need to reconnect
+    if (res.status === 401 || res.status === 400) throw new HubSpotReconnectError();
+    throw new Error(`HubSpot token refresh failed: ${data.message ?? res.status}`);
+  }
 
   await prisma.crmIntegration.update({
     where: { id: integration.id },
     data: {
-      accessToken: data.access_token,
+      accessToken:  data.access_token,
       refreshToken: data.refresh_token ?? integration.refreshToken,
-      expiresAt: new Date(Date.now() + (data.expires_in ?? 1800) * 1000),
+      expiresAt:    new Date(Date.now() + (data.expires_in ?? 1800) * 1000),
+      lastError:    null,
     },
   });
 
@@ -123,7 +138,8 @@ async function hsPost(path: string, token: string, body: unknown) {
 
 // ─── Ensure custom properties exist in HubSpot ───────────────────────────────
 
-async function ensureCustomProperties(token: string): Promise<void> {
+// Returns { available: Set of confirmed property names, errors: creation failure messages }
+export async function ensureCustomProperties(token: string): Promise<{ available: Set<string>; errors: string[] }> {
   const PROPS = [
     { name: 'churnguard_risk_score',   label: 'ChurnGuard Risk Score',   type: 'number',  fieldType: 'number' },
     { name: 'churnguard_health_score', label: 'ChurnGuard Health Score',  type: 'number',  fieldType: 'number' },
@@ -131,27 +147,47 @@ async function ensureCustomProperties(token: string): Promise<void> {
     { name: 'churnguard_last_sync',    label: 'ChurnGuard Last Sync',     type: 'string',  fieldType: 'text' },
   ];
 
+  const available = new Set<string>();
+  const errors: string[] = [];
+
+  console.log('[HubSpot] ensureCustomProperties: checking 4 properties');
+
   for (const prop of PROPS) {
+    // 1. Check if property already exists
     try {
       await hsGet(`/crm/v3/properties/contacts/${prop.name}`, token);
-    } catch {
-      // Property doesn't exist — create it
-      try {
-        await hsPost('/crm/v3/properties/contacts', token, {
-          name: prop.name,
-          label: prop.label,
-          type: prop.type,
-          fieldType: prop.fieldType,
-          groupName: 'contactinformation',
-        });
-      } catch (e: any) {
-        // Ignore "already exists" errors
-        if (!e.message?.includes('409') && !e.message?.includes('already exists')) {
-          console.warn(`[HubSpot] Could not create property ${prop.name}:`, e.message);
-        }
+      console.log(`[HubSpot] Property exists: ${prop.name}`);
+      available.add(prop.name);
+      continue;
+    } catch (getErr: any) {
+      console.log(`[HubSpot] Property not found (${prop.name}): ${getErr.message} — attempting creation`);
+    }
+
+    // 2. Try to create it
+    try {
+      await hsPost('/crm/v3/properties/contacts', token, {
+        name: prop.name,
+        label: prop.label,
+        type: prop.type,
+        fieldType: prop.fieldType,
+        groupName: 'contactinformation',
+      });
+      console.log(`[HubSpot] Property created: ${prop.name}`);
+      available.add(prop.name);
+    } catch (createErr: any) {
+      const msg: string = createErr.message ?? '';
+      if (msg.includes('409') || msg.includes('already exists')) {
+        console.log(`[HubSpot] Property already exists (409): ${prop.name}`);
+        available.add(prop.name);
+      } else {
+        console.error(`[HubSpot] Failed to create property ${prop.name}: ${msg}`);
+        errors.push(`${prop.name}: ${msg}`);
       }
     }
   }
+
+  console.log(`[HubSpot] ensureCustomProperties done — available: [${Array.from(available).join(', ')}], errors: ${errors.length}`);
+  return { available, errors };
 }
 
 // ─── Fetch contacts from HubSpot ─────────────────────────────────────────────
@@ -178,8 +214,11 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
 
   const token = await getValidHubSpotToken(internalUserId);
 
-  // Ensure our custom properties exist
-  await ensureCustomProperties(token);
+  // Ensure our custom properties exist; get back which ones are available
+  const { available: availableProps, errors: propErrors } = await ensureCustomProperties(token);
+  if (propErrors.length > 0) {
+    result.errors.push(`Property setup: ${propErrors.join('; ')} — ensure crm.schemas.contacts.write scope is enabled in your HubSpot app, then reconnect.`);
+  }
 
   // ── PULL: HubSpot contacts → ChurnGuard customers ─────────────────────────
   const contacts = await fetchAllContacts(token);
@@ -237,22 +276,34 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
   }
 
   // ── PUSH: ChurnGuard risk data → HubSpot contact properties ──────────────
+  // Only push customers that originated from HubSpot (externalId = "hubspot_<numericId>").
+  // Derive the HubSpot contact ID from externalId directly — never from crmId, which
+  // may have been overwritten by a Salesforce sync.
   const customers = await prisma.customer.findMany({
-    where: { userId: internalUserId, crmId: { not: null } },
-    select: { id: true, crmId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
+    where: {
+      userId: internalUserId,
+      externalId: { startsWith: 'hubspot_' },
+    },
+    select: { id: true, externalId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
   });
 
   for (const customer of customers) {
-    if (!customer.crmId) continue;
+    const hubspotContactId = customer.externalId.replace('hubspot_', '');
+    if (!hubspotContactId) continue;
+
     try {
-      await hsPatch(`/crm/v3/objects/contacts/${customer.crmId}`, token, {
-        properties: {
-          churnguard_risk_score:   String(customer.riskScore ?? 50),
-          churnguard_health_score: String(customer.healthScore ?? 80),
-          churnguard_risk_reason:  customer.riskReason ?? '',
-          churnguard_last_sync:    new Date().toISOString(),
-        },
-      });
+      const props: Record<string, string> = {};
+      if (availableProps.has('churnguard_risk_score'))   props['churnguard_risk_score']   = String(customer.riskScore ?? 50);
+      if (availableProps.has('churnguard_health_score')) props['churnguard_health_score'] = String(customer.healthScore ?? 80);
+      if (availableProps.has('churnguard_risk_reason'))  props['churnguard_risk_reason']  = customer.riskReason ?? '';
+      if (availableProps.has('churnguard_last_sync'))    props['churnguard_last_sync']    = new Date().toISOString();
+
+      if (Object.keys(props).length === 0) {
+        result.errors.push(`Push ${customer.email}: No custom properties exist in HubSpot yet — check the property setup error above for details.`);
+        continue;
+      }
+
+      await hsPatch(`/crm/v3/objects/contacts/${hubspotContactId}`, token, { properties: props });
       result.pushed++;
 
       await prisma.crmSyncLog.create({
@@ -261,7 +312,7 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
           crmType: 'hubspot',
           direction: 'outbound',
           entityType: 'contact',
-          entityId: customer.crmId,
+          entityId: hubspotContactId,
           status: 'success',
           message: `Pushed risk score ${customer.riskScore} to HubSpot contact`,
         },
@@ -274,7 +325,7 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
           crmType: 'hubspot',
           direction: 'outbound',
           entityType: 'contact',
-          entityId: customer.crmId,
+          entityId: hubspotContactId,
           status: 'error',
           message: e.message,
         },

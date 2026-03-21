@@ -43,12 +43,18 @@ interface SFContact {
   };
 }
 
+// ─── Reconnect error ──────────────────────────────────────────────────────────
+
+export class SalesforceReconnectError extends Error {
+  constructor() { super('RECONNECT_REQUIRED'); this.name = 'SalesforceReconnectError'; }
+}
+
 // ─── Token management ─────────────────────────────────────────────────────────
 
 export async function getValidSalesforceToken(userId: string): Promise<{ token: string; instanceUrl: string }> {
   const integration = await prisma.crmIntegration.findFirst({ where: { userId, type: 'salesforce' } });
   if (!integration?.accessToken || !integration.instanceUrl) {
-    throw new Error('Salesforce not connected for this user');
+    throw new SalesforceReconnectError();
   }
 
   const needsRefresh = integration.expiresAt
@@ -59,7 +65,11 @@ export async function getValidSalesforceToken(userId: string): Promise<{ token: 
     return { token: integration.accessToken, instanceUrl: integration.instanceUrl };
   }
 
-  if (!integration.refreshToken) throw new Error('No refresh token — user must reconnect Salesforce');
+  if (!integration.refreshToken) throw new SalesforceReconnectError();
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.warn('[Salesforce] SALESFORCE_CLIENT_ID/SECRET not set, skipping refresh');
+    return { token: integration.accessToken, instanceUrl: integration.instanceUrl };
+  }
 
   const res = await fetch(`${integration.instanceUrl}/services/oauth2/token`, {
     method: 'POST',
@@ -72,7 +82,11 @@ export async function getValidSalesforceToken(userId: string): Promise<{ token: 
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Salesforce token refresh failed: ${data.error_description ?? res.status}`);
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 400) throw new SalesforceReconnectError();
+    throw new Error(`Salesforce token refresh failed: ${data.error_description ?? res.status}`);
+  }
 
   const newInstanceUrl = data.instance_url ?? integration.instanceUrl;
 
@@ -81,7 +95,8 @@ export async function getValidSalesforceToken(userId: string): Promise<{ token: 
     data: {
       accessToken: data.access_token,
       instanceUrl: newInstanceUrl,
-      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // SF tokens last ~2h
+      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      lastError: null,
     },
   });
 
@@ -215,27 +230,32 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
   }
 
   // ── PUSH: ChurnGuard risk data → Salesforce Contact fields ────────────────
+  // Derive Salesforce Contact ID from externalId ("salesforce_<id>") — never from crmId,
+  // which may have been overwritten by a HubSpot sync.
   const customers = await prisma.customer.findMany({
-    where: { userId: internalUserId, crmId: { not: null } },
-    select: { id: true, crmId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
+    where: {
+      userId: internalUserId,
+      externalId: { startsWith: 'salesforce_' },
+    },
+    select: { id: true, externalId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
   });
 
   for (const customer of customers) {
-    if (!customer.crmId) continue;
+    const salesforceContactId = customer.externalId.replace('salesforce_', '');
+    if (!salesforceContactId) continue;
+    console.log(`[Salesforce] Updating Contact ID: ${salesforceContactId}, Customer: ${customer.email}`);
     try {
-      // Always push a Description summary (standard field, always available)
       const riskSummary = `ChurnGuard Risk Score: ${customer.riskScore ?? 50}/100. Health: ${customer.healthScore ?? 80}/100. ${customer.riskReason ? 'Reason: ' + customer.riskReason : ''}`.trim();
 
       const updatePayload: Record<string, unknown> = {
         Description: riskSummary,
       };
 
-      // Add custom fields if they exist
       if (hasRiskScore)   updatePayload['ChurnGuard_Risk_Score__c']   = customer.riskScore ?? 50;
       if (hasHealthScore) updatePayload['ChurnGuard_Health_Score__c'] = customer.healthScore ?? 80;
       if (hasRiskReason)  updatePayload['ChurnGuard_Risk_Reason__c']  = customer.riskReason ?? '';
 
-      await sfPatch(`/sobjects/Contact/${customer.crmId}`, token, instanceUrl, updatePayload);
+      await sfPatch(`/sobjects/Contact/${salesforceContactId}`, token, instanceUrl, updatePayload);
       result.pushed++;
 
       await prisma.crmSyncLog.create({
@@ -244,7 +264,7 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
           crmType: 'salesforce',
           direction: 'outbound',
           entityType: 'contact',
-          entityId: customer.crmId,
+          entityId: salesforceContactId,
           status: 'success',
           message: `Pushed risk score ${customer.riskScore} to Salesforce Contact`,
         },
@@ -257,7 +277,7 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
           crmType: 'salesforce',
           direction: 'outbound',
           entityType: 'contact',
-          entityId: customer.crmId!,
+          entityId: salesforceContactId,
           status: 'error',
           message: e.message,
         },
