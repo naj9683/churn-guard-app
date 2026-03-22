@@ -119,6 +119,27 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activePlan, setActivePlan] = useState<string | null>(null);
+  const planRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Scroll-highlight: whichever pricing card is most centered in viewport
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+    (['seed', 'growth', 'scale'] as const).forEach(plan => {
+      const el = planRefs.current[plan];
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setActivePlan(plan);
+          else setActivePlan(prev => (prev === plan ? null : prev));
+        },
+        { threshold: 0.55 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, []);
 
   return (
     <div
@@ -627,11 +648,18 @@ export default function LandingPage() {
           </FadeSection>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
-            {/* Seed — dimmed */}
+            {/* Seed */}
             <FadeSection>
               <div
+                ref={el => { planRefs.current['seed'] = el; }}
                 className="rounded-2xl p-7 border h-full flex flex-col"
-                style={{ background: '#0e1623', borderColor: '#1e293b', opacity: 0.85 }}
+                style={{
+                  background: activePlan === 'seed' ? '#131d2e' : '#0e1623',
+                  borderColor: activePlan === 'seed' ? '#6366f1' : '#1e293b',
+                  boxShadow: activePlan === 'seed' ? '0 0 30px rgba(99,102,241,0.2)' : 'none',
+                  opacity: activePlan && activePlan !== 'seed' ? 0.5 : 0.85,
+                  transition: 'all 0.3s ease',
+                }}
               >
                 <div className="mb-5">
                   <h3 className="text-slate-300 font-bold text-lg mb-1">Seed</h3>
@@ -649,7 +677,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/pricing"
+                  href="/signup?plan=seed"
                   className="block text-center py-3 px-5 rounded-xl font-semibold text-sm border text-slate-400 hover:text-slate-200 transition-colors"
                   style={{ borderColor: '#334155' }}
                 >
@@ -661,12 +689,17 @@ export default function LandingPage() {
             {/* Growth — featured, larger */}
             <FadeSection style={{ transitionDelay: '80ms' }}>
               <div
+                ref={el => { planRefs.current['growth'] = el; }}
                 className="rounded-2xl p-8 flex flex-col relative"
                 style={{
                   background: '#131d2e',
-                  border: '2px solid #6366f1',
-                  boxShadow: '0 0 50px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.1)',
+                  border: `2px solid ${activePlan === 'growth' ? '#818cf8' : '#6366f1'}`,
+                  boxShadow: activePlan === 'growth'
+                    ? '0 0 70px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)'
+                    : '0 0 50px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.1)',
                   transform: 'scale(1.03)',
+                  opacity: activePlan && activePlan !== 'growth' ? 0.7 : 1,
+                  transition: 'all 0.3s ease',
                 }}
               >
                 <div
@@ -691,7 +724,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/pricing"
+                  href="/signup?plan=growth"
                   className="block text-center py-3.5 px-5 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
                 >
@@ -700,11 +733,18 @@ export default function LandingPage() {
               </div>
             </FadeSection>
 
-            {/* Scale — dimmed */}
+            {/* Scale */}
             <FadeSection style={{ transitionDelay: '160ms' }}>
               <div
+                ref={el => { planRefs.current['scale'] = el; }}
                 className="rounded-2xl p-7 border h-full flex flex-col"
-                style={{ background: '#0e1623', borderColor: '#1e293b', opacity: 0.85 }}
+                style={{
+                  background: activePlan === 'scale' ? '#131d2e' : '#0e1623',
+                  borderColor: activePlan === 'scale' ? '#6366f1' : '#1e293b',
+                  boxShadow: activePlan === 'scale' ? '0 0 30px rgba(99,102,241,0.2)' : 'none',
+                  opacity: activePlan && activePlan !== 'scale' ? 0.5 : 0.85,
+                  transition: 'all 0.3s ease',
+                }}
               >
                 <div className="mb-5">
                   <h3 className="text-slate-300 font-bold text-lg mb-1">Scale</h3>
@@ -722,7 +762,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/pricing"
+                  href="/signup?plan=scale"
                   className="block text-center py-3 px-5 rounded-xl font-semibold text-sm border text-slate-400 hover:text-slate-200 transition-colors"
                   style={{ borderColor: '#334155' }}
                 >
