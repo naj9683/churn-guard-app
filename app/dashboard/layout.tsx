@@ -38,7 +38,7 @@ export default async function DashboardLayout({
 
     // Only redirect to pricing if we definitively found the user and they have no active subscription
     if (user && user.subscriptions.length === 0) {
-      redirect('/login?error=subscription_required');
+      redirect('/pricing?msg=subscribe');
     }
 
     // user === null means no DB record yet (new sign-up, onboarding in progress) — let them through

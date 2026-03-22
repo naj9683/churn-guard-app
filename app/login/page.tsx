@@ -2,7 +2,7 @@
 
 import { useSignIn, useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
@@ -18,18 +18,17 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Prevents double-routing if useEffect fires while handleSubmit is also routing
+  const routing = useRef(false);
 
-  // Show subscription error if redirected here from dashboard layout
+  // If already signed in when page loads → route immediately, never show form
   useEffect(() => {
-    if (searchParams.get('error') === 'subscription_required') {
-      setError('subscription_required');
+    if (!userLoaded) return;
+    if (user && !routing.current) {
+      routing.current = true;
+      setLoading(true);
+      checkSubscriptionAndRoute();
     }
-  }, [searchParams]);
-
-  // Already signed in → check subscription, then route
-  useEffect(() => {
-    if (!userLoaded || !user) return;
-    checkSubscriptionAndRoute();
   }, [userLoaded, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function checkSubscriptionAndRoute() {
@@ -40,11 +39,10 @@ function LoginForm() {
         if (hasAccess) {
           router.replace('/dashboard');
         } else {
-          setError('subscription_required');
-          setLoading(false);
+          router.replace('/pricing?msg=subscribe');
         }
       } else {
-        // On API error, fail open — never block a potentially paying customer
+        // API error → fail open, never block a paying customer
         router.replace('/dashboard');
       }
     } catch {
@@ -58,6 +56,7 @@ function LoginForm() {
 
     setLoading(true);
     setError('');
+    routing.current = true; // prevent useEffect double-routing
 
     const isAdmin = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -84,6 +83,7 @@ function LoginForm() {
       if (!password) {
         setError('Please enter your password.');
         setLoading(false);
+        routing.current = false;
         return;
       }
 
@@ -93,6 +93,7 @@ function LoginForm() {
         await checkSubscriptionAndRoute();
       }
     } catch (err: any) {
+      routing.current = false;
       const msg =
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
@@ -104,6 +105,40 @@ function LoginForm() {
   }
 
   const isAdminEmail = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  // Show loading screen while routing (already-signed-in or post-submit redirect)
+  if (loading && routing.current) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#f8fafc',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '44px', height: '44px',
+            border: '3px solid #e5e7eb',
+            borderTopColor: '#6366f1',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>Signing you in…</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Wait for Clerk to load before showing form
+  if (!userLoaded) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#f8fafc',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} />
+    );
+  }
 
   return (
     <div style={{
@@ -243,34 +278,8 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Subscription required error */}
-            {error === 'subscription_required' && (
-              <div style={{
-                padding: '14px 16px',
-                background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px',
-                fontSize: '13px', color: '#92400e',
-              }}>
-                <div style={{ fontWeight: '600', marginBottom: '6px' }}>Subscription required</div>
-                <div style={{ marginBottom: '10px', lineHeight: '1.5' }}>
-                  You need an active subscription to access ChurnGuard. Please subscribe to continue.
-                </div>
-                <Link
-                  href="/pricing"
-                  style={{
-                    display: 'inline-block',
-                    padding: '7px 16px',
-                    background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                    color: '#fff', borderRadius: '7px',
-                    textDecoration: 'none', fontSize: '13px', fontWeight: '600',
-                  }}
-                >
-                  View plans →
-                </Link>
-              </div>
-            )}
-
-            {/* Generic error */}
-            {error && error !== 'subscription_required' && (
+            {/* Auth error */}
+            {error && (
               <div style={{
                 padding: '10px 14px',
                 background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px',
