@@ -29,7 +29,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
   try {
     const { data, error } = await client.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'ChurnGuard <noreply@churnguard.io>',
+      from: process.env.RESEND_FROM_EMAIL || 'ChurnGuard <admin@churnguardapp.com>',
       to,
       subject,
       html,
