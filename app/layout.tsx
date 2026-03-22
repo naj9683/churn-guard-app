@@ -14,6 +14,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "ChurnGuard - Churn Prevention Platform",
   description: "AI-powered churn prevention for SaaS",
+  other: {
+    'cache-control': 'no-store, no-cache, must-revalidate',
+  },
 };
 
 export default function RootLayout({
