@@ -4,10 +4,13 @@ import { useSignIn } from '@clerk/nextjs';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminAccessPage() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
+  const [errorMsg, setErrorMsg] = useState<string>('');
   const fired = useRef(false);
 
   useEffect(() => {
@@ -17,6 +20,8 @@ export default function AdminAccessPage() {
   }, [isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAdminLogin() {
+    setStatus('loading');
+    setErrorMsg('');
     try {
       const res = await fetch('/api/admin-token', {
         method: 'POST',
@@ -25,6 +30,8 @@ export default function AdminAccessPage() {
       });
 
       if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErrorMsg(`API error ${res.status}: ${body.error ?? 'unknown'}`);
         setStatus('error');
         return;
       }
@@ -33,9 +40,15 @@ export default function AdminAccessPage() {
       const result = await signIn!.create({ strategy: 'ticket', ticket: token });
       await setActive!({ session: result.createdSessionId });
       router.replace('/dashboard');
-    } catch {
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? 'Unexpected error');
       setStatus('error');
     }
+  }
+
+  function retry() {
+    fired.current = false;
+    handleAdminLogin();
   }
 
   const center: React.CSSProperties = {
@@ -49,7 +62,22 @@ export default function AdminAccessPage() {
       <div style={center}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '5rem', fontWeight: '700', color: '#1e293b' }}>404</div>
-          <div style={{ color: '#475569' }}>Page not found</div>
+          <div style={{ color: '#475569', marginBottom: '8px' }}>Page not found</div>
+          {errorMsg && (
+            <div style={{ color: '#64748b', fontSize: '12px', marginBottom: '16px', fontFamily: 'monospace' }}>
+              {errorMsg}
+            </div>
+          )}
+          <button
+            onClick={retry}
+            style={{
+              padding: '8px 18px', background: '#6366f1', color: '#fff',
+              border: 'none', borderRadius: '6px', cursor: 'pointer',
+              fontSize: '13px', fontWeight: '500',
+            }}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
