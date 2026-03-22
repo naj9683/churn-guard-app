@@ -2,7 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_USER_ID = 'user_3AP7xokH0oin2NoqgK37ER9Y4su';
-const ADMIN_ACCESS_KEY = process.env.ADMIN_ACCESS_KEY || 'your-secret-key-123';
+const ADMIN_ACCESS_KEY = process.env.ADMIN_ACCESS_KEY || 'cg-admin-2024';
 
 export async function POST(req: NextRequest) {
   try {
