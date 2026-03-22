@@ -13,7 +13,7 @@ export default async function DashboardLayout({
 
   // Not authenticated → send to login
   if (!userId) {
-    redirect('/auth/login');
+    redirect('/login');
   }
 
   // Admin always has access
@@ -38,7 +38,7 @@ export default async function DashboardLayout({
 
     // Only redirect to pricing if we definitively found the user and they have no active subscription
     if (user && user.subscriptions.length === 0) {
-      redirect('/pricing?msg=subscribe');
+      redirect('/login?error=subscription_required');
     }
 
     // user === null means no DB record yet (new sign-up, onboarding in progress) — let them through
