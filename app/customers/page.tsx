@@ -25,6 +25,8 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'high'>('all');
   const tableRef = useRef<HTMLDivElement>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -47,6 +49,21 @@ export default function CustomersPage() {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete(customer: Customer) {
+    if (!confirm(`Are you sure you want to delete ${customer.name || customer.email}?`)) return;
+    setDeletingId(customer.id);
+    try {
+      const res = await fetch(`/api/customers/${customer.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCustomers(prev => prev.filter(c => c.id !== customer.id));
+        setToast('Customer deleted successfully');
+        setTimeout(() => setToast(null), 3000);
+      }
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -452,6 +469,23 @@ export default function CustomersPage() {
                       }}>
                         View
                       </Link>
+                      <button
+                        onClick={() => handleDelete(customer)}
+                        disabled={deletingId === customer.id}
+                        style={{
+                          padding: '6px 12px',
+                          background: deletingId === customer.id ? '#fee2e2' : '#fff',
+                          color: '#ef4444',
+                          border: '1px solid #fecaca',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: deletingId === customer.id ? 'not-allowed' : 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {deletingId === customer.id ? '...' : 'Delete'}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -461,6 +495,23 @@ export default function CustomersPage() {
         </div>
       </div>
 
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: '#111827',
+          color: '#fff',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+        }}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

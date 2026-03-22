@@ -74,6 +74,26 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const user = await prisma.user.findFirst({ where: { clerkId: userId } });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const customer = await resolveCustomer(params.id, user.id);
+    if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+
+    await prisma.customer.delete({ where: { id: customer.id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Customer DELETE error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { userId } = await auth();
