@@ -660,6 +660,20 @@ export default function LandingPage() {
                   opacity: activePlan && activePlan !== 'seed' ? 0.5 : 0.85,
                   transition: 'all 0.3s ease',
                 }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = '#6366f1';
+                  el.style.boxShadow = '0 0 30px rgba(99,102,241,0.2)';
+                  el.style.transform = 'scale(1.02)';
+                  el.style.opacity = '1';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = activePlan === 'seed' ? '#6366f1' : '#1e293b';
+                  el.style.boxShadow = activePlan === 'seed' ? '0 0 30px rgba(99,102,241,0.2)' : 'none';
+                  el.style.transform = 'scale(1)';
+                  el.style.opacity = activePlan && activePlan !== 'seed' ? '0.5' : '0.85';
+                }}
               >
                 <div className="mb-5">
                   <h3 className="text-slate-300 font-bold text-lg mb-1">Seed</h3>
@@ -700,6 +714,22 @@ export default function LandingPage() {
                   transform: 'scale(1.03)',
                   opacity: activePlan && activePlan !== 'growth' ? 0.7 : 1,
                   transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.border = '2px solid #a5b4fc';
+                  el.style.boxShadow = '0 0 90px rgba(99,102,241,0.6), 0 0 0 1px rgba(99,102,241,0.3)';
+                  el.style.transform = 'scale(1.06)';
+                  el.style.opacity = '1';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.border = `2px solid ${activePlan === 'growth' ? '#818cf8' : '#6366f1'}`;
+                  el.style.boxShadow = activePlan === 'growth'
+                    ? '0 0 70px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)'
+                    : '0 0 50px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.1)';
+                  el.style.transform = 'scale(1.03)';
+                  el.style.opacity = activePlan && activePlan !== 'growth' ? '0.7' : '1';
                 }}
               >
                 <div
@@ -744,6 +774,20 @@ export default function LandingPage() {
                   boxShadow: activePlan === 'scale' ? '0 0 30px rgba(99,102,241,0.2)' : 'none',
                   opacity: activePlan && activePlan !== 'scale' ? 0.5 : 0.85,
                   transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = '#6366f1';
+                  el.style.boxShadow = '0 0 30px rgba(99,102,241,0.2)';
+                  el.style.transform = 'scale(1.02)';
+                  el.style.opacity = '1';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = activePlan === 'scale' ? '#6366f1' : '#1e293b';
+                  el.style.boxShadow = activePlan === 'scale' ? '0 0 30px rgba(99,102,241,0.2)' : 'none';
+                  el.style.transform = 'scale(1)';
+                  el.style.opacity = activePlan && activePlan !== 'scale' ? '0.5' : '0.85';
                 }}
               >
                 <div className="mb-5">
