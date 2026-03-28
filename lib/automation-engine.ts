@@ -9,6 +9,15 @@ const COOLDOWN_HOURS: Record<string, number> = {
   payment_failed:        1,
   feature_abandonment:  48,
   multi_condition:      12,
+  days_since_login:     24,
+  mrr_value:            48,
+  plan_type:            72,
+  payment_status:       24,
+  account_age:         168, // 7 days
+  feature_not_used:     48,
+  support_tickets:      24,
+  trial_ending:         24,
+  no_activity:          48,
 };
 
 type ActionResult = { status: 'success' | 'failed' | 'skipped'; message: string };
@@ -300,6 +309,147 @@ export async function runAutomationEngine(opts: EngineOptions = {}): Promise<Eng
           OR: [
             { lastFeatureUsedAt: { lt: cutoff } },
             { lastFeatureUsedAt: null, lastLoginAt: { lt: cutoff } },
+          ],
+        },
+      });
+
+    } else if (rule.triggerType === 'days_since_login') {
+      const days   = Number(condition.days ?? 7);
+      const cutoff = new Date(Date.now() - days * 86_400_000);
+      candidates = await prisma.customer.findMany({
+        where: {
+          ...customerWhere,
+          OR: [
+            { lastLoginAt: { lt: cutoff } },
+            { lastLoginAt: null },
+          ],
+        },
+      });
+
+    } else if (rule.triggerType === 'mrr_value') {
+      const operator = String(condition.operator ?? '>');
+      const value    = Number(condition.value ?? 0);
+      const opMap: Record<string, object> = {
+        '>':  { gt: value },
+        '<':  { lt: value },
+        '>=': { gte: value },
+        '<=': { lte: value },
+        '==': { equals: value },
+      };
+      const mrrFilter = opMap[operator] ?? { gt: value };
+      candidates = await prisma.customer.findMany({
+        where: { ...customerWhere, mrr: mrrFilter },
+      });
+
+    } else if (rule.triggerType === 'plan_type') {
+      const plan = String(condition.plan ?? '');
+      candidates = await prisma.customer.findMany({
+        where: { ...customerWhere, plan },
+      });
+
+    } else if (rule.triggerType === 'payment_status') {
+      const status = String(condition.status ?? 'failed');
+      // paymentStatus is not a schema field — filter in-memory from events
+      const allCustomers = await prisma.customer.findMany({ where: customerWhere });
+      const recentPaymentEvents = await prisma.event.findMany({
+        where: {
+          event: { in: ['payment_failed', 'payment_succeeded', 'subscription_cancelled', 'subscription_past_due'] },
+          timestamp: { gte: BigInt(Date.now() - 30 * 86_400_000) },
+        },
+        orderBy: { timestamp: 'desc' },
+        distinct: ['customerId'],
+      });
+      const statusMap: Record<string, string> = {
+        payment_failed:          'failed',
+        payment_succeeded:       'active',
+        subscription_cancelled:  'cancelled',
+        subscription_past_due:   'past_due',
+      };
+      const customerStatuses = new Map<string, string>(
+        recentPaymentEvents.map(e => [e.customerId, statusMap[e.event] ?? 'active'])
+      );
+      candidates = allCustomers.filter(c => {
+        const cs = customerStatuses.get(c.id) ?? 'active';
+        return cs === status;
+      });
+
+    } else if (rule.triggerType === 'account_age') {
+      const days   = Number(condition.days ?? 90);
+      const cutoff = new Date(Date.now() - days * 86_400_000);
+      candidates = await prisma.customer.findMany({
+        where: { ...customerWhere, createdAt: { lt: cutoff } },
+      });
+
+    } else if (rule.triggerType === 'feature_not_used') {
+      const feature = String(condition.feature ?? '');
+      const days    = Number(condition.days ?? 14);
+      const cutoff  = new Date(Date.now() - days * 86_400_000);
+      const all = await prisma.customer.findMany({ where: customerWhere });
+      candidates = all.filter(c => {
+        const used: string[] = Array.isArray(c.featuresUsed) ? c.featuresUsed as string[] : [];
+        const notUsed = feature
+          ? !used.some(f => f.toLowerCase().includes(feature.toLowerCase()))
+          : used.length === 0;
+        const inactive = !c.lastFeatureUsedAt || c.lastFeatureUsedAt < cutoff;
+        return notUsed && inactive;
+      });
+
+    } else if (rule.triggerType === 'support_tickets') {
+      const minCount  = Number(condition.count ?? 3);
+      const withinDays = Number(condition.withinDays ?? 30);
+      const since = BigInt(Date.now() - withinDays * 86_400_000);
+      const ticketEvents = await prisma.event.findMany({
+        where: { event: 'support_ticket', timestamp: { gte: since } },
+      });
+      const countByCustomer = new Map<string, number>();
+      for (const e of ticketEvents) {
+        countByCustomer.set(e.customerId, (countByCustomer.get(e.customerId) ?? 0) + 1);
+      }
+      const qualifyingIds = Array.from(countByCustomer.entries())
+        .filter(([, cnt]) => cnt >= minCount)
+        .map(([id]) => id);
+      if (qualifyingIds.length === 0) {
+        candidates = [];
+      } else {
+        candidates = await prisma.customer.findMany({
+          where: { ...customerWhere, id: { in: qualifyingIds } },
+        });
+      }
+
+    } else if (rule.triggerType === 'trial_ending') {
+      const withinDays = Number(condition.withinDays ?? 3);
+      const nowMs = Date.now();
+      const windowEnd = BigInt(nowMs + withinDays * 86_400_000);
+      const trialEvents = await prisma.event.findMany({
+        where: {
+          event: 'trial_ending',
+          timestamp: { gte: BigInt(nowMs), lte: windowEnd },
+        },
+        distinct: ['customerId'],
+      });
+      const trialIds = trialEvents.map(e => e.customerId);
+      if (trialIds.length === 0) {
+        // Fallback: customers on trial plan created 14-withinDays to 14 days ago
+        const trialStart = new Date(nowMs - 14 * 86_400_000);
+        const trialEnd   = new Date(nowMs - (14 - withinDays) * 86_400_000);
+        candidates = await prisma.customer.findMany({
+          where: { ...customerWhere, plan: 'trial', createdAt: { gte: trialStart, lte: trialEnd } },
+        });
+      } else {
+        candidates = await prisma.customer.findMany({
+          where: { ...customerWhere, id: { in: trialIds } },
+        });
+      }
+
+    } else if (rule.triggerType === 'no_activity') {
+      const days   = Number(condition.days ?? 30);
+      const cutoff = new Date(Date.now() - days * 86_400_000);
+      candidates = await prisma.customer.findMany({
+        where: {
+          ...customerWhere,
+          AND: [
+            { OR: [{ lastLoginAt: { lt: cutoff } }, { lastLoginAt: null }] },
+            { OR: [{ lastFeatureUsedAt: { lt: cutoff } }, { lastFeatureUsedAt: null }] },
           ],
         },
       });

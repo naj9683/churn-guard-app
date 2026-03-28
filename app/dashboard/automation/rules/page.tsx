@@ -44,6 +44,15 @@ const TRIGGER_TYPES = [
   { value: 'payment_failed',    label: 'Payment Failed' },
   { value: 'feature_abandonment', label: 'Feature Abandonment' },
   { value: 'multi_condition',   label: 'Multi-Condition (AND/OR)' },
+  { value: 'days_since_login',  label: 'Days Since Login' },
+  { value: 'mrr_value',         label: 'MRR Value' },
+  { value: 'plan_type',         label: 'Plan Type' },
+  { value: 'payment_status',    label: 'Payment Status' },
+  { value: 'account_age',       label: 'Account Age (Days as Customer)' },
+  { value: 'feature_not_used',  label: 'Feature Not Used' },
+  { value: 'support_tickets',   label: 'Support Tickets' },
+  { value: 'trial_ending',      label: 'Trial Ending Soon' },
+  { value: 'no_activity',       label: 'No Activity' },
 ];
 
 const ACTION_TYPES = [
@@ -384,10 +393,19 @@ export default function AutomationRulesPage() {
                   onChange={e => {
                     const t = e.target.value;
                     let cond: Record<string, unknown> = {};
-                    if (t === 'risk_threshold') cond = { value: 70 };
-                    else if (t === 'payment_failed') cond = { withinHours: 24 };
-                    else if (t === 'feature_abandonment') cond = { days: 7 };
-                    else if (t === 'multi_condition') cond = {};
+                    if (t === 'risk_threshold')     cond = { value: 70 };
+                    else if (t === 'payment_failed')        cond = { withinHours: 24 };
+                    else if (t === 'feature_abandonment')   cond = { days: 7 };
+                    else if (t === 'multi_condition')       cond = {};
+                    else if (t === 'days_since_login')      cond = { days: 14 };
+                    else if (t === 'mrr_value')             cond = { operator: '>', value: 100 };
+                    else if (t === 'plan_type')             cond = { plan: 'free' };
+                    else if (t === 'payment_status')        cond = { status: 'failed' };
+                    else if (t === 'account_age')           cond = { days: 90 };
+                    else if (t === 'feature_not_used')      cond = { feature: '', days: 14 };
+                    else if (t === 'support_tickets')       cond = { count: 3, withinDays: 30 };
+                    else if (t === 'trial_ending')          cond = { withinDays: 3 };
+                    else if (t === 'no_activity')           cond = { days: 30 };
                     setForm(f => ({ ...f, triggerType: t, condition: cond }));
                   }}
                   style={inputStyle}
@@ -446,6 +464,163 @@ export default function AutomationRulesPage() {
                   style={{ ...inputStyle, width: '100px' }}
                 />
                 <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers who haven&apos;t used any feature in the last N days.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'days_since_login' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>Days since last login</label>
+                <input
+                  type="number" min={1}
+                  value={String(form.condition.days ?? 14)}
+                  onChange={e => setForm(f => ({ ...f, condition: { days: Number(e.target.value) } }))}
+                  style={{ ...inputStyle, width: '100px' }}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers who haven&apos;t logged in for at least N days.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'mrr_value' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>MRR Condition</label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <select
+                    value={String(form.condition.operator ?? '>')}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, operator: e.target.value } }))}
+                    style={{ ...inputStyle, width: 'auto' }}
+                  >
+                    <option value=">">Greater than</option>
+                    <option value="<">Less than</option>
+                    <option value=">=">At least</option>
+                    <option value="<=">At most</option>
+                    <option value="==">Equals</option>
+                  </select>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>$</span>
+                  <input
+                    type="number" min={0}
+                    value={String(form.condition.value ?? 100)}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, value: Number(e.target.value) } }))}
+                    style={{ ...inputStyle, width: '120px' }}
+                  />
+                </div>
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers whose monthly recurring revenue matches this condition.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'plan_type' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>Plan Name</label>
+                <input
+                  value={String(form.condition.plan ?? '')}
+                  onChange={e => setForm(f => ({ ...f, condition: { plan: e.target.value } }))}
+                  placeholder="e.g. free, starter, pro, enterprise"
+                  style={inputStyle}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers on this specific plan. Must match exactly (case-sensitive).</p>
+              </div>
+            )}
+
+            {form.triggerType === 'payment_status' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>Payment Status</label>
+                <select
+                  value={String(form.condition.status ?? 'failed')}
+                  onChange={e => setForm(f => ({ ...f, condition: { status: e.target.value } }))}
+                  style={inputStyle}
+                >
+                  <option value="failed">Failed</option>
+                  <option value="past_due">Past Due</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="active">Active</option>
+                </select>
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers whose most recent payment event matches this status.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'account_age' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>Account older than (days)</label>
+                <input
+                  type="number" min={1}
+                  value={String(form.condition.days ?? 90)}
+                  onChange={e => setForm(f => ({ ...f, condition: { days: Number(e.target.value) } }))}
+                  style={{ ...inputStyle, width: '100px' }}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers who signed up more than N days ago.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'feature_not_used' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Feature name (optional)</label>
+                  <input
+                    value={String(form.condition.feature ?? '')}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, feature: e.target.value } }))}
+                    placeholder="e.g. analytics, integrations (leave blank = any feature)"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Not used in last (days)</label>
+                  <input
+                    type="number" min={1}
+                    value={String(form.condition.days ?? 14)}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, days: Number(e.target.value) } }))}
+                    style={{ ...inputStyle, width: '100px' }}
+                  />
+                </div>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Fire for customers who haven&apos;t used the specified feature in the last N days.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'support_tickets' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Minimum ticket count</label>
+                  <input
+                    type="number" min={1}
+                    value={String(form.condition.count ?? 3)}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, count: Number(e.target.value) } }))}
+                    style={{ ...inputStyle, width: '100px' }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Within last (days)</label>
+                  <input
+                    type="number" min={1}
+                    value={String(form.condition.withinDays ?? 30)}
+                    onChange={e => setForm(f => ({ ...f, condition: { ...f.condition, withinDays: Number(e.target.value) } }))}
+                    style={{ ...inputStyle, width: '100px' }}
+                  />
+                </div>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Fire for customers who submitted N or more support tickets in the last X days.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'trial_ending' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>Trial ends within (days)</label>
+                <input
+                  type="number" min={1}
+                  value={String(form.condition.withinDays ?? 3)}
+                  onChange={e => setForm(f => ({ ...f, condition: { withinDays: Number(e.target.value) } }))}
+                  style={{ ...inputStyle, width: '100px' }}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers whose trial expires within the next N days.</p>
+              </div>
+            )}
+
+            {form.triggerType === 'no_activity' && (
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={labelStyle}>No activity for (days)</label>
+                <input
+                  type="number" min={1}
+                  value={String(form.condition.days ?? 30)}
+                  onChange={e => setForm(f => ({ ...f, condition: { days: Number(e.target.value) } }))}
+                  style={{ ...inputStyle, width: '100px' }}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>Fire for customers with no login AND no feature usage in the last N days.</p>
               </div>
             )}
 
