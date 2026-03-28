@@ -7,7 +7,10 @@ export async function GET() {
   try {
     const interventions = await prisma.interventionOutcome.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 50
+      take: 50,
+      include: {
+        customer: { select: { name: true, email: true } },
+      },
     });
     
     return NextResponse.json({ 

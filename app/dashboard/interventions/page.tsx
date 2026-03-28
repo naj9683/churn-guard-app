@@ -261,7 +261,7 @@ export default function InterventionsPage() {
               fontSize: '28px',
               fontWeight: '700',
               color: filterStatus === 'success' ? '#fff' : '#10b981'
-            }}>{safeInterventions.filter((i: any) => i?.status === 'success').length}</div>
+            }}>{safeInterventions.filter((i: any) => i?.status === 'saved').length}</div>
           </div>
 
           <div
@@ -286,7 +286,7 @@ export default function InterventionsPage() {
               fontSize: '28px',
               fontWeight: '700',
               color: filterStatus === 'failed' ? '#fff' : '#ef4444'
-            }}>{safeInterventions.filter((i: any) => i?.status === 'failed').length}</div>
+            }}>{safeInterventions.filter((i: any) => i?.status === 'churned').length}</div>
           </div>
 
           <div
@@ -331,7 +331,7 @@ export default function InterventionsPage() {
             <thead>
               <tr style={{borderBottom: '1px solid #e5e7eb'}}>
                 <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Customer</th>
-                <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Playbook</th>
+                <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Type</th>
                 <th style={{textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Status</th>
                 <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Date</th>
                 <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}></th>
@@ -355,14 +355,16 @@ export default function InterventionsPage() {
                       {intervention?.customer?.name || intervention?.customer?.email || 'Unknown'}
                     </td>
                     <td style={{padding: '16px 12px', color: '#6b7280'}}>
-                      {intervention?.playbook?.name || 'Unknown'}
+                      {intervention?.interventionType
+                        ? intervention.interventionType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+                        : 'Manual Outreach'}
                     </td>
                     <td style={{padding: '16px 12px', textAlign: 'center'}}>
                       <span style={{
                         padding: '6px 12px',
                         borderRadius: '20px',
-                        background: intervention?.status === 'success' ? '#f0fdf4' : intervention?.status === 'failed' ? '#fef2f2' : '#fffbeb',
-                        color: intervention?.status === 'success' ? '#10b981' : intervention?.status === 'failed' ? '#ef4444' : '#f59e0b',
+                        background: intervention?.status === 'saved' ? '#f0fdf4' : intervention?.status === 'churned' ? '#fef2f2' : '#fffbeb',
+                        color: intervention?.status === 'saved' ? '#10b981' : intervention?.status === 'churned' ? '#ef4444' : '#f59e0b',
                         fontWeight: '600',
                         fontSize: '13px',
                         textTransform: 'capitalize'
