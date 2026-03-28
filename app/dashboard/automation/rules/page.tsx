@@ -40,19 +40,19 @@ interface AutomationRule {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TRIGGER_TYPES = [
-  { value: 'risk_threshold',    label: 'Risk Score Threshold' },
-  { value: 'payment_failed',    label: 'Payment Failed' },
+  { value: 'multi_condition',     label: '⚡ Multi-Condition (AND/OR)' },
+  { value: 'risk_threshold',      label: 'Risk Score Threshold' },
+  { value: 'payment_failed',      label: 'Payment Failed' },
   { value: 'feature_abandonment', label: 'Feature Abandonment' },
-  { value: 'multi_condition',   label: 'Multi-Condition (AND/OR)' },
-  { value: 'days_since_login',  label: 'Days Since Login' },
-  { value: 'mrr_value',         label: 'MRR Value' },
-  { value: 'plan_type',         label: 'Plan Type' },
-  { value: 'payment_status',    label: 'Payment Status' },
-  { value: 'account_age',       label: 'Account Age (Days as Customer)' },
-  { value: 'feature_not_used',  label: 'Feature Not Used' },
-  { value: 'support_tickets',   label: 'Support Tickets' },
-  { value: 'trial_ending',      label: 'Trial Ending Soon' },
-  { value: 'no_activity',       label: 'No Activity' },
+  { value: 'days_since_login',    label: 'Days Since Login' },
+  { value: 'mrr_value',           label: 'MRR Value' },
+  { value: 'plan_type',           label: 'Plan Type' },
+  { value: 'payment_status',      label: 'Payment Status' },
+  { value: 'account_age',         label: 'Account Age (Days as Customer)' },
+  { value: 'feature_not_used',    label: 'Feature Not Used' },
+  { value: 'support_tickets',     label: 'Support Tickets' },
+  { value: 'trial_ending',        label: 'Trial Ending Soon' },
+  { value: 'no_activity',         label: 'No Activity' },
 ];
 
 const ACTION_TYPES = [
@@ -65,13 +65,14 @@ const ACTION_TYPES = [
 ];
 
 const CONDITION_FIELDS = [
-  { value: 'riskScore',      label: 'Risk Score',        type: 'number' },
-  { value: 'daysSinceLogin', label: 'Days Since Login',  type: 'number' },
-  { value: 'mrrValue',       label: 'MRR ($)',           type: 'number' },
-  { value: 'planType',       label: 'Plan Type',         type: 'string' },
-  { value: 'paymentStatus',  label: 'Payment Status',    type: 'string' },
-  { value: 'featureUsed',    label: 'Feature Used',      type: 'string' },
-  { value: 'loginCount',     label: 'Login Count (month)', type: 'number' },
+  { value: 'riskScore',      label: 'Risk Score',           type: 'number' },
+  { value: 'daysSinceLogin', label: 'Days Since Login',     type: 'number' },
+  { value: 'mrrValue',       label: 'MRR ($)',              type: 'number' },
+  { value: 'planType',       label: 'Plan Type',            type: 'string' },
+  { value: 'paymentStatus',  label: 'Payment Status',       type: 'string' },
+  { value: 'featureUsed',    label: 'Feature Used',         type: 'string' },
+  { value: 'loginCount',     label: 'Login Count (month)',  type: 'number' },
+  { value: 'accountAge',     label: 'Account Age (days)',   type: 'number' },
 ];
 
 const OPERATORS = {
@@ -903,11 +904,27 @@ function ActionConfigEditor({ form, setForm }: { form: RuleForm; setForm: React.
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Sequence Configuration</h4>
           <label style={labelStyle}>Sequence Type</label>
           <select value={get('sequenceType') || 'risk_retention'} onChange={e => set('sequenceType', e.target.value)} style={inputStyle}>
-            <option value="risk_retention">Risk Retention (3-step)</option>
-            <option value="payment_recovery">Payment Recovery</option>
-            <option value="feature_adoption">Feature Adoption</option>
-            <option value="onboarding">Onboarding</option>
+            <optgroup label="Retention">
+              <option value="risk_retention">Risk Retention (3-step · immediate → 48h → day 7)</option>
+              <option value="vip_early_warning">VIP Early Warning (Slack + email · 3-step)</option>
+              <option value="downgrade_prevention">Downgrade Prevention (offer + Slack · 2-step)</option>
+            </optgroup>
+            <optgroup label="Recovery">
+              <option value="dunning">Payment Recovery / Dunning (3-step)</option>
+              <option value="win_back">Win-Back Campaign (40% offer · day 0 → 7 → 14)</option>
+            </optgroup>
+            <optgroup label="Onboarding">
+              <option value="welcome">Welcome / Onboarding (3-step)</option>
+              <option value="new_customer_rescue">New Customer Rescue (inactive signup · 3-step)</option>
+            </optgroup>
+            <optgroup label="Engagement">
+              <option value="feature_adoption">Feature Adoption</option>
+              <option value="support_followup">Support Ticket Follow-up (3-step)</option>
+            </optgroup>
           </select>
+          <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>
+            Each sequence runs automatically on a schedule. Steps fire at set intervals and skip if the customer has already re-engaged.
+          </p>
         </div>
       );
 

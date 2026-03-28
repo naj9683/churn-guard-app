@@ -66,6 +66,11 @@ function evaluateSingle(customer: any, cond: SingleCondition): boolean {
     case 'loginCount':
       actual = customer.loginCountThisMonth ?? 0;
       break;
+    case 'accountAge':
+      actual = customer.createdAt
+        ? Math.floor((Date.now() - new Date(customer.createdAt).getTime()) / 86_400_000)
+        : 0;
+      break;
     default:
       return false;
   }
