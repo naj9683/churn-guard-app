@@ -40,7 +40,11 @@ export async function POST(req: NextRequest) {
   }
 
   const valid = {
-    triggerTypes: ['risk_threshold', 'payment_failed', 'feature_abandonment', 'multi_condition'],
+    triggerTypes: [
+      'risk_threshold', 'payment_failed', 'feature_abandonment', 'multi_condition',
+      'days_since_login', 'mrr_value', 'plan_type', 'payment_status',
+      'account_age', 'feature_not_used', 'support_tickets', 'trial_ending', 'no_activity',
+    ],
     actionTypes: ['send_email', 'send_slack', 'create_intervention', 'send_sms', 'escalate_to_human', 'trigger_sequence'],
   };
   if (!valid.triggerTypes.includes(triggerType))
