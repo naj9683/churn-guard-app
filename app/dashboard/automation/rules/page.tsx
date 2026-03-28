@@ -12,11 +12,6 @@ interface SingleCondition {
   value: string;
 }
 
-interface ConditionGroup {
-  logic: 'AND' | 'OR';
-  conditions: SingleCondition[];
-}
-
 interface RuleForm {
   name: string;
   triggerType: string;
@@ -40,7 +35,6 @@ interface AutomationRule {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TRIGGER_TYPES = [
-  { value: 'multi_condition',     label: '⚡ Multi-Condition (AND/OR)' },
   { value: 'risk_threshold',      label: 'Risk Score Threshold' },
   { value: 'payment_failed',      label: 'Payment Failed' },
   { value: 'feature_abandonment', label: 'Feature Abandonment' },
@@ -93,7 +87,7 @@ const OPERATORS = {
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 
-const TEMPLATES: { label: string; description: string; color: string; rule: Partial<RuleForm> }[] = [
+const TEMPLATES: { label: string; description: string; color: string; rule: Partial<RuleForm>; extraConditions?: SingleCondition[] }[] = [
   {
     label: 'High Risk Alert',
     description: 'Email + Slack when risk score ≥ 80',
@@ -136,17 +130,14 @@ const TEMPLATES: { label: string; description: string; color: string; rule: Part
     color: '#ec4899',
     rule: {
       name: 'Critical Customer Escalation',
-      triggerType: 'multi_condition',
-      condition: {
-        logic: 'AND',
-        conditions: [
-          { field: 'riskScore', operator: '>=', value: '75' },
-          { field: 'mrrValue',  operator: '>=', value: '500' },
-        ],
-      } as unknown as Record<string, unknown>,
+      triggerType: 'risk_threshold',
+      condition: { value: 75 },
       actionType: 'escalate_to_human',
       actionConfig: { note: 'High-value customer at critical churn risk — requires immediate CSM outreach.' },
     },
+    extraConditions: [
+      { field: 'mrrValue', operator: '>=', value: '500' },
+    ],
   },
 ];
 
@@ -174,8 +165,7 @@ export default function AutomationRulesPage() {
   const [loading, setLoading] = useState(true);
   const [showBuilder, setShowBuilder] = useState(false);
   const [form, setForm] = useState<RuleForm>(emptyForm());
-  const [multiConditions, setMultiConditions] = useState<SingleCondition[]>([emptyCondition()]);
-  const [multiLogic, setMultiLogic] = useState<'AND' | 'OR'>('AND');
+  const [extraConditions, setExtraConditions] = useState<SingleCondition[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -206,11 +196,7 @@ export default function AutomationRulesPage() {
       actionConfig: r.actionConfig ?? {},
       isActive: true,
     });
-    if (r.triggerType === 'multi_condition' && r.condition) {
-      const g = r.condition as unknown as ConditionGroup;
-      setMultiLogic(g.logic ?? 'AND');
-      setMultiConditions(g.conditions ?? [emptyCondition()]);
-    }
+    setExtraConditions(t.extraConditions ?? []);
     setShowBuilder(true);
   }
 
@@ -218,10 +204,11 @@ export default function AutomationRulesPage() {
     setSaving(true);
     setSaveMsg(null);
 
-    let finalCondition = form.condition;
-    if (form.triggerType === 'multi_condition') {
-      finalCondition = { logic: multiLogic, conditions: multiConditions } as unknown as Record<string, unknown>;
-    }
+    // Merge extra AND conditions into the condition object
+    const finalCondition: Record<string, unknown> = {
+      ...form.condition,
+      ...(extraConditions.length > 0 ? { extraConditions } : {}),
+    };
 
     try {
       const res = await fetch('/api/automation/rules', {
@@ -234,7 +221,7 @@ export default function AutomationRulesPage() {
         setSaveMsg('Rule created successfully');
         setShowBuilder(false);
         setForm(emptyForm());
-        setMultiConditions([emptyCondition()]);
+        setExtraConditions([]);
         fetchRules();
       } else {
         setSaveMsg(data.error ?? 'Save failed');
@@ -315,7 +302,7 @@ export default function AutomationRulesPage() {
               {running ? 'Running...' : 'Run Now'}
             </button>
             <button
-              onClick={() => { setShowBuilder(true); setForm(emptyForm()); setMultiConditions([emptyCondition()]); }}
+              onClick={() => { setShowBuilder(true); setForm(emptyForm()); setExtraConditions([]); }}
               style={{
                 padding: '10px 20px', background: '#6366f1', color: '#fff',
                 border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px',
@@ -394,20 +381,20 @@ export default function AutomationRulesPage() {
                   onChange={e => {
                     const t = e.target.value;
                     let cond: Record<string, unknown> = {};
-                    if (t === 'risk_threshold')     cond = { value: 70 };
-                    else if (t === 'payment_failed')        cond = { withinHours: 24 };
-                    else if (t === 'feature_abandonment')   cond = { days: 7 };
-                    else if (t === 'multi_condition')       cond = {};
-                    else if (t === 'days_since_login')      cond = { days: 14 };
-                    else if (t === 'mrr_value')             cond = { operator: '>', value: 100 };
-                    else if (t === 'plan_type')             cond = { plan: 'free' };
-                    else if (t === 'payment_status')        cond = { status: 'failed' };
-                    else if (t === 'account_age')           cond = { days: 90 };
-                    else if (t === 'feature_not_used')      cond = { feature: '', days: 14 };
-                    else if (t === 'support_tickets')       cond = { count: 3, withinDays: 30 };
-                    else if (t === 'trial_ending')          cond = { withinDays: 3 };
-                    else if (t === 'no_activity')           cond = { days: 30 };
+                    if (t === 'risk_threshold')           cond = { value: 70 };
+                    else if (t === 'payment_failed')      cond = { withinHours: 24 };
+                    else if (t === 'feature_abandonment') cond = { days: 7 };
+                    else if (t === 'days_since_login')    cond = { days: 14 };
+                    else if (t === 'mrr_value')           cond = { operator: '>', value: 100 };
+                    else if (t === 'plan_type')           cond = { plan: 'free' };
+                    else if (t === 'payment_status')      cond = { status: 'failed' };
+                    else if (t === 'account_age')         cond = { days: 90 };
+                    else if (t === 'feature_not_used')    cond = { feature: '', days: 14 };
+                    else if (t === 'support_tickets')     cond = { count: 3, withinDays: 30 };
+                    else if (t === 'trial_ending')        cond = { withinDays: 3 };
+                    else if (t === 'no_activity')         cond = { days: 30 };
                     setForm(f => ({ ...f, triggerType: t, condition: cond }));
+                    setExtraConditions([]);
                   }}
                   style={inputStyle}
                 >
@@ -625,87 +612,77 @@ export default function AutomationRulesPage() {
               </div>
             )}
 
-            {/* Multi-condition builder */}
-            {form.triggerType === 'multi_condition' && (
-              <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Match</span>
-                  <select
-                    value={multiLogic}
-                    onChange={e => setMultiLogic(e.target.value as 'AND' | 'OR')}
-                    style={{ ...inputStyle, width: 'auto', padding: '6px 10px' }}
+            {/* Additional AND Conditions — available for all trigger types */}
+            <div style={{ marginBottom: '20px', padding: '16px', background: '#eef2ff', borderRadius: '8px', border: '1px solid #c7d2fe' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: extraConditions.length > 0 ? '14px' : 0 }}>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#3730a3' }}>Additional AND Conditions</span>
+                  <span style={{ fontSize: '12px', color: '#6366f1', marginLeft: '8px' }}>(optional — up to 5)</span>
+                </div>
+                {extraConditions.length < 5 && (
+                  <button
+                    onClick={() => setExtraConditions(c => [...c, emptyCondition()])}
+                    style={{ padding: '5px 14px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', fontFamily: 'inherit' }}
                   >
-                    <option value="AND">ALL conditions (AND)</option>
-                    <option value="OR">ANY condition (OR)</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {multiConditions.map((cond, idx) => {
-                    const fieldMeta = CONDITION_FIELDS.find(f => f.value === cond.field);
-                    const ops = OPERATORS[fieldMeta?.type === 'number' ? 'number' : 'string'];
-                    return (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        {idx > 0 && (
-                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#6366f1', minWidth: '28px', textAlign: 'center' }}>
-                            {multiLogic}
-                          </span>
-                        )}
-                        <select
-                          value={cond.field}
-                          onChange={e => {
-                            const updated = [...multiConditions];
-                            updated[idx] = { ...cond, field: e.target.value, operator: '>', value: '' };
-                            setMultiConditions(updated);
-                          }}
-                          style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: '13px' }}
-                        >
-                          {CONDITION_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                        </select>
-                        <select
-                          value={cond.operator}
-                          onChange={e => {
-                            const updated = [...multiConditions];
-                            updated[idx] = { ...cond, operator: e.target.value };
-                            setMultiConditions(updated);
-                          }}
-                          style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: '13px' }}
-                        >
-                          {ops.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <input
-                          value={cond.value}
-                          onChange={e => {
-                            const updated = [...multiConditions];
-                            updated[idx] = { ...cond, value: e.target.value };
-                            setMultiConditions(updated);
-                          }}
-                          placeholder="value"
-                          style={{ ...inputStyle, width: '100px', padding: '6px 10px', fontSize: '13px' }}
-                        />
-                        {multiConditions.length > 1 && (
-                          <button
-                            onClick={() => setMultiConditions(c => c.filter((_, i) => i !== idx))}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '16px', lineHeight: 1, padding: '4px' }}
-                          >×</button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setMultiConditions(c => [...c, emptyCondition()])}
-                  style={{
-                    marginTop: '12px', padding: '6px 14px', background: 'none',
-                    border: '1px dashed #6366f1', color: '#6366f1', borderRadius: '6px',
-                    cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-                  }}
-                >
-                  + Add Condition
-                </button>
+                    + Add Condition
+                  </button>
+                )}
               </div>
-            )}
+
+              {extraConditions.length === 0 && (
+                <p style={{ margin: 0, fontSize: '12px', color: '#6366f1' }}>
+                  Click "+ Add Condition" to require multiple fields to match before this rule fires (e.g. Risk Score ≥ 70 AND MRR &gt; 1000).
+                </p>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {extraConditions.map((cond, idx) => {
+                  const fieldMeta = CONDITION_FIELDS.find(f => f.value === cond.field);
+                  const ops = OPERATORS[fieldMeta?.type === 'number' ? 'number' : 'string'];
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', minWidth: '32px', textAlign: 'center', letterSpacing: '0.5px' }}>AND</span>
+                      <select
+                        value={cond.field}
+                        onChange={e => {
+                          const updated = [...extraConditions];
+                          updated[idx] = { ...cond, field: e.target.value, operator: '>', value: '' };
+                          setExtraConditions(updated);
+                        }}
+                        style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: '13px' }}
+                      >
+                        {CONDITION_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                      </select>
+                      <select
+                        value={cond.operator}
+                        onChange={e => {
+                          const updated = [...extraConditions];
+                          updated[idx] = { ...cond, operator: e.target.value };
+                          setExtraConditions(updated);
+                        }}
+                        style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: '13px' }}
+                      >
+                        {ops.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      <input
+                        value={cond.value}
+                        onChange={e => {
+                          const updated = [...extraConditions];
+                          updated[idx] = { ...cond, value: e.target.value };
+                          setExtraConditions(updated);
+                        }}
+                        placeholder="value"
+                        style={{ ...inputStyle, width: '110px', padding: '6px 10px', fontSize: '13px' }}
+                      />
+                      <button
+                        onClick={() => setExtraConditions(c => c.filter((_, i) => i !== idx))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '18px', lineHeight: 1, padding: '4px', flexShrink: 0 }}
+                      >×</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Action config */}
             <ActionConfigEditor form={form} setForm={setForm} />
@@ -756,7 +733,7 @@ export default function AutomationRulesPage() {
               <p style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: '600', color: '#111827' }}>No automation rules yet</p>
               <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#6b7280' }}>Create your first rule or start from a template above.</p>
               <button
-                onClick={() => setShowBuilder(true)}
+                onClick={() => { setShowBuilder(true); setForm(emptyForm()); setExtraConditions([]); }}
                 style={{ padding: '10px 24px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Create First Rule

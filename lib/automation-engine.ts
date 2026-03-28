@@ -242,6 +242,16 @@ async function isOnCooldown(ruleId: string, customerId: string, triggerType: str
   return !!recent;
 }
 
+// ── Extra AND conditions filter ──────────────────────────────────────────────
+
+function applyExtraConditions(customers: any[], condition: Record<string, unknown>): any[] {
+  const extra = Array.isArray(condition.extraConditions)
+    ? (condition.extraConditions as SingleCondition[])
+    : [];
+  if (!extra.length) return customers;
+  return customers.filter(c => extra.every(cond => evaluateSingle(c, cond)));
+}
+
 // ── Main engine ─────────────────────────────────────────────────────────────
 
 export interface EngineOptions {
@@ -459,6 +469,9 @@ export async function runAutomationEngine(opts: EngineOptions = {}): Promise<Eng
         },
       });
     }
+
+    // Apply any extra AND conditions stored in condition.extraConditions
+    candidates = applyExtraConditions(candidates, condition);
 
     // ── Execute action for each candidate ─────────────────────────────────
     for (const customer of candidates) {
