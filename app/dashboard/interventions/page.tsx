@@ -187,7 +187,7 @@ export default function InterventionsPage() {
               color: '#6b7280',
               fontSize: '14px'
             }}>
-              Track and manage playbook interventions
+              Fully automated — interventions execute and resolve without manual action
             </p>
           </div>
           <button
@@ -240,78 +240,78 @@ export default function InterventionsPage() {
           </div>
 
           <div
-            onClick={() => setFilterStatus(filterStatus === 'success' ? null : 'success')}
+            onClick={() => setFilterStatus(filterStatus === 'saved' ? null : 'saved')}
             style={{
-              background: filterStatus === 'success' ? '#10b981' : '#fff',
-              border: `1px solid ${filterStatus === 'success' ? '#10b981' : '#e5e7eb'}`,
+              background: filterStatus === 'saved' ? '#10b981' : '#fff',
+              border: `1px solid ${filterStatus === 'saved' ? '#10b981' : '#e5e7eb'}`,
               borderRadius: '12px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               cursor: 'pointer'
             }}>
             <div style={{
-              color: filterStatus === 'success' ? '#d1fae5' : '#6b7280',
+              color: filterStatus === 'saved' ? '#d1fae5' : '#6b7280',
               fontSize: '13px',
               fontWeight: '500',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               marginBottom: '8px'
-            }}>Successful</div>
+            }}>Recovered</div>
             <div style={{
               fontSize: '28px',
               fontWeight: '700',
-              color: filterStatus === 'success' ? '#fff' : '#10b981'
+              color: filterStatus === 'saved' ? '#fff' : '#10b981'
             }}>{safeInterventions.filter((i: any) => i?.status === 'saved').length}</div>
           </div>
 
           <div
-            onClick={() => setFilterStatus(filterStatus === 'failed' ? null : 'failed')}
+            onClick={() => setFilterStatus(filterStatus === 'churned' ? null : 'churned')}
             style={{
-              background: filterStatus === 'failed' ? '#ef4444' : '#fff',
-              border: `1px solid ${filterStatus === 'failed' ? '#ef4444' : '#e5e7eb'}`,
+              background: filterStatus === 'churned' ? '#ef4444' : '#fff',
+              border: `1px solid ${filterStatus === 'churned' ? '#ef4444' : '#e5e7eb'}`,
               borderRadius: '12px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               cursor: 'pointer'
             }}>
             <div style={{
-              color: filterStatus === 'failed' ? '#fee2e2' : '#6b7280',
+              color: filterStatus === 'churned' ? '#fee2e2' : '#6b7280',
               fontSize: '13px',
               fontWeight: '500',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               marginBottom: '8px'
-            }}>Failed</div>
+            }}>Churned</div>
             <div style={{
               fontSize: '28px',
               fontWeight: '700',
-              color: filterStatus === 'failed' ? '#fff' : '#ef4444'
+              color: filterStatus === 'churned' ? '#fff' : '#ef4444'
             }}>{safeInterventions.filter((i: any) => i?.status === 'churned').length}</div>
           </div>
 
           <div
-            onClick={() => setFilterStatus(filterStatus === 'pending' ? null : 'pending')}
+            onClick={() => setFilterStatus(filterStatus === 'active' ? null : 'active')}
             style={{
-              background: filterStatus === 'pending' ? '#f59e0b' : '#fff',
-              border: `1px solid ${filterStatus === 'pending' ? '#f59e0b' : '#e5e7eb'}`,
+              background: filterStatus === 'active' ? '#6366f1' : '#fff',
+              border: `1px solid ${filterStatus === 'active' ? '#6366f1' : '#e5e7eb'}`,
               borderRadius: '12px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               cursor: 'pointer'
             }}>
             <div style={{
-              color: filterStatus === 'pending' ? '#fef3c7' : '#6b7280',
+              color: filterStatus === 'active' ? '#e0e7ff' : '#6b7280',
               fontSize: '13px',
               fontWeight: '500',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               marginBottom: '8px'
-            }}>Pending</div>
+            }}>Active</div>
             <div style={{
               fontSize: '28px',
               fontWeight: '700',
-              color: filterStatus === 'pending' ? '#fff' : '#f59e0b'
-            }}>{safeInterventions.filter((i: any) => i?.status === 'pending').length}</div>
+              color: filterStatus === 'active' ? '#fff' : '#6366f1'
+            }}>{safeInterventions.filter((i: any) => i?.status === 'active').length}</div>
           </div>
         </div>
 
@@ -333,6 +333,7 @@ export default function InterventionsPage() {
                 <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Customer</th>
                 <th style={{textAlign: 'left', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Type</th>
                 <th style={{textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Status</th>
+                <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>MRR</th>
                 <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}>Date</th>
                 <th style={{textAlign: 'right', padding: '12px', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600'}}></th>
               </tr>
@@ -363,14 +364,30 @@ export default function InterventionsPage() {
                       <span style={{
                         padding: '6px 12px',
                         borderRadius: '20px',
-                        background: intervention?.status === 'saved' ? '#f0fdf4' : intervention?.status === 'churned' ? '#fef2f2' : '#fffbeb',
-                        color: intervention?.status === 'saved' ? '#10b981' : intervention?.status === 'churned' ? '#ef4444' : '#f59e0b',
+                        background: intervention?.status === 'saved' ? '#f0fdf4'
+                          : intervention?.status === 'churned' ? '#fef2f2'
+                          : intervention?.status === 'active' ? '#eef2ff'
+                          : '#f3f4f6',
+                        color: intervention?.status === 'saved' ? '#10b981'
+                          : intervention?.status === 'churned' ? '#ef4444'
+                          : intervention?.status === 'active' ? '#6366f1'
+                          : '#6b7280',
                         fontWeight: '600',
                         fontSize: '13px',
                         textTransform: 'capitalize'
                       }}>
-                        {intervention?.status || 'pending'}
+                        {intervention?.status === 'active' ? 'Active — Awaiting Response'
+                          : intervention?.status === 'saved' ? 'Recovered'
+                          : intervention?.status === 'churned' ? 'Churned'
+                          : intervention?.status || 'pending'}
                       </span>
+                    </td>
+                    <td style={{padding: '16px 12px', textAlign: 'right', fontWeight: '500'}}>
+                      {intervention?.status === 'saved'
+                        ? <span style={{color: '#10b981'}}>+${intervention.mrrSaved ?? intervention.mrrAtRisk}</span>
+                        : intervention?.status === 'churned'
+                        ? <span style={{color: '#ef4444'}}>-${intervention.mrrLost ?? intervention.mrrAtRisk}</span>
+                        : <span style={{color: '#6b7280'}}>${intervention?.mrrAtRisk ?? 0} at risk</span>}
                     </td>
                     <td style={{padding: '16px 12px', textAlign: 'right', color: '#6b7280'}}>
                       {intervention?.createdAt ? new Date(intervention.createdAt).toLocaleDateString() : '-'}
