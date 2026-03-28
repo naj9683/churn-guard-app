@@ -76,30 +76,67 @@ function buildEmail(type: string, customer: { name: string | null; email: string
   }
 }
 
+export interface ExecutionLog {
+  executedAt: string;
+  channels: {
+    email: { status: 'sent' | 'failed'; to: string; subject: string; sentAt: string; error?: string };
+    sms?: { status: 'sent' | 'failed' | 'skipped'; to?: string; body?: string; sentAt: string; reason?: string };
+    slack?: { status: 'sent' | 'failed' | 'skipped'; sentAt: string; reason?: string };
+  };
+  emailContent: { subject: string; html: string };
+  timeline: Array<{ event: string; timestamp: string; detail: string }>;
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
 async function executeIntervention(
   intervention: { id: string; interventionType: string; mrrAtRisk: number; userId: string },
   customer: { email: string; name: string | null; mrr: number; phone: string | null }
-): Promise<string[]> {
-  const actions: string[] = [];
+): Promise<ExecutionLog> {
+  const now = new Date().toISOString();
+  const { subject, html } = buildEmail(intervention.interventionType, customer);
+
+  const log: ExecutionLog = {
+    executedAt: now,
+    channels: {
+      email: { status: 'failed', to: customer.email, subject, sentAt: now },
+    },
+    emailContent: { subject, html },
+    timeline: [
+      { event: 'Intervention created', timestamp: now, detail: `Type: ${intervention.interventionType.replace(/_/g, ' ')}` },
+    ],
+  };
 
   // 1. Send email
-  const { subject, html } = buildEmail(intervention.interventionType, customer);
   const emailResult = await sendEmail(customer.email, subject, html);
   if (emailResult.success) {
-    actions.push(`email sent to ${customer.email}`);
+    log.channels.email = { status: 'sent', to: customer.email, subject, sentAt: now };
+    log.timeline.push({ event: 'Email sent', timestamp: now, detail: `"${subject}" → ${customer.email}` });
   } else {
-    actions.push(`email failed: ${JSON.stringify(emailResult.error)}`);
+    log.channels.email = { status: 'failed', to: customer.email, subject, sentAt: now, error: JSON.stringify(emailResult.error) };
+    log.timeline.push({ event: 'Email failed', timestamp: now, detail: `Failed to send to ${customer.email}` });
   }
 
-  // 2. Send SMS if phone on record (critical types only)
+  // 2. SMS — critical types only
   const criticalTypes = ['high_priority_call', 'critical_call_required', 'discount_offer'];
-  if (customer.phone && criticalTypes.includes(intervention.interventionType)) {
-    const smsBody = `ChurnGuard: Hi ${customer.name ?? 'there'}, we sent you an important email. Reply or visit ${APP_URL} for support.`;
-    const smsResult = await sendSms(customer.phone, smsBody);
-    actions.push(smsResult.ok ? `SMS sent to ${customer.phone}` : `SMS skipped: ${smsResult.error}`);
+  if (criticalTypes.includes(intervention.interventionType)) {
+    if (customer.phone) {
+      const smsBody = `ChurnGuard: Hi ${customer.name ?? 'there'}, we sent you an important email. Reply or visit ${APP_URL} for support.`;
+      const smsResult = await sendSms(customer.phone, smsBody);
+      if (smsResult.ok) {
+        log.channels.sms = { status: 'sent', to: customer.phone, body: smsBody, sentAt: now };
+        log.timeline.push({ event: 'SMS sent', timestamp: now, detail: `Message sent to ${customer.phone}` });
+      } else {
+        log.channels.sms = { status: 'failed', to: customer.phone, body: smsBody, sentAt: now, reason: smsResult.error };
+        log.timeline.push({ event: 'SMS failed', timestamp: now, detail: smsResult.error ?? 'Twilio error' });
+      }
+    } else {
+      log.channels.sms = { status: 'skipped', sentAt: now, reason: 'No phone number on customer record' };
+      log.timeline.push({ event: 'SMS skipped', timestamp: now, detail: 'No phone number on customer record' });
+    }
   }
 
-  // 3. Post to Slack for critical/high-priority types
+  // 3. Slack — high-priority types only
   const slackTypes = ['high_priority_call', 'critical_call_required'];
   if (slackTypes.includes(intervention.interventionType)) {
     const user = await prisma.user.findFirst({
@@ -107,7 +144,7 @@ async function executeIntervention(
       select: { slackWebhookUrl: true },
     });
     if (user?.slackWebhookUrl) {
-      const slackBody = {
+      const slackMsg = {
         username: 'ChurnGuard',
         icon_emoji: ':rotating_light:',
         text: `*Intervention Auto-Executed* — ${intervention.interventionType.replace(/_/g, ' ')}`,
@@ -124,16 +161,26 @@ async function executeIntervention(
         const res = await fetch(user.slackWebhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(slackBody),
+          body: JSON.stringify(slackMsg),
         });
-        actions.push(res.ok ? 'Slack alert sent' : `Slack failed: HTTP ${res.status}`);
+        if (res.ok) {
+          log.channels.slack = { status: 'sent', sentAt: now };
+          log.timeline.push({ event: 'Slack alert posted', timestamp: now, detail: 'High-risk alert posted to team channel' });
+        } else {
+          log.channels.slack = { status: 'failed', sentAt: now, reason: `HTTP ${res.status}` };
+          log.timeline.push({ event: 'Slack failed', timestamp: now, detail: `HTTP ${res.status}` });
+        }
       } catch (e: any) {
-        actions.push(`Slack error: ${e.message}`);
+        log.channels.slack = { status: 'failed', sentAt: now, reason: e.message };
+        log.timeline.push({ event: 'Slack error', timestamp: now, detail: e.message });
       }
+    } else {
+      log.channels.slack = { status: 'skipped', sentAt: now, reason: 'No Slack webhook configured' };
+      log.timeline.push({ event: 'Slack skipped', timestamp: now, detail: 'No Slack webhook configured' });
     }
   }
 
-  return actions;
+  return log;
 }
 
 // GET handler - list all interventions
@@ -209,12 +256,12 @@ export async function POST(request: Request) {
       }
     });
 
-    // Auto-execute immediately (fire-and-forget; don't fail the request if email has issues)
-    const actions = await executeIntervention(intervention, customer).catch(() => []);
-    if (actions.length > 0) {
+    // Auto-execute immediately — store structured JSON log in notes
+    const log = await executeIntervention(intervention, customer).catch((e) => null);
+    if (log) {
       await prisma.interventionOutcome.update({
         where: { id: intervention.id },
-        data: { notes: `Auto-executed: ${actions.join(' | ')}` },
+        data: { notes: JSON.stringify(log) },
       });
     }
 
@@ -222,7 +269,7 @@ export async function POST(request: Request) {
       success: true,
       message: 'Intervention auto-executed',
       intervention,
-      actions,
+      log,
     });
   } catch (error: any) {
     console.error('ERROR:', error.message);

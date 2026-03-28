@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/app/components/Sidebar';
 import { track, page } from '@/lib/analytics';
 import { MP, mpPage } from '@/lib/mixpanel';
@@ -393,21 +394,38 @@ export default function InterventionsPage() {
                       {intervention?.createdAt ? new Date(intervention.createdAt).toLocaleDateString() : '-'}
                     </td>
                     <td style={{padding: '16px 12px', textAlign: 'right'}}>
-                      <button
-                        onClick={() => deleteIntervention(intervention.id)}
-                        disabled={deleting === intervention.id}
-                        style={{
-                          padding: '5px 12px',
-                          background: deleting === intervention.id ? '#f3f4f6' : '#fef2f2',
-                          color: deleting === intervention.id ? '#9ca3af' : '#ef4444',
-                          border: `1px solid ${deleting === intervention.id ? '#e5e7eb' : '#fecaca'}`,
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          cursor: deleting === intervention.id ? 'not-allowed' : 'pointer'
-                        }}>
-                        {deleting === intervention.id ? '...' : 'Delete'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <Link
+                          href={`/dashboard/interventions/${intervention.id}`}
+                          style={{
+                            padding: '5px 12px',
+                            background: '#f9fafb',
+                            color: '#6366f1',
+                            border: '1px solid #e0d9ff',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                          }}>
+                          View Details
+                        </Link>
+                        <button
+                          onClick={() => deleteIntervention(intervention.id)}
+                          disabled={deleting === intervention.id}
+                          style={{
+                            padding: '5px 12px',
+                            background: deleting === intervention.id ? '#f3f4f6' : '#fef2f2',
+                            color: deleting === intervention.id ? '#9ca3af' : '#ef4444',
+                            border: `1px solid ${deleting === intervention.id ? '#e5e7eb' : '#fecaca'}`,
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: deleting === intervention.id ? 'not-allowed' : 'pointer'
+                          }}>
+                          {deleting === intervention.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
