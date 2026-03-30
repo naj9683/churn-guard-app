@@ -19,7 +19,8 @@ export async function POST() {
       return NextResponse.json({ error: 'No Stripe customer found. Subscribe to a plan first.' }, { status: 400 });
     }
 
-    const returnUrl = `${process.env.NEXT_PUBLIC_URL}/settings/billing`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_URL ?? 'https://churnguardapp.com';
+    const returnUrl = `${appUrl}/settings/billing`;
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,

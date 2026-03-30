@@ -71,12 +71,20 @@ export default function BillingPage() {
       const res = await fetch('/api/stripe/portal-session', { method: 'POST' });
       const d = await res.json();
       if (!res.ok || !d.url) {
-        setError(d.error || 'Failed to open billing portal.');
+        const msg = d.error || 'Failed to open billing portal.';
+        // Give a human-readable hint for common Stripe configuration errors
+        if (msg.includes('No such customer') || msg.includes('No Stripe customer')) {
+          setError('No billing account found. Please subscribe to a plan first.');
+        } else if (msg.includes('portal') || msg.includes('configuration')) {
+          setError('Billing portal is not configured yet. Please contact support to manage your subscription.');
+        } else {
+          setError(msg);
+        }
         return;
       }
       window.location.href = d.url;
     } catch {
-      setError('Failed to open billing portal.');
+      setError('Failed to open billing portal. Please contact support.');
     } finally {
       setPortalLoading(false);
     }
@@ -220,15 +228,42 @@ export default function BillingPage() {
           )}
         </Section>
 
-        {/* What the portal covers */}
-        <div style={{ padding: '16px 20px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '13px', color: '#6b7280' }}>
-          <strong style={{ color: '#374151' }}>Billing portal handles:</strong>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-            {['Upgrade / downgrade plan', 'Update credit card', 'Cancel subscription', 'Download invoices', 'View billing history'].map(item => (
-              <span key={item} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px' }}>{item}</span>
+        {/* Quick-action buttons — all open the Stripe portal */}
+        <Section title="Quick Actions" subtitle="Click any action below — you'll be taken to the Stripe billing portal">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+            {[
+              { label: 'Upgrade / Downgrade Plan', icon: '↕' },
+              { label: 'Update Credit Card',        icon: '💳' },
+              { label: 'Cancel Subscription',       icon: '✕' },
+              { label: 'Download Invoices',         icon: '⬇' },
+              { label: 'View Billing History',      icon: '📄' },
+            ].map(({ label, icon }) => (
+              <button
+                key={label}
+                onClick={openPortal}
+                disabled={portalLoading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '12px 16px', background: '#fff',
+                  border: '1px solid #e5e7eb', borderRadius: '8px',
+                  fontSize: '13px', fontWeight: '500', color: '#374151',
+                  cursor: portalLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left', fontFamily: 'inherit',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { if (!portalLoading) { (e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'; } }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'; }}
+              >
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>{icon}</span>
+                <span>{label}</span>
+                <span style={{ marginLeft: 'auto', color: '#9ca3af', fontSize: '12px' }}>→</span>
+              </button>
             ))}
           </div>
-        </div>
+          <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#9ca3af' }}>
+            All billing changes are handled securely by Stripe. You&apos;ll be redirected back here when done.
+          </p>
+        </Section>
       </div>
     </Layout>
   );
