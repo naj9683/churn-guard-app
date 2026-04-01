@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import DemoVideoModal from './DemoVideoModal';
 
 // ─── Scroll-reveal hook ────────────────────────────────────────────────────────
 function useFadeIn() {
@@ -120,6 +121,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activePlan, setActivePlan] = useState<string | null>(null);
+  const [showDemo, setShowDemo] = useState(false);
   const planRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Scroll-highlight: whichever pricing card is most centered in viewport
@@ -294,13 +296,13 @@ export default function LandingPage() {
                 >
                   Get Started
                 </a>
-                <Link
-                  href="/dashboard"
+                <button
+                  onClick={() => setShowDemo(true)}
                   className="px-8 py-4 rounded-xl font-semibold text-slate-300 text-base text-center border hover:text-white transition-colors"
                   style={{ borderColor: '#334155' }}
                 >
                   View Demo →
-                </Link>
+                </button>
               </div>
 
               <p className="text-slate-600 text-sm">
@@ -971,6 +973,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <DemoVideoModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
     </div>
   );
 }
