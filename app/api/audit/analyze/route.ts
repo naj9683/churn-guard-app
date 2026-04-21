@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         annualizedLoss: result.annualizedLoss,
         totalMrr: result.totalMrr,
         industryPercentile: result.industryPercentile,
-        atRiskCustomers: result.atRiskCustomers,
+        atRiskCustomers: JSON.parse(JSON.stringify(result.atRiskCustomers)),
       },
     });
   } catch (dbErr) {

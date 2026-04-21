@@ -168,7 +168,7 @@ export default function LandingPage() {
             <a href="#features" className="text-slate-400 hover:text-white text-sm transition-colors">Features</a>
             <a href="#pricing" className="text-slate-400 hover:text-white text-sm transition-colors">Pricing</a>
             <Link href="/audit" className="text-amber-400 hover:text-amber-300 text-sm font-semibold transition-colors">
-              Free Audit
+              Audit
             </Link>
           </div>
 
@@ -206,7 +206,7 @@ export default function LandingPage() {
           <div className="md:hidden border-t border-slate-800 px-5 py-5 flex flex-col gap-4" style={{ background: '#0f172a' }}>
             <a href="#features" className="text-slate-300 text-sm" onClick={() => setMobileOpen(false)}>Features</a>
             <a href="#pricing" className="text-slate-300 text-sm" onClick={() => setMobileOpen(false)}>Pricing</a>
-            <Link href="/audit" className="text-amber-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Free Audit</Link>
+            <Link href="/audit" className="text-amber-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Audit</Link>
             <Link href="/login" className="text-slate-300 text-sm">Login</Link>
             <a
               href="#pricing"
