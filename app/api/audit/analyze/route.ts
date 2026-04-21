@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email/resend';
+import { email1, daysUntilNextEmail } from '@/lib/email/audit-sequence';
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
 
@@ -303,7 +304,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 422 });
   }
 
-  // Persist lead
+  // Persist lead + start email sequence
+  const daysToNext = daysUntilNextEmail(1)!;
+  const nextEmailAt = new Date(Date.now() + daysToNext * 24 * 60 * 60 * 1000);
+
   try {
     await prisma.auditLead.create({
       data: {
@@ -316,16 +320,18 @@ export async function POST(request: NextRequest) {
         totalMrr: result.totalMrr,
         industryPercentile: result.industryPercentile,
         atRiskCustomers: JSON.parse(JSON.stringify(result.atRiskCustomers)),
+        emailStep: 1,
+        nextEmailAt,
       },
     });
   } catch (dbErr) {
-    // Non-blocking — don't fail the response if DB write fails
     console.error('[audit] DB write failed:', dbErr);
   }
 
-  // Send report email (non-blocking)
-  sendEmail(email, '⚠️ Your Free ChurnGuard Audit Report', auditEmailHtml(email, result)).catch(e =>
-    console.error('[audit] email send failed:', e)
+  // Send Email 1 immediately (non-blocking)
+  const e1 = email1({ id: 'pending', email, ...result });
+  sendEmail(email, e1.subject, e1.html).catch(e =>
+    console.error('[audit] email1 send failed:', e)
   );
 
   return NextResponse.json(result);

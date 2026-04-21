@@ -399,18 +399,23 @@ model SequenceLog {
 }
 
 model AuditLead {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   email              String
-  stripeConnected    Boolean  @default(false)
-  csvUploaded        Boolean  @default(false)
+  stripeConnected    Boolean   @default(false)
+  csvUploaded        Boolean   @default(false)
   monthlyChurnRate   Float
   revenueAtRisk      Int
   annualizedLoss     Int
-  totalMrr           Int      @default(0)
+  totalMrr           Int       @default(0)
   industryPercentile Int
   atRiskCustomers    Json
-  createdAt          DateTime @default(now())
+  emailStep          Int       @default(0)
+  nextEmailAt        DateTime?
+  unsubscribed       Boolean   @default(false)
+  createdAt          DateTime  @default(now())
 
   @@index([email])
   @@index([createdAt])
+  @@index([nextEmailAt])
+  @@index([unsubscribed])
 }
