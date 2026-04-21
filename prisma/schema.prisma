@@ -397,3 +397,20 @@ model SequenceLog {
   @@index([enrollmentId])
   @@index([executedAt])
 }
+
+model AuditLead {
+  id                 String   @id @default(cuid())
+  email              String
+  stripeConnected    Boolean  @default(false)
+  csvUploaded        Boolean  @default(false)
+  monthlyChurnRate   Float
+  revenueAtRisk      Int
+  annualizedLoss     Int
+  totalMrr           Int      @default(0)
+  industryPercentile Int
+  atRiskCustomers    Json
+  createdAt          DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}
