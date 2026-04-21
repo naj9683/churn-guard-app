@@ -43,7 +43,7 @@ export default function Sidebar() {
 
   const settingsItems = [
     { href: '/settings', label: 'Settings', icon: Icons.settings },
-    { href: '/audit', label: 'Audit Logs', icon: Icons.audit },
+    { href: '/dashboard/audit', label: 'Audit Logs', icon: Icons.audit },
     { href: '/team', label: 'Team', icon: Icons.team },
     { href: '/export', label: 'Export', icon: Icons.export },
   ];
