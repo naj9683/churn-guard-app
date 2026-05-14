@@ -419,3 +419,33 @@ model AuditLead {
   @@index([nextEmailAt])
   @@index([unsubscribed])
 }
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  to           String
+  subject      String
+  status       String
+  messageId    String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model SmsLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  to           String
+  body         String
+  status       String
+  messageSid   String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { prisma } from '@/lib/prisma';
 
 // Lazy initialization - only create client when needed
 let resend: Resend | null = null;
@@ -15,15 +16,12 @@ function getResend() {
   return resend;
 }
 
-export async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(to: string, subject: string, html: string, userId?: string) {
   const client = getResend();
-  
+
   if (!client) {
-    // Log email for testing when API key is missing
-    console.log('📧 EMAIL WOULD BE SENT:');
-    console.log('To:', to);
-    console.log('Subject:', subject);
-    console.log('---');
+    console.log('📧 EMAIL WOULD BE SENT:', to, subject);
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now() } }).catch(() => {});
     return { success: true, data: { id: 'mock-email-id' } };
   }
 
@@ -37,12 +35,15 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
     if (error) {
       console.error('Resend error:', error);
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: String(error) } }).catch(() => {});
       return { success: false, error };
     }
 
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: (data as any)?.id } }).catch(() => {});
     return { success: true, data };
   } catch (error) {
     console.error('Email send failed:', error);
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: String(error) } }).catch(() => {});
     return { success: false, error };
   }
 }

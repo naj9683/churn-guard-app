@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin', label: 'Overview', icon: '🏠' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
   { href: '/admin/calc-audit', label: 'Calc Audit', icon: '🔍' },
+  { href: '/admin/integrations', label: 'Integrations', icon: '🔗' },
   { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
   { href: '/admin/security', label: 'Security', icon: '🔒' },
   { href: '/admin/database', label: 'Database', icon: '🗄️' },

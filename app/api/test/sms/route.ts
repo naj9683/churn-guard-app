@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/test/sms
@@ -46,12 +47,14 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok) {
+      prisma.smsLog.create({ data: { userId, to, body: message, status: 'failed', errorMessage: data.message } }).catch(() => {});
       return NextResponse.json(
         { error: 'Twilio error', code: data.code, detail: data.message },
         { status: 400 }
       );
     }
 
+    prisma.smsLog.create({ data: { userId, to, body: message, status: 'sent', messageSid: data.sid } }).catch(() => {});
     return NextResponse.json({
       success: true,
       messageSid: data.sid,
@@ -60,6 +63,7 @@ export async function POST(req: NextRequest) {
       status: data.status,
     });
   } catch (e: any) {
+    prisma.smsLog.create({ data: { userId, to, body: message, status: 'failed', errorMessage: String(e.message) } }).catch(() => {});
     return NextResponse.json({ error: String(e.message) }, { status: 500 });
   }
 }
