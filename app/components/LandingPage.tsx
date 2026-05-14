@@ -828,7 +828,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SOCIAL PROOF ───────────────────────────────────────────────────── */}
+      {/* ── CHURN SIGNALS ─────────────────────────────────────────────────── */}
       <section style={{ background: '#080d1a' }} className="py-28 px-5 sm:px-8">
         <div className="max-w-6xl mx-auto">
           <FadeSection className="text-center mb-14">
@@ -836,58 +836,102 @@ export default function LandingPage() {
               className="font-bold text-white mb-3"
               style={{ fontSize: 'clamp(1.75rem,4vw,2.5rem)', letterSpacing: '-0.02em' }}
             >
-              Built for modern SaaS teams
+              Churn signals we catch automatically
             </h2>
-            <p className="text-slate-500">Early users are already recovering lost revenue automatically</p>
+            <p className="text-slate-500">No dashboards to check. Signals fire the playbook the moment something&apos;s off.</p>
           </FadeSection>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                quote: '"ChurnGuard spotted $47K in at-risk revenue our first week. Our CFO finally had numbers she could act on."',
-                name: 'Sarah Chen',
-                role: 'CFO, TechFlow',
-                initials: 'SC',
-              },
-              {
-                quote: '"Twilio SMS reminders recovered 15% of failed payments with zero work from our team. It just runs."',
-                name: 'Mike Ross',
-                role: 'Head of Retention, DataSync',
-                initials: 'MR',
-              },
-              {
-                quote: '"Set it up Friday. Woke up Monday with 3 customers already re-engaged. That\'s the product."',
-                name: 'Lisa Park',
-                role: 'VP Success, CloudBase',
-                initials: 'LP',
-              },
-            ].map((t, i) => (
-              <FadeSection key={t.name} style={{ transitionDelay: `${i * 90}ms` }}>
-                <div
-                  className="rounded-2xl p-7 border h-full flex flex-col"
-                  style={{ background: '#111827', borderColor: '#1e293b' }}
-                >
-                  <div className="flex gap-0.5 mb-5">
-                    {[...Array(5)].map((_, j) => (
-                      <span key={j} className="text-yellow-400 text-sm">★</span>
-                    ))}
+            {/* Payment Failures */}
+            <FadeSection>
+              <div
+                className="rounded-2xl p-7 border h-full flex flex-col"
+                style={{ background: '#111827', borderColor: '#1e293b' }}
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(251,146,60,0.12)' }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="#fb923c" viewBox="0 0 24 24" strokeWidth={1.8}>
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                      <line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed flex-1 mb-6 italic">{t.quote}</p>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-                    >
-                      {t.initials}
-                    </div>
-                    <div>
-                      <div className="text-white text-sm font-semibold">{t.name}</div>
-                      <div className="text-slate-500 text-xs">{t.role}</div>
-                    </div>
-                  </div>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(251,146,60,0.12)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}
+                  >
+                    Real-time
+                  </span>
                 </div>
-              </FadeSection>
-            ))}
+                <h3 className="text-white font-semibold text-base mb-3 leading-snug">Payment Failures</h3>
+                <p className="text-slate-500 text-sm leading-relaxed flex-1">
+                  Failed charges, expired cards, and dunning risk before they become cancellations.
+                </p>
+              </div>
+            </FadeSection>
+
+            {/* Usage Drops */}
+            <FadeSection style={{ transitionDelay: '90ms' }}>
+              <div
+                className="rounded-2xl p-7 border h-full flex flex-col"
+                style={{ background: '#111827', borderColor: '#1e293b' }}
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(99,102,241,0.12)' }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="#818cf8" viewBox="0 0 24 24" strokeWidth={1.8}>
+                      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+                      <polyline points="16 17 22 17 22 11" />
+                    </svg>
+                  </div>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)' }}
+                  >
+                    Auto-detected
+                  </span>
+                </div>
+                <h3 className="text-white font-semibold text-base mb-3 leading-snug">Usage Drops</h3>
+                <p className="text-slate-500 text-sm leading-relaxed flex-1">
+                  When customers stop logging in or abandon key features.
+                </p>
+              </div>
+            </FadeSection>
+
+            {/* Downgrade Intent */}
+            <FadeSection style={{ transitionDelay: '180ms' }}>
+              <div
+                className="rounded-2xl p-7 border h-full flex flex-col"
+                style={{ background: '#111827', borderColor: '#1e293b' }}
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(248,113,113,0.12)' }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="#f87171" viewBox="0 0 24 24" strokeWidth={1.8}>
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                  </div>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}
+                  >
+                    Auto-detected
+                  </span>
+                </div>
+                <h3 className="text-white font-semibold text-base mb-3 leading-snug">Downgrade Intent</h3>
+                <p className="text-slate-500 text-sm leading-relaxed flex-1">
+                  Plan changes, negative support sentiment, and expansion stalls.
+                </p>
+              </div>
+            </FadeSection>
           </div>
         </div>
       </section>
