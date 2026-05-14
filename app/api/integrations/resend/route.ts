@@ -14,7 +14,7 @@ export async function GET() {
   const recentLogs = await prisma.emailLog.findMany({
     orderBy: { createdAt: 'desc' },
     take: 5,
-    select: { id: true, to: true, subject: true, status: true, messageId: true, createdAt: true },
+    select: { id: true, to: true, subject: true, status: true, messageId: true, errorMessage: true, createdAt: true },
   });
 
   return NextResponse.json({ configured, fromEmail, fromName, recentLogs });
@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
   );
 
   if (!result.success) {
-    return NextResponse.json({ error: String((result as any).error ?? 'Send failed') }, { status: 500 });
+    const errMsg = (result as any).errorMessage ?? 'Send failed';
+    console.error('[resend/test] failed:', errMsg);
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, to });

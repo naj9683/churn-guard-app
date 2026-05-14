@@ -113,7 +113,7 @@ async function executeIntervention(
     log.channels.email = { status: 'sent', to: customer.email, subject, sentAt: now };
     log.timeline.push({ event: 'Email sent', timestamp: now, detail: `"${subject}" → ${customer.email}` });
   } else {
-    log.channels.email = { status: 'failed', to: customer.email, subject, sentAt: now, error: JSON.stringify(emailResult.error) };
+    log.channels.email = { status: 'failed', to: customer.email, subject, sentAt: now, error: (emailResult as any).errorMessage ?? 'Send failed' };
     log.timeline.push({ event: 'Email failed', timestamp: now, detail: `Failed to send to ${customer.email}` });
   }
 

@@ -165,7 +165,7 @@ export default function IntegrationsPage() {
   const [slackSaving, setSlackSaving] = useState(false);
   const [slackError, setSlackError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
-  const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; createdAt: string }[] } | null>(null);
+  const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -367,10 +367,15 @@ export default function IntegrationsPage() {
                         <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Last 5 Emails</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           {resendStatus.recentLogs.map(log => (
-                            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '5px 8px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '5px' }}>
-                              <span style={{ width: '48px', fontWeight: '600', color: log.status === 'failed' ? '#ef4444' : log.status === 'mock' ? '#f59e0b' : '#10b981', textTransform: 'capitalize', flexShrink: 0 }}>{log.status}</span>
-                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.subject}</span>
-                              <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <div key={log.id} style={{ fontSize: '12px', padding: '5px 8px', background: log.status === 'failed' ? '#fef9f9' : '#fff', border: `1px solid ${log.status === 'failed' ? '#fecaca' : '#e5e7eb'}`, borderRadius: '5px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ width: '48px', fontWeight: '600', color: log.status === 'failed' ? '#ef4444' : log.status === 'mock' ? '#f59e0b' : '#10b981', textTransform: 'capitalize', flexShrink: 0 }}>{log.status}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.subject}</span>
+                                <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                              {log.status === 'failed' && log.errorMessage && (
+                                <div style={{ marginTop: '3px', fontSize: '11px', color: '#dc2626', paddingLeft: '56px' }}>{log.errorMessage}</div>
+                              )}
                             </div>
                           ))}
                         </div>

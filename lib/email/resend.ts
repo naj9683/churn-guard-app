@@ -34,17 +34,19 @@ export async function sendEmail(to: string, subject: string, html: string, userI
     });
 
     if (error) {
-      console.error('Resend error:', error);
-      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: String(error) } }).catch(() => {});
-      return { success: false, error };
+      const errMsg = (error as any).message ?? JSON.stringify(error);
+      console.error('Resend error:', JSON.stringify(error));
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
+      return { success: false, errorMessage: errMsg };
     }
 
     prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: (data as any)?.id } }).catch(() => {});
     return { success: true, data };
-  } catch (error) {
-    console.error('Email send failed:', error);
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: String(error) } }).catch(() => {});
-    return { success: false, error };
+  } catch (err: any) {
+    const errMsg = err?.message ?? String(err);
+    console.error('Email send failed:', errMsg);
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
+    return { success: false, errorMessage: errMsg };
   }
 }
 
