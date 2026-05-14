@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email/resend';
 
 export async function POST(request: Request) {
   try {
@@ -58,8 +59,16 @@ export async function POST(request: Request) {
       }
 
       if (actions?.sendEmail) {
-        console.log(`Would send email to ${customer.email}`);
-        results.push({ customer: customer.email, action: 'email', status: 'queued' });
+        try {
+          const subject = actions.emailSubject || `Action needed: ${playbook.name}`;
+          const html = actions.emailBody
+            ? actions.emailBody
+            : `<p>Hi ${customer.name || 'there'},</p><p>Your account has been flagged by <strong>${playbook.name}</strong> (risk score: ${customer.riskScore ?? 0}). Please log in to review your account.</p>`;
+          const result = await sendEmail(customer.email, subject, html, user.id);
+          results.push({ customer: customer.email, action: 'email', status: result.success ? 'sent' : 'failed' });
+        } catch (e) {
+          results.push({ customer: customer.email, action: 'email', status: 'failed' });
+        }
       }
     }
 

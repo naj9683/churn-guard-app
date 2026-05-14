@@ -165,8 +165,11 @@ export default function IntegrationsPage() {
   const [slackSaving, setSlackSaving] = useState(false);
   const [slackError, setSlackError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; createdAt: string }[] } | null>(null);
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  useEffect(() => { loadStatus(); }, []);
+  useEffect(() => { loadStatus(); loadResend(); }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -185,6 +188,21 @@ export default function IntegrationsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadResend() {
+    const res = await fetch('/api/integrations/resend').catch(() => null);
+    if (res?.ok) setResendStatus(await res.json());
+  }
+
+  async function sendTestEmail() {
+    setTestEmailSending(true);
+    setTestEmailResult(null);
+    const res = await fetch('/api/integrations/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: 'najwa.saadi1@hotmail.com' }) });
+    const d = await res.json();
+    setTestEmailResult(res.ok ? { ok: true, msg: 'Sent to najwa.saadi1@hotmail.com' } : { ok: false, msg: d.error ?? 'Send failed' });
+    setTestEmailSending(false);
+    loadResend();
   }
 
   function setBusyFor(key: string, val: boolean) { setBusy(b => ({ ...b, [key]: val })); }
@@ -317,10 +335,55 @@ export default function IntegrationsPage() {
             </IntegrationCard>
 
             <IntegrationCard
-              icon="📧" name="SendGrid"
-              desc="Route ChurnGuard emails through your SendGrid account for custom domains"
-              connected={false} accentColor="#1a82e2" comingSoon
-            />
+              icon="📧" name="Resend"
+              desc="Transactional emails — retention sequences, playbook alerts, and campaign delivery"
+              connected={!!resendStatus?.configured} accentColor="#000000" active={!!resendStatus?.configured}
+            >
+              <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                {resendStatus?.configured ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: resendStatus.recentLogs.length > 0 || testEmailResult ? '12px' : '0' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
+                          Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.fromEmail ?? '—'}</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>API key configured in Vercel environment</div>
+                      </div>
+                      <button
+                        onClick={sendTestEmail}
+                        disabled={testEmailSending}
+                        style={{ padding: '7px 16px', background: testEmailSending ? '#e5e7eb' : '#6366f1', color: testEmailSending ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: testEmailSending ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+                      >
+                        {testEmailSending ? 'Sending…' : 'Send Test Email'}
+                      </button>
+                    </div>
+                    {testEmailResult && (
+                      <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testEmailResult.ok ? '#f0fdf4' : '#fef2f2', color: testEmailResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testEmailResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                        {testEmailResult.ok ? '✅ ' : '❌ '}{testEmailResult.msg}
+                      </div>
+                    )}
+                    {resendStatus.recentLogs.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Last 5 Emails</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {resendStatus.recentLogs.map(log => (
+                            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '5px 8px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '5px' }}>
+                              <span style={{ width: '48px', fontWeight: '600', color: log.status === 'failed' ? '#ef4444' : log.status === 'mock' ? '#f59e0b' : '#10b981', textTransform: 'capitalize', flexShrink: 0 }}>{log.status}</span>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.subject}</span>
+                              <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>RESEND_API_KEY</code> to your Vercel environment variables to enable email delivery.
+                  </div>
+                )}
+              </div>
+            </IntegrationCard>
           </div>
         </Section>
 

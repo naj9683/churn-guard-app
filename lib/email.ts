@@ -1,36 +1,18 @@
-import nodemailer from 'nodemailer';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.resend.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  auth: {
-    user: process.env.SMTP_USER || 'resend',
-    pass: process.env.RESEND_API_KEY || '',
-  },
-});
+import { sendEmail as resendSend } from '@/lib/email/resend';
 
 export async function sendEmail({
   to,
   subject,
   html,
+  userId,
 }: {
   to: string;
   subject: string;
   html: string;
+  userId?: string;
 }) {
-  try {
-    await transporter.sendMail({
-      from: 'Churn Guard <onboarding@resend.dev>',
-      to,
-      subject,
-      html,
-    });
-    console.log(`📧 Email sent to ${to}: ${subject}`);
-    return true;
-  } catch (error) {
-    console.error('Email failed:', error);
-    return false;
-  }
+  const result = await resendSend(to, subject, html, userId);
+  return result.success;
 }
 
 export const emailTemplates = {
