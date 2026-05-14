@@ -79,7 +79,11 @@ export default function CalcAuditPage() {
   useEffect(() => {
     fetch('/api/admin/calc-audit')
       .then(r => r.json())
-      .then(d => { if (d.users) setUsers(d.users); else setError(d.error || 'Failed to load users'); })
+      .then(d => {
+        if (d.users) setUsers(d.users);
+        else if (d.error?.includes('Forbidden') || d.error?.includes('admin')) setError('Admin access required. Make sure you are signed in as najwa.saadi1@hotmail.com.');
+        else setError(d.error || 'Failed to load users');
+      })
       .catch(() => setError('Failed to load users'))
       .finally(() => setLoadingUsers(false));
   }, []);
