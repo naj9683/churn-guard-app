@@ -51,6 +51,10 @@ export async function GET() {
           expMonth: pm.card.exp_month,
           expYear: pm.card.exp_year,
         } : null,
+        pauseCollection: sub.pause_collection
+          ? { behavior: sub.pause_collection.behavior, resumesAt: sub.pause_collection.resumes_at ? new Date(sub.pause_collection.resumes_at * 1000).toISOString() : null }
+          : null,
+        pausedUntil: (sub.metadata as Record<string, string>)?.pausedUntil || null,
       };
     }
 
