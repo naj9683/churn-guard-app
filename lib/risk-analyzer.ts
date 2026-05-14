@@ -1,12 +1,13 @@
 import OpenAI from 'openai';
+import { computeRiskScore } from './risk-formula';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface RiskAnalysisResult {
-  churnProbability: number; // 0–100
+  churnProbability: number; // 0–100, always the deterministic formula score
   riskFactors: string[];
   recommendedAction: string;
-  summary: string; // one-sentence risk explanation for the dashboard
+  summary: string;
 }
 
 export interface CustomerRiskInput {
@@ -22,16 +23,17 @@ export interface CustomerRiskInput {
   activeInterventions: number;
 }
 
-function daysSince(date: Date | null): number | null {
-  if (!date) return null;
-  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export async function analyzeCustomerRisk(
   input: CustomerRiskInput
 ): Promise<RiskAnalysisResult> {
-  const daysSinceLogin = daysSince(input.lastLoginAt);
+  // ── Step 1: compute the authoritative score deterministically ──────────────
+  const { score: baselineScore, daysSinceLogin } = computeRiskScore({
+    lastLoginAt: input.lastLoginAt,
+    healthScore: input.healthScore,
+    loginCountThisMonth: input.loginCountThisMonth,
+  });
 
+  // ── Step 2: ask AI for qualitative analysis only (no number) ───────────────
   const dataBlock = JSON.stringify({
     mrr_usd_per_month: input.mrr,
     plan: input.plan ?? 'unknown',
@@ -44,17 +46,18 @@ export async function analyzeCustomerRisk(
   });
 
   const prompt = `You are a customer churn analyst for a B2B SaaS company.
-Analyze the following customer data and return ONLY a valid JSON object — no markdown, no explanation.
+The rule-based risk score for this customer is ${baselineScore}/100 (based on login recency, health score, and activity).
+
+Analyze the following customer data and explain the risk. Return ONLY a valid JSON object — no markdown, no explanation.
 
 Customer data:
 ${dataBlock}
 
-Return exactly this JSON shape:
+Return exactly this JSON shape (do NOT include a churnProbability field — the score is already determined):
 {
-  "churnProbability": <integer 0-100>,
-  "riskFactors": [<up to 4 concise strings>],
+  "riskFactors": [<up to 4 concise strings explaining what is driving the risk>],
   "recommendedAction": <single most important action as a string>,
-  "summary": <one sentence starting with "Risk: " explaining the main driver, e.g. "Risk: High because last login was 14 days ago and MRR dropped 20%">
+  "summary": <one sentence starting with "Risk: " explaining the main driver>
 }`;
 
   const completion = await openai.chat.completions.create({
@@ -65,25 +68,23 @@ Return exactly this JSON shape:
   });
 
   const raw = completion.choices[0]?.message?.content ?? '';
-
-  // Strip possible markdown fences
   const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-  let parsed: RiskAnalysisResult;
+  let qualitative: Pick<RiskAnalysisResult, 'riskFactors' | 'recommendedAction' | 'summary'>;
   try {
-    parsed = JSON.parse(cleaned);
+    qualitative = JSON.parse(cleaned);
   } catch {
-    // Fallback if OpenAI returns unexpected format
-    parsed = {
-      churnProbability: input.currentRiskScore,
-      riskFactors: ['Unable to parse AI response'],
+    qualitative = {
+      riskFactors: ['AI analysis unavailable'],
       recommendedAction: 'Manual review recommended',
-      summary: `Risk: Score ${input.currentRiskScore} — AI analysis unavailable`,
+      summary: `Risk: Score ${baselineScore} — AI explanation unavailable`,
     };
   }
 
-  // Clamp churnProbability to valid range
-  parsed.churnProbability = Math.max(0, Math.min(100, Math.round(parsed.churnProbability ?? input.currentRiskScore)));
-
-  return parsed;
+  return {
+    churnProbability: baselineScore, // always the formula — never the AI's guess
+    riskFactors: qualitative.riskFactors ?? [],
+    recommendedAction: qualitative.recommendedAction ?? 'Review customer',
+    summary: qualitative.summary ?? `Risk: Score ${baselineScore}`,
+  };
 }

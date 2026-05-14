@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import AdminShell from '../components/AdminShell';
+import { computeRiskScore } from '@/lib/risk-formula';
 
-// ─── Deterministic formula ────────────────────────────────────────────────────
-// This mirrors what an ideal rule-based system would compute.
-// The stored riskScore comes from GPT-4o-mini; we flag large divergences.
+// ─── Audit wrapper ────────────────────────────────────────────────────────────
+// computeRiskScore is the single source of truth — same function used when
+// storing the score. A mismatch here means the record pre-dates this fix.
 
 interface CalcSteps {
   daysSinceLogin: number | null;
@@ -20,31 +21,28 @@ interface CalcSteps {
 }
 
 function runFormula(c: any): CalcSteps {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const daysSinceLogin: number | null = c.lastLoginAt
-    ? Math.floor((Date.now() - new Date(c.lastLoginAt).getTime()) / msPerDay)
-    : null;
+  const result = computeRiskScore({
+    lastLoginAt: c.lastLoginAt ? new Date(c.lastLoginAt) : null,
+    healthScore: c.healthScore,
+    loginCountThisMonth: c.loginCountThisMonth ?? 0,
+  });
 
-  // Step 1 — Login recency (max 45 pts)
-  const loginDays = daysSinceLogin ?? 999;
-  const cappedDays = Math.min(loginDays, 30);
-  const loginPts = Math.round((cappedDays / 30) * 45);
-
-  // Step 2 — Health score (max 30 pts)
-  const health = c.healthScore ?? 100;
-  const healthPts = Math.round(((100 - health) / 100) * 30);
-
-  // Step 3 — Activity gap (max 25 pts)
-  const logins = c.loginCountThisMonth ?? 0;
-  const activityPts = logins === 0 ? 25 : logins < 3 ? 12 : 0;
-
-  const calculatedScore = Math.min(100, Math.max(0, loginPts + healthPts + activityPts));
   const storedScore = c.riskScore ?? 0;
   const storedRevenueAtRisk = Math.round((c.mrr ?? 0) * storedScore / 100);
-  const calculatedRevenueAtRisk = Math.round((c.mrr ?? 0) * calculatedScore / 100);
-  const mismatch = Math.abs(calculatedScore - storedScore) > 15;
+  const calculatedRevenueAtRisk = Math.round((c.mrr ?? 0) * result.score / 100);
+  const mismatch = Math.abs(result.score - storedScore) > 15;
 
-  return { daysSinceLogin, loginPts, healthPts, activityPts, calculatedScore, storedScore, storedRevenueAtRisk, calculatedRevenueAtRisk, mismatch };
+  return {
+    daysSinceLogin: result.daysSinceLogin,
+    loginPts: result.loginPts,
+    healthPts: result.healthPts,
+    activityPts: result.activityPts,
+    calculatedScore: result.score,
+    storedScore,
+    storedRevenueAtRisk,
+    calculatedRevenueAtRisk,
+    mismatch,
+  };
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -379,10 +377,10 @@ export default function CalcAuditPage() {
                   <div style={{ padding: '14px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                     <span style={{ fontSize: '18px', flexShrink: 0 }}>🚨</span>
                     <div>
-                      <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '14px', marginBottom: '2px' }}>CALCULATION MISMATCH</div>
+                      <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '14px', marginBottom: '2px' }}>CALCULATION MISMATCH — Stale Record</div>
                       <div style={{ fontSize: '13px', color: '#7f1d1d' }}>
-                        The AI-generated score ({steps.storedScore}) differs from the rule-based formula ({steps.calculatedScore}) by {Math.abs(steps.calculatedScore - steps.storedScore)} points.
-                        This may indicate stale data, an AI hallucination, or input signals that haven&apos;t been re-synced. Consider re-running the AI analysis for this customer.
+                        Stored score ({steps.storedScore}) was written by the old AI system before the formula became the source of truth.
+                        Re-run the AI analysis for this customer to sync the stored score to the formula value ({steps.calculatedScore}).
                       </div>
                     </div>
                   </div>
