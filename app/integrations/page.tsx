@@ -312,7 +312,17 @@ function IntegrationsPageInner() {
   const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [twilioStatus, setTwilioStatus] = useState<{ configured: boolean; fromNumber: string | null } | null>(null);
+  const [twilioStatus, setTwilioStatus] = useState<{
+    configured: boolean;
+    fromNumber: string | null;
+    accountType: string | null;
+    accountStatus: string | null;
+    balance: string | null;
+    currency: string | null;
+    numberFound: boolean;
+    numberSmsEnabled: boolean | null;
+    verifiedNumbers: string[];
+  } | null>(null);
   const [testSmsPhone, setTestSmsPhone] = useState('');
   const [testSmsSending, setTestSmsSending] = useState(false);
   const [testSmsResult, setTestSmsResult] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -375,9 +385,17 @@ function IntegrationsPageInner() {
       body: JSON.stringify({ to: testSmsPhone.trim() }),
     });
     const d = await res.json();
-    setTestSmsResult(res.ok
-      ? { ok: true, msg: `SMS sent — SID: ${d.messageSid ?? '(pending)'}` }
-      : { ok: false, msg: d.error ?? d.detail ?? 'Send failed' });
+    if (res.ok) {
+      setTestSmsResult({ ok: true, msg: `SMS sent — SID: ${d.messageSid ?? '(pending)'}` });
+    } else {
+      const codeStr = d.code ? ` [code ${d.code}]` : '';
+      const hint = d.code === 21608
+        ? ' — Trial accounts can only send to verified numbers. Add +19176729139 in Twilio Console → Verified Caller IDs.'
+        : d.code === 21211 || d.code === 21614
+        ? ' — Invalid phone number format. Use E.164 format: +1XXXXXXXXXX'
+        : d.moreInfo ? ` See: ${d.moreInfo}` : '';
+      setTestSmsResult({ ok: false, msg: `${d.error ?? 'Send failed'}${codeStr}${hint}` });
+    }
     setTestSmsSending(false);
   }
 
@@ -641,14 +659,70 @@ function IntegrationsPageInner() {
               <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 {twilioStatus?.configured ? (
                   <>
-                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
-                      Sending from: <span style={{ color: '#f22f46', fontWeight: '600' }}>{twilioStatus.fromNumber ?? '—'}</span>
+                    {/* ── Account diagnostic strip ── */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                      {[
+                        { label: 'From', value: twilioStatus.fromNumber ?? '—', warn: false },
+                        {
+                          label: 'Account',
+                          value: twilioStatus.accountType ?? '…',
+                          warn: twilioStatus.accountType === 'Trial',
+                        },
+                        {
+                          label: 'Balance',
+                          value: twilioStatus.balance !== null
+                            ? `${twilioStatus.balance} ${twilioStatus.currency ?? ''}`
+                            : '…',
+                          warn: twilioStatus.balance !== null && parseFloat(twilioStatus.balance) === 0,
+                        },
+                        {
+                          label: 'SMS capable',
+                          value: twilioStatus.numberSmsEnabled === null ? '…'
+                            : twilioStatus.numberSmsEnabled ? 'Yes' : 'No',
+                          warn: twilioStatus.numberSmsEnabled === false,
+                        },
+                      ].map(item => (
+                        <div key={item.label} style={{ padding: '5px 10px', background: item.warn ? '#fef2f2' : '#f3f4f6', border: `1px solid ${item.warn ? '#fecaca' : '#e5e7eb'}`, borderRadius: '6px', fontSize: '12px' }}>
+                          <span style={{ color: '#6b7280' }}>{item.label}: </span>
+                          <span style={{ fontWeight: '600', color: item.warn ? '#dc2626' : '#111827' }}>{item.value}</span>
+                        </div>
+                      ))}
                     </div>
+
+                    {/* ── Trial account warning ── */}
+                    {twilioStatus.accountType === 'Trial' && (
+                      <div style={{ marginBottom: '12px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '7px', fontSize: '12px', color: '#92400e', lineHeight: '1.6' }}>
+                        <strong>Trial account:</strong> SMS can only be sent to verified numbers.{' '}
+                        {twilioStatus.verifiedNumbers.length > 0
+                          ? <>Verified: <strong>{twilioStatus.verifiedNumbers.join(', ')}</strong>.</>
+                          : 'No verified numbers found.'}{' '}
+                        To verify <strong>+19176729139</strong>: go to{' '}
+                        <strong>Twilio Console → Phone Numbers → Verified Caller IDs → Add a new number</strong>.
+                        Twilio will call or text that number with a code.
+                      </div>
+                    )}
+
+                    {/* ── Zero balance warning ── */}
+                    {twilioStatus.balance !== null && parseFloat(twilioStatus.balance) === 0 && (
+                      <div style={{ marginBottom: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '7px', fontSize: '12px', color: '#991b1b', lineHeight: '1.6' }}>
+                        <strong>Zero balance.</strong> Go to{' '}
+                        <strong>Twilio Console → Billing → Add funds</strong> to add credits before sending SMS.
+                      </div>
+                    )}
+
+                    {/* ── Number not SMS-capable warning ── */}
+                    {twilioStatus.numberSmsEnabled === false && (
+                      <div style={{ marginBottom: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '7px', fontSize: '12px', color: '#991b1b' }}>
+                        <strong>{twilioStatus.fromNumber}</strong> does not have SMS capability enabled. Purchase an SMS-capable number in the Twilio Console.
+                      </div>
+                    )}
+
+                    {/* ── Send test ── */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <input
                         value={testSmsPhone}
                         onChange={e => setTestSmsPhone(e.target.value)}
-                        placeholder="+1 555 000 0000"
+                        placeholder="+19176729139"
                         style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '7px', border: '1px solid #e5e7eb', fontSize: '13px', fontFamily: 'inherit' }}
                       />
                       <button
@@ -660,7 +734,7 @@ function IntegrationsPageInner() {
                       </button>
                     </div>
                     {testSmsResult && (
-                      <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testSmsResult.ok ? '#f0fdf4' : '#fef2f2', color: testSmsResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testSmsResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                      <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testSmsResult.ok ? '#f0fdf4' : '#fef2f2', color: testSmsResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testSmsResult.ok ? '#bbf7d0' : '#fecaca'}`, lineHeight: '1.5' }}>
                         {testSmsResult.ok ? '✅ ' : '❌ '}{testSmsResult.msg}
                       </div>
                     )}
