@@ -18,6 +18,8 @@ export async function GET() {
       emailLogs,
       smsLogs,
       webhooks,
+      automationLogs,
+      sequenceLogs,
     ] = await Promise.all([
       prisma.slackAlert.findMany({
         orderBy: { sentAt: 'desc' },
@@ -53,12 +55,56 @@ export async function GET() {
         take: 20,
         select: { id: true, url: true, events: true, active: true, lastTestedAt: true, lastStatus: true, label: true, updatedAt: true },
       }),
+      prisma.automationLog.findMany({
+        orderBy: { executedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, triggerType: true, actionType: true, status: true,
+          message: true, executedAt: true, customerId: true,
+          rule: { select: { name: true } },
+        },
+      }),
+      prisma.sequenceLog.findMany({
+        orderBy: { executedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, step: true, action: true, status: true, message: true, executedAt: true,
+          enrollment: { select: { sequenceType: true, customerId: true } },
+        },
+      }),
     ]);
 
     const slackRecent = slackAlerts.filter(a => a.sentAt >= since24h);
     const crmRecent = crmLogs.filter(l => l.createdAt >= since24h);
     const emailRecent = emailLogs.filter(l => l.createdAt >= since24h);
     const smsRecent = smsLogs.filter(l => l.createdAt >= since24h);
+
+    const automationTrace = [
+      ...automationLogs.map(l => ({
+        id: l.id,
+        type: 'automation' as const,
+        label: l.rule.name,
+        trigger: l.triggerType,
+        conditionMet: true,
+        action: l.actionType,
+        status: l.status,
+        message: l.message,
+        executedAt: l.executedAt.toISOString(),
+        customerId: l.customerId,
+      })),
+      ...sequenceLogs.map(l => ({
+        id: l.id,
+        type: 'sequence' as const,
+        label: l.enrollment.sequenceType,
+        trigger: `step_${l.step}`,
+        conditionMet: true,
+        action: l.action,
+        status: l.status,
+        message: l.message,
+        executedAt: l.executedAt.toISOString(),
+        customerId: l.enrollment.customerId,
+      })),
+    ].sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()).slice(0, 10);
 
     return NextResponse.json({
       fetchedAt: new Date().toISOString(),
@@ -92,6 +138,7 @@ export async function GET() {
         failedCount: smsRecent.filter(l => l.status === 'failed').length,
       },
       webhooks,
+      automationTrace,
     });
   } catch (err) {
     console.error('integration-health error', err);

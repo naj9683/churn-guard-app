@@ -72,6 +72,19 @@ interface WebhookRow {
   updatedAt: string;
 }
 
+interface AutomationTraceEntry {
+  id: string;
+  type: 'automation' | 'sequence';
+  label: string;
+  trigger: string;
+  conditionMet: boolean;
+  action: string;
+  status: string;
+  message: string | null;
+  executedAt: string;
+  customerId: string;
+}
+
 interface HealthData {
   fetchedAt: string;
   slack: { recent: SlackAlert[]; total24h: number; successCount: number; failedCount: number };
@@ -80,6 +93,7 @@ interface HealthData {
   email: { logs: EmailLog[]; total24h: number; successCount: number; failedCount: number };
   sms: { logs: SmsLog[]; total24h: number; successCount: number; failedCount: number };
   webhooks: WebhookRow[];
+  automationTrace: AutomationTraceEntry[];
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -441,8 +455,35 @@ export default function IntegrationsPage() {
         ])}
       />
 
-      {/* ── Stripe Events ─────────────────────────────────────────────────── */}
-      <SectionHeader title="Stripe Events — last 10 (24h)" />
+      {/* ── Stripe Webhook Health ─────────────────────────────────────────── */}
+      <SectionHeader title="Stripe Webhook Health" />
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {[
+          {
+            label: 'Last webhook received',
+            value: data?.stripe.events[0]?.createdAt ? relativeTime(data.stripe.events[0].createdAt) : 'Never',
+            color: data?.stripe.events[0] ? '#22c55e' : '#eab308',
+          },
+          {
+            label: 'Endpoint status',
+            value: data?.stripe.total24h && data.stripe.total24h > 0 ? '200 OK' : 'No events in 24h',
+            color: data?.stripe.total24h && data.stripe.total24h > 0 ? '#22c55e' : '#eab308',
+          },
+          {
+            label: 'Events received (24h)',
+            value: String(data?.stripe.total24h ?? 0),
+            color: '#d1d5db',
+          },
+        ].map(item => (
+          <div key={item.label} style={{ padding: '10px 16px', background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', minWidth: '160px' }}>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: item.color }}>{item.value}</div>
+          </div>
+        ))}
+      </div>
+      {data?.stripe.total24h === 0 && (
+        <AlertBox level="warning" message="No Stripe webhook events in the last 24 hours — verify the endpoint is registered in your Stripe dashboard" />
+      )}
       <Table
         cols={['Time', 'Event']}
         rows={(data?.stripe.events.slice(0, 10) ?? []).map(e => [
@@ -450,6 +491,32 @@ export default function IntegrationsPage() {
           <span key="ev" style={{ fontFamily: 'monospace', fontSize: '11px' }}>{e.event}</span>,
         ])}
       />
+
+      {/* ── Automation Trace ──────────────────────────────────────────────── */}
+      <SectionHeader title="Automation Trace — last 10 runs" />
+      {(!data?.automationTrace || data.automationTrace.length === 0) ? (
+        <div style={{ padding: '16px 12px', background: '#0d1117', border: '1px solid #1f2937', borderRadius: '8px', color: '#4b5563', fontSize: '12px', textAlign: 'center' }}>
+          No automation runs recorded yet
+        </div>
+      ) : (
+        <Table
+          cols={['Time', 'Rule / Sequence', 'Trigger', 'Action', 'Status', 'Customer']}
+          rows={(data.automationTrace).map(entry => [
+            fmtTime(entry.executedAt),
+            <div key="label">
+              <div style={{ fontWeight: '600', color: '#e5e7eb', fontSize: '12px' }}>{entry.label}</div>
+              <div style={{ fontSize: '10px', color: '#4b5563', textTransform: 'uppercase' }}>{entry.type}</div>
+            </div>,
+            <span key="tr" style={{ fontFamily: 'monospace', fontSize: '11px', color: '#93c5fd' }}>{entry.trigger}</span>,
+            <span key="ac" style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c4b5fd' }}>{entry.action}</span>,
+            <span key="st" style={{ color: entry.status === 'success' || entry.status === 'sent' ? '#22c55e' : entry.status === 'failed' || entry.status === 'error' ? '#ef4444' : '#eab308', fontWeight: '600', textTransform: 'capitalize' }}>
+              {entry.status}
+              {entry.message && <span style={{ display: 'block', fontSize: '10px', color: '#6b7280', fontWeight: '400' }}>{entry.message.slice(0, 40)}</span>}
+            </span>,
+            <span key="cid" style={{ fontSize: '10px', fontFamily: 'monospace', color: '#4b5563' }}>{entry.customerId.slice(0, 8)}…</span>,
+          ])}
+        />
+      )}
 
       {/* ── Webhooks ──────────────────────────────────────────────────────── */}
       <SectionHeader title="User Webhooks" />

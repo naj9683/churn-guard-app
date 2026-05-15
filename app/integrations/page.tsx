@@ -312,11 +312,18 @@ function IntegrationsPageInner() {
   const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [twilioStatus, setTwilioStatus] = useState<{ configured: boolean; fromNumber: string | null } | null>(null);
+  const [testSmsPhone, setTestSmsPhone] = useState('');
+  const [testSmsSending, setTestSmsSending] = useState(false);
+  const [testSmsResult, setTestSmsResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testSlackSending, setTestSlackSending] = useState(false);
+  const [testSlackResult, setTestSlackResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     loadStatus();
     loadSyncInfo();
     loadResend();
+    loadTwilio();
   }, []);
 
   async function loadStatus() {
@@ -351,6 +358,36 @@ function IntegrationsPageInner() {
     setTestEmailResult(res.ok ? { ok: true, msg: `Sent to najwa.saadi1@hotmail.com` } : { ok: false, msg: d.error ?? 'Send failed' });
     setTestEmailSending(false);
     loadResend();
+  }
+
+  async function loadTwilio() {
+    const res = await fetch('/api/test/sms').catch(() => null);
+    if (res?.ok) setTwilioStatus(await res.json());
+  }
+
+  async function sendTestSms() {
+    if (!testSmsPhone.trim()) return;
+    setTestSmsSending(true);
+    setTestSmsResult(null);
+    const res = await fetch('/api/test/sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: testSmsPhone.trim() }),
+    });
+    const d = await res.json();
+    setTestSmsResult(res.ok
+      ? { ok: true, msg: `SMS sent — SID: ${d.messageSid ?? '(pending)'}` }
+      : { ok: false, msg: d.error ?? d.detail ?? 'Send failed' });
+    setTestSmsSending(false);
+  }
+
+  async function sendTestSlack() {
+    setTestSlackSending(true);
+    setTestSlackResult(null);
+    const res = await fetch('/api/slack/test', { method: 'POST' });
+    const d = await res.json();
+    setTestSlackResult(res.ok ? { ok: true, msg: 'Test alert posted to Slack' } : { ok: false, msg: d.error ?? 'Send failed' });
+    setTestSlackSending(false);
   }
 
   function setBusyFor(key: string, val: boolean) { setBusy(b => ({ ...b, [key]: val })); }
@@ -575,6 +612,68 @@ function IntegrationsPageInner() {
               onDisconnect={disconnectSlack}
             >
               {error.slack && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.slack}</div>}
+              {status.slack && (
+                <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '13px', color: '#6b7280' }}>Webhook connected — send a test to verify the channel is receiving alerts.</div>
+                    <button
+                      onClick={sendTestSlack}
+                      disabled={testSlackSending}
+                      style={{ padding: '7px 16px', background: testSlackSending ? '#e5e7eb' : '#4a154b', color: testSlackSending ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: testSlackSending ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+                    >
+                      {testSlackSending ? 'Sending…' : 'Send Test Alert'}
+                    </button>
+                  </div>
+                  {testSlackResult && (
+                    <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testSlackResult.ok ? '#f0fdf4' : '#fef2f2', color: testSlackResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testSlackResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                      {testSlackResult.ok ? '✅ ' : '❌ '}{testSlackResult.msg}
+                    </div>
+                  )}
+                </div>
+              )}
+            </IntegrationCard>
+
+            <IntegrationCard
+              icon="📱" name="Twilio / SMS"
+              desc="Send one-time intervention messages and risk alerts via SMS to customers"
+              connected={false} accentColor="#f22f46" active={!!twilioStatus?.configured}
+            >
+              <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                {twilioStatus?.configured ? (
+                  <>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                      Sending from: <span style={{ color: '#f22f46', fontWeight: '600' }}>{twilioStatus.fromNumber ?? '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        value={testSmsPhone}
+                        onChange={e => setTestSmsPhone(e.target.value)}
+                        placeholder="+1 555 000 0000"
+                        style={{ flex: 1, minWidth: '160px', padding: '8px 12px', borderRadius: '7px', border: '1px solid #e5e7eb', fontSize: '13px', fontFamily: 'inherit' }}
+                      />
+                      <button
+                        onClick={sendTestSms}
+                        disabled={testSmsSending || !testSmsPhone.trim()}
+                        style={{ padding: '8px 16px', background: testSmsSending || !testSmsPhone.trim() ? '#e5e7eb' : '#f22f46', color: testSmsSending || !testSmsPhone.trim() ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: testSmsSending || !testSmsPhone.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit' }}
+                      >
+                        {testSmsSending ? 'Sending…' : 'Send Test SMS'}
+                      </button>
+                    </div>
+                    {testSmsResult && (
+                      <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testSmsResult.ok ? '#f0fdf4' : '#fef2f2', color: testSmsResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testSmsResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                        {testSmsResult.ok ? '✅ ' : '❌ '}{testSmsResult.msg}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>TWILIO_ACCOUNT_SID</code>,{' '}
+                    <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>TWILIO_AUTH_TOKEN</code>, and{' '}
+                    <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>TWILIO_PHONE_NUMBER</code>{' '}
+                    to your Vercel environment variables to enable SMS delivery.
+                  </div>
+                )}
+              </div>
             </IntegrationCard>
 
             <IntegrationCard
