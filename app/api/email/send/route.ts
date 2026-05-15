@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const settings = settingsCache[user.id] || {
       companyName: 'ChurnGuard',  // Default fallback
       brandColor: '#6366f1',
-      fromEmail: 'onboarding@resend.dev',
+      fromEmail: process.env.RESEND_FROM_EMAIL ?? 'admin@churnguardapp.com',
       logoUrl: '',
       emailSignature: 'Best regards,\nThe Team'
     };
