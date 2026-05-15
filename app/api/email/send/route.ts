@@ -62,18 +62,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!process.env.POSTMARK_API_KEY) {
       return NextResponse.json({
         error: "Email not configured",
-        message: "Add RESEND_API_KEY to environment variables"
+        message: "Add POSTMARK_API_KEY to environment variables"
       }, { status: 500 });
     }
 
     // ✅ FETCH WHITE-LABEL SETTINGS (from cache)
     const settings = settingsCache[user.id] || {
-      companyName: 'ChurnGuard',  // Default fallback
+      companyName: 'ChurnGuard',
       brandColor: '#6366f1',
-      fromEmail: process.env.RESEND_FROM_EMAIL ?? 'admin@churnguardapp.com',
+      fromEmail: process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com',
       logoUrl: '',
       emailSignature: 'Best regards,\nThe Team'
     };
@@ -86,33 +86,31 @@ export async function POST(req: NextRequest) {
 
     const { subject, html } = emailTemplate(settings, customerName);
 
-    // Send email via Resend WITH USER'S FROM EMAIL
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Postmark-Server-Token': process.env.POSTMARK_API_KEY!,
       },
       body: JSON.stringify({
-        from: settings.fromEmail,  // ✅ User's white-label from email
-        to: customerEmail,
-        subject,
-        html
+        From: settings.fromEmail,
+        To: customerEmail,
+        Subject: subject,
+        HtmlBody: html,
       })
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(JSON.stringify(error));
-    }
-
     const result = await response.json();
+    if (!response.ok || result.ErrorCode !== 0) {
+      throw new Error(result.Message ?? `HTTP ${response.status}`);
+    }
 
     console.log(`✅ Email sent: ${template} to ${customerEmail} from ${settings.companyName}`);
 
     return NextResponse.json({ 
       success: true, 
-      id: result.id,
+      id: result.MessageID,
       template,
       to: customerEmail,
       from: settings.fromEmail,

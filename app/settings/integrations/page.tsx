@@ -335,9 +335,9 @@ export default function IntegrationsPage() {
             </IntegrationCard>
 
             <IntegrationCard
-              icon="📧" name="Resend"
+              icon="📧" name="Postmark"
               desc="Transactional emails — retention sequences, playbook alerts, and campaign delivery"
-              connected={!!resendStatus?.configured} accentColor="#000000" active={!!resendStatus?.configured}
+              connected={!!resendStatus?.configured} accentColor="#ffbb00" active={!!resendStatus?.configured}
             >
               <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 {resendStatus?.configured ? (
@@ -384,7 +384,7 @@ export default function IntegrationsPage() {
                   </>
                 ) : (
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>RESEND_API_KEY</code> to your Vercel environment variables to enable email delivery.
+                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>POSTMARK_API_KEY</code> to your Vercel environment variables to enable email delivery.
                   </div>
                 )}
               </div>

@@ -1,49 +1,41 @@
-import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 
-// Lazy initialization - only create client when needed
-let resend: Resend | null = null;
-
-function getResend() {
-  if (!resend) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.warn('RESEND_API_KEY not set - emails will be logged but not sent');
-      return null;
-    }
-    resend = new Resend(apiKey);
-  }
-  return resend;
-}
-
+// Postmark HTTP API — same sendEmail signature so all callers work unchanged
 export async function sendEmail(to: string, subject: string, html: string, userId?: string) {
-  const client = getResend();
+  const apiKey = process.env.POSTMARK_API_KEY;
 
-  if (!client) {
+  if (!apiKey) {
     console.log('📧 EMAIL WOULD BE SENT:', to, subject);
     prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now() } }).catch(() => {});
     return { success: true, data: { id: 'mock-email-id' } };
   }
 
+  const from = `${process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard'} <${process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com'}>`;
+
   try {
-    const { data, error } = await client.emails.send({
-      from: `${process.env.RESEND_FROM_NAME || 'ChurnGuard'} <${process.env.RESEND_FROM_EMAIL || 'admin@churnguardapp.com'}>`,
-      to,
-      subject,
-      html,
+    const res = await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Postmark-Server-Token': apiKey,
+      },
+      body: JSON.stringify({ From: from, To: to, Subject: subject, HtmlBody: html }),
     });
 
-    if (error) {
-      const errMsg = (error as any).message ?? JSON.stringify(error);
-      console.error('Resend error:', JSON.stringify(error));
+    const data = await res.json();
+
+    if (!res.ok || data.ErrorCode !== 0) {
+      const errMsg: string = data.Message ?? `HTTP ${res.status}`;
+      console.error('Postmark error:', errMsg);
       prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
       return { success: false, errorMessage: errMsg };
     }
 
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: (data as any)?.id } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.MessageID } }).catch(() => {});
     return { success: true, data };
   } catch (err: any) {
-    const errMsg = err?.message ?? String(err);
+    const errMsg: string = err?.message ?? String(err);
     console.error('Email send failed:', errMsg);
     prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
     return { success: false, errorMessage: errMsg };
@@ -70,7 +62,7 @@ export const emailTemplates = {
       </div>
     `
   }),
-  
+
   silentQuitter: (name: string, days: number) => ({
     subject: "We miss you at ChurnGuard",
     html: `
@@ -86,7 +78,7 @@ export const emailTemplates = {
       </div>
     `
   }),
-  
+
   paymentSaver: (name: string) => ({
     subject: "Your ChurnGuard subscription",
     html: `
@@ -108,16 +100,13 @@ export const emailTemplates = {
     `
   })
 };
-// Slack webhook integration for playbook alerts
+
+// Slack webhook integration — unchanged
 export async function sendSlackAlert(channel: string, message: string, details?: any) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
-  
+
   if (!webhookUrl) {
-    console.log('🔔 SLACK ALERT WOULD BE SENT:');
-    console.log('Channel:', channel);
-    console.log('Message:', message);
-    console.log('Details:', details);
-    console.log('---');
+    console.log('🔔 SLACK ALERT WOULD BE SENT:', channel, message);
     return { success: true };
   }
 
@@ -130,26 +119,10 @@ export async function sendSlackAlert(channel: string, message: string, details?:
       attachments: details ? [{
         color: details.riskScore > 70 ? 'danger' : 'warning',
         fields: [
-          {
-            title: 'Customer',
-            value: details.customerEmail || 'Unknown',
-            short: true
-          },
-          {
-            title: 'Risk Score',
-            value: details.riskScore || 'N/A',
-            short: true
-          },
-          {
-            title: 'MRR',
-            value: `$${details.mrr || 0}`,
-            short: true
-          },
-          {
-            title: 'Last Login',
-            value: details.lastLogin || 'Never',
-            short: true
-          }
+          { title: 'Customer', value: details.customerEmail || 'Unknown', short: true },
+          { title: 'Risk Score', value: details.riskScore || 'N/A', short: true },
+          { title: 'MRR', value: `$${details.mrr || 0}`, short: true },
+          { title: 'Last Login', value: details.lastLogin || 'Never', short: true },
         ]
       }] : undefined
     };
@@ -160,10 +133,7 @@ export async function sendSlackAlert(channel: string, message: string, details?:
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-      throw new Error(`Slack API error: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Slack API error: ${response.status}`);
     return { success: true };
   } catch (error) {
     console.error('Slack alert failed:', error);
@@ -171,40 +141,20 @@ export async function sendSlackAlert(channel: string, message: string, details?:
   }
 }
 
-// Specific alert templates
 export const slackAlerts = {
   silentQuitter: (customer: any, days: number) => ({
     channel: '#retention',
     message: `🚨 *Silent Quitter Alert* - User hasn't logged in for ${days} days!`,
-    details: {
-      customerEmail: customer.email,
-      customerName: customer.name,
-      riskScore: customer.riskScore,
-      mrr: customer.mrr,
-      lastLogin: customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never'
-    }
+    details: { customerEmail: customer.email, customerName: customer.name, riskScore: customer.riskScore, mrr: customer.mrr, lastLogin: customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : 'Never' }
   }),
-  
   onboardingRescue: (customer: any) => ({
     channel: '#onboarding',
     message: `📧 *Onboarding Rescue* - Day 3 user needs help!`,
-    details: {
-      customerEmail: customer.email,
-      customerName: customer.name,
-      riskScore: customer.riskScore,
-      mrr: customer.mrr,
-      signupDate: new Date(customer.signupAt).toLocaleDateString()
-    }
+    details: { customerEmail: customer.email, customerName: customer.name, riskScore: customer.riskScore, mrr: customer.mrr, signupDate: new Date(customer.signupAt).toLocaleDateString() }
   }),
-  
   paymentFailed: (customer: any) => ({
     channel: '#finance',
     message: `💳 *Payment Failed* - Immediate attention required!`,
-    details: {
-      customerEmail: customer.email,
-      customerName: customer.name,
-      riskScore: customer.riskScore,
-      mrr: customer.mrr
-    }
+    details: { customerEmail: customer.email, customerName: customer.name, riskScore: customer.riskScore, mrr: customer.mrr }
   })
 };

@@ -38,8 +38,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Provide sendNow: true or scheduledAt date' }, { status: 400 });
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: 'Email not configured — add RESEND_API_KEY to environment variables' }, { status: 503 });
+    if (!process.env.POSTMARK_API_KEY) {
+      return NextResponse.json({ error: 'Email not configured — add POSTMARK_API_KEY to environment variables' }, { status: 503 });
     }
 
     // Resolve segment → customer list
