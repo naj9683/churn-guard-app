@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "admin:recalc": "node scripts/recalc-scores.mjs",
+    "admin:recalc-dry": "node scripts/recalc-scores.mjs --dry-run"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.0",

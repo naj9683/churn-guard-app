@@ -237,26 +237,27 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
         where: { userId: internalUserId, email },
       });
 
+      // notes_last_contacted is ms epoch; reject values before 2000 (HubSpot test data sends e.g. "2026" = 2.026s from epoch)
+      const parseLastContacted = (raw: string | undefined): Date | null => {
+        if (!raw) return null;
+        const ms = parseInt(raw, 10);
+        if (isNaN(ms) || ms < 946684800000) return null; // < 2000-01-01
+        return new Date(ms);
+      };
+
       if (existing) {
-        const lastContactedMs = contact.properties.notes_last_contacted
-          ? parseInt(contact.properties.notes_last_contacted, 10)
-          : null;
+        const lastLoginAt = parseLastContacted(contact.properties.notes_last_contacted);
         await prisma.customer.update({
           where: { id: existing.id },
           data: {
             name,
             crmId: contact.id,
             updatedAt: new Date(),
-            ...(lastContactedMs && !isNaN(lastContactedMs)
-              ? { lastLoginAt: new Date(lastContactedMs) }
-              : {}),
+            ...(lastLoginAt ? { lastLoginAt } : {}),
           },
         });
         result.updated++;
       } else {
-        const lastContactedMs = contact.properties.notes_last_contacted
-          ? parseInt(contact.properties.notes_last_contacted, 10)
-          : null;
         await prisma.customer.create({
           data: {
             userId: internalUserId,
@@ -266,7 +267,7 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
             mrr,
             crmId: contact.id,
             riskScore: 50,
-            lastLoginAt: lastContactedMs && !isNaN(lastContactedMs) ? new Date(lastContactedMs) : null,
+            lastLoginAt: parseLastContacted(contact.properties.notes_last_contacted),
           },
         });
         result.created++;
