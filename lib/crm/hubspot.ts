@@ -38,6 +38,7 @@ interface HsContact {
     mobilephone?: string;
     amount?: string;        // deal value / MRR proxy
     industry?: string;
+    notes_last_contacted?: string; // ms epoch — used as lastLoginAt proxy
     lifecyclestage?: string;
   };
 }
@@ -194,7 +195,7 @@ export async function ensureCustomProperties(token: string): Promise<{ available
 
 async function fetchAllContacts(token: string): Promise<HsContact[]> {
   const contacts: HsContact[] = [];
-  const properties = 'email,firstname,lastname,company,phone,mobilephone,amount,industry,lifecyclestage';
+  const properties = 'email,firstname,lastname,company,phone,mobilephone,amount,industry,lifecyclestage,notes_last_contacted';
   let after: string | undefined;
 
   do {
@@ -237,12 +238,25 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
       });
 
       if (existing) {
+        const lastContactedMs = contact.properties.notes_last_contacted
+          ? parseInt(contact.properties.notes_last_contacted, 10)
+          : null;
         await prisma.customer.update({
           where: { id: existing.id },
-          data: { name, crmId: contact.id, updatedAt: new Date() },
+          data: {
+            name,
+            crmId: contact.id,
+            updatedAt: new Date(),
+            ...(lastContactedMs && !isNaN(lastContactedMs)
+              ? { lastLoginAt: new Date(lastContactedMs) }
+              : {}),
+          },
         });
         result.updated++;
       } else {
+        const lastContactedMs = contact.properties.notes_last_contacted
+          ? parseInt(contact.properties.notes_last_contacted, 10)
+          : null;
         await prisma.customer.create({
           data: {
             userId: internalUserId,
@@ -252,7 +266,7 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
             mrr,
             crmId: contact.id,
             riskScore: 50,
-            healthScore: 80,
+            lastLoginAt: lastContactedMs && !isNaN(lastContactedMs) ? new Date(lastContactedMs) : null,
           },
         });
         result.created++;

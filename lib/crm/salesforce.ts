@@ -37,6 +37,7 @@ interface SFContact {
   Email?: string;
   Phone?: string;
   MobilePhone?: string;
+  LastActivityDate?: string; // ISO date — used as lastLoginAt proxy
   Account?: {
     Name?: string;
     AnnualRevenue?: number;
@@ -162,7 +163,7 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
   // ── PULL: Salesforce Contacts → ChurnGuard customers ──────────────────────
   const soql = `
     SELECT Id, FirstName, LastName, Email, Phone, MobilePhone,
-           Account.Name, Account.AnnualRevenue
+           LastActivityDate, Account.Name, Account.AnnualRevenue
     FROM Contact
     WHERE Email != null
     ORDER BY CreatedDate DESC
@@ -191,10 +192,17 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
         where: { userId: internalUserId, email },
       });
 
+      const lastActivity = contact.LastActivityDate ? new Date(contact.LastActivityDate) : null;
+
       if (existing) {
         await prisma.customer.update({
           where: { id: existing.id },
-          data: { name, crmId: contact.Id, updatedAt: new Date() },
+          data: {
+            name,
+            crmId: contact.Id,
+            updatedAt: new Date(),
+            ...(lastActivity ? { lastLoginAt: lastActivity } : {}),
+          },
         });
         result.updated++;
       } else {
@@ -207,7 +215,7 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
             mrr,
             crmId: contact.Id,
             riskScore: 50,
-            healthScore: 80,
+            lastLoginAt: lastActivity,
           },
         });
         result.created++;
