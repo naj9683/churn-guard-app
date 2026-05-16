@@ -33,6 +33,19 @@ export async function GET() {
       _sum: { mrr: true }
     });
 
+    // Engagement-based revenue at risk: MRR of customers with riskScore >= 70
+    const engagementRisk = await prisma.customer.aggregate({
+      where: { userId: user.id, riskScore: { gte: 70 } },
+      _sum: { mrr: true },
+    });
+
+    // Check if user has a Stripe key stored for live Revenue at Risk
+    const stripeIntegration = await prisma.crmIntegration.findUnique({
+      where: { userId_type: { userId: user.id, type: 'stripe' } },
+      select: { enabled: true, accessToken: true },
+    });
+    const stripeConnected = !!(stripeIntegration?.enabled && stripeIntegration.accessToken);
+
     const activePlaybooks = await prisma.playbook.count({
       where: { userId: user.id, isActive: true }
     });
@@ -57,6 +70,10 @@ export async function GET() {
       activePlaybooks,
       savedInterventions,
       highRiskCustomers,
+      // Engagement-based revenue at risk (riskScore >= 70)
+      engagementRiskMrr: engagementRisk._sum?.mrr || 0,
+      // Whether user has connected their Stripe account for live Revenue at Risk
+      stripeConnected,
     });
 
   } catch (error) {

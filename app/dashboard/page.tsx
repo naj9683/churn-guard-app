@@ -60,6 +60,8 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useUser();
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [stripeSnapshot, setStripeSnapshot] = useState<any>(null);
+  const [loadingStripe, setLoadingStripe] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [dailyData, setDailyData] = useState<any[]>([]);
@@ -148,6 +150,10 @@ export default function Dashboard() {
         setDashboardData(data);
         generateDailyData(data?.customers || []);
         generateAIInsights(data?.customers || []);
+        // Fetch live Stripe snapshot if the user has connected their Stripe key
+        if (data?.stripeConnected) {
+          fetchStripeSnapshot();
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -155,6 +161,15 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchStripeSnapshot() {
+    setLoadingStripe(true);
+    try {
+      const res = await fetch('/api/stripe/snapshot');
+      if (res.ok) setStripeSnapshot(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingStripe(false); }
   }
 
   function generateAIInsights(customers: any[]) {
@@ -274,9 +289,21 @@ export default function Dashboard() {
 
   const maxCount = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.count)) : 100;
 
+  // Revenue at Risk: Stripe-based if key connected, engagement-based otherwise
+  const stripeRisk = stripeSnapshot?.stripe?.revenueAtRisk ?? null;
+  const engagementRiskMrr = dashboardData?.engagementRiskMrr ?? 0;
+  const stripeConnected = dashboardData?.stripeConnected ?? false;
+
+  const revenueAtRiskValue = stripeRisk !== null
+    ? `$${stripeRisk.toLocaleString()}`
+    : stripeConnected && loadingStripe ? '…'
+    : `$${engagementRiskMrr.toLocaleString()}`;
+
+  const revenueAtRiskChange = stripeRisk !== null ? 'Stripe data' : stripeConnected ? 'Loading…' : 'Engagement';
+
   const stats = [
     { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%', Icon: IconUsers },
-    { label: 'At Risk', value: dashboardData?.atRisk || 0, color: '#ef4444', change: '-5%', Icon: IconAlert },
+    { label: 'Revenue at Risk', value: revenueAtRiskValue, color: '#ef4444', change: revenueAtRiskChange, Icon: IconAlert, isRisk: true },
     { label: 'Active Automations', value: activeRules ?? dashboardData?.activePlaybooks ?? 0, color: '#10b981', change: 'AI Active', Icon: IconPlaybook, href: '/dashboard/automation/rules' },
     { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%', Icon: IconRevenue }
   ];
@@ -406,6 +433,34 @@ export default function Dashboard() {
                   fontWeight: '700',
                   color: '#111827'
                 }}>{metric.value}</div>
+
+                {/* Dual-source note on the Revenue at Risk card */}
+                {(metric as any).isRisk && (
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
+                    {stripeRisk !== null ? (
+                      <>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '3px' }}>
+                          Stripe: payment failures + paused + expiring trials
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                          Predicted at Risk: <strong style={{ color: '#374151' }}>${engagementRiskMrr.toLocaleString()}</strong>
+                          <span style={{ color: '#d1d5db' }}> · {dashboardData?.atRisk ?? 0} customers (engagement signals)</span>
+                        </div>
+                      </>
+                    ) : stripeConnected ? (
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>Loading Stripe data…</div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+                          Based on engagement signals · {dashboardData?.atRisk ?? 0} customers
+                        </div>
+                        <Link href="/integrations" style={{ fontSize: '11px', color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
+                          Connect Stripe for live payment data →
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
             return (metric as any).href

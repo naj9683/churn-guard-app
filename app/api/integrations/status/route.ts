@@ -25,8 +25,9 @@ export async function GET() {
       where: { userId: user.id },
     });
 
-    const hs = integrations.find(i => i.type === 'hubspot');
-    const sf = integrations.find(i => i.type === 'salesforce');
+    const hs  = integrations.find(i => i.type === 'hubspot');
+    const sf  = integrations.find(i => i.type === 'salesforce');
+    const str = integrations.find(i => i.type === 'stripe');
 
     return NextResponse.json({
       hubspot:    { connected: hs?.enabled ?? false, syncStatus: hs?.syncStatus ?? null },
@@ -36,7 +37,8 @@ export async function GET() {
       type: hs?.enabled ? 'hubspot' : sf?.enabled ? 'salesforce' : null,
       syncStatus: (hs ?? sf)?.syncStatus ?? null,
       slackConnected:  !!user.slackWebhookUrl,
-      stripeConnected: !!user.stripeCustomerId,
+      // stripeConnected = user has provided their OWN Stripe secret key for Revenue at Risk
+      stripeConnected: !!(str?.enabled && str.accessToken),
     });
   } catch (error) {
     console.error('Integration status error:', error);

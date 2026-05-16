@@ -123,36 +123,98 @@ function SlackModal({ onSave, onCancel, saving, error }: {
   );
 }
 
-// Stripe info panel shown when clicking Connect
-function StripeInfoPanel({ onClose }: { onClose: () => void }) {
+// Stripe info panel — API key input + webhook setup
+function StripeInfoPanel({ onClose, onKeySaved }: { onClose: () => void; onKeySaved: () => void }) {
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/webhooks/stripe`
     : 'https://churnguardapp.com/api/webhooks/stripe';
   const [copied, setCopied] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
   function copy() {
     navigator.clipboard.writeText(webhookUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  async function saveKey() {
+    if (!apiKey.trim()) return;
+    setSaving(true);
+    setSaveResult(null);
+    const res = await fetch('/api/integrations/stripe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: apiKey.trim() }),
+    }).catch(() => null);
+    if (!res) { setSaveResult({ ok: false, msg: 'Network error' }); setSaving(false); return; }
+    const d = await res.json();
+    if (res.ok) {
+      setSaveResult({ ok: true, msg: `Connected — key ${d.keyPrefix}` });
+      setApiKey('');
+      onKeySaved();
+    } else {
+      setSaveResult({ ok: false, msg: d.error ?? 'Failed to save key' });
+    }
+    setSaving(false);
+  }
+
   return (
     <div style={{ marginTop: '14px', padding: '16px', background: '#f5f3ff', border: '1px solid #e0d9ff', borderRadius: '10px' }}>
-      <div style={{ fontSize: '14px', fontWeight: '600', color: '#4f46e5', marginBottom: '8px' }}>How to connect Stripe</div>
-      <ol style={{ margin: '0 0 12px', padding: '0 0 0 18px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
-        <li>Go to your <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>Stripe Dashboard → Webhooks</a></li>
-        <li>Click "Add endpoint" and paste this URL:</li>
-      </ol>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-        <code style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #e0d9ff', borderRadius: '6px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' }}>
-          {webhookUrl}
-        </code>
-        <button onClick={copy} style={{ padding: '8px 12px', background: copied ? '#dcfce7' : '#6366f1', color: copied ? '#15803d' : '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+
+      {/* Section 1: API Key for Revenue at Risk */}
+      <div style={{ marginBottom: '18px' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5', marginBottom: '4px' }}>Step 1 — Connect Stripe API key</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
+          Required for the dashboard "Revenue at Risk" card — shows the same number as your free audit.
+          Your key is stored securely and used only to read subscription data.
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="password"
+            placeholder="sk_live_… or sk_test_…"
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && saveKey()}
+            style={{ flex: 1, padding: '8px 12px', border: '1px solid #c4b5fd', borderRadius: '6px', fontSize: '13px', outline: 'none', fontFamily: 'monospace', background: '#fff' }}
+          />
+          <button
+            onClick={saveKey}
+            disabled={saving || !apiKey.trim()}
+            style={{ padding: '8px 14px', background: saving ? '#e5e7eb' : '#6366f1', color: saving ? '#9ca3af' : '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: saving || !apiKey.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {saving ? 'Saving…' : 'Save Key'}
+          </button>
+        </div>
+        {saveResult && (
+          <div style={{ marginTop: '8px', fontSize: '12px', color: saveResult.ok ? '#15803d' : '#dc2626', background: saveResult.ok ? '#f0fdf4' : '#fef2f2', padding: '6px 10px', borderRadius: '6px' }}>
+            {saveResult.ok ? '✓ ' : '✗ '}{saveResult.msg}
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
-        Select events: <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>customer.subscription.deleted</code> <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>invoice.payment_failed</code>
+
+      {/* Section 2: Webhook for real-time events */}
+      <div style={{ paddingTop: '14px', borderTop: '1px solid #e0d9ff' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5', marginBottom: '4px' }}>Step 2 — Add webhook endpoint</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+          Required for real-time churn alerts (payment failures, cancellations).
+          Go to <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>Stripe → Webhooks</a> and add this URL:
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+          <code style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #e0d9ff', borderRadius: '6px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' }}>
+            {webhookUrl}
+          </code>
+          <button onClick={copy} style={{ padding: '8px 12px', background: copied ? '#dcfce7' : '#6366f1', color: copied ? '#15803d' : '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+          Events: <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>customer.subscription.deleted</code> <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>invoice.payment_failed</code>
+        </div>
       </div>
-      <button onClick={onClose} style={{ fontSize: '12px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Dismiss</button>
+
+      <button onClick={onClose} style={{ marginTop: '12px', fontSize: '12px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Dismiss</button>
     </div>
   );
 }
@@ -609,12 +671,17 @@ function IntegrationsPageInner() {
         <Section title="Payments" subtitle="Pull subscription and MRR data from your billing provider">
           <IntegrationCard
             icon="💳" name="Stripe"
-            desc="Automatically import customers, MRR, and subscription cancellation events via webhook"
+            desc="Connect your Stripe API key to show live Revenue at Risk on the dashboard. Add a webhook for real-time payment failure alerts."
             connected={status.stripe} accentColor="#6772e5"
             onConnect={() => setShowStripeInfo(v => !v)}
             onDisconnect={() => setShowStripeInfo(v => !v)}
           >
-            {showStripeInfo && <StripeInfoPanel onClose={() => setShowStripeInfo(false)} />}
+            {showStripeInfo && (
+              <StripeInfoPanel
+                onClose={() => setShowStripeInfo(false)}
+                onKeySaved={() => { loadStatus(); setShowStripeInfo(false); }}
+              />
+            )}
           </IntegrationCard>
         </Section>
 
