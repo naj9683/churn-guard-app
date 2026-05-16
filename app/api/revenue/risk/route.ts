@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { getIndustryPercentile } from '@/lib/calculations/stripe';
 
 export async function GET() {
   try {
@@ -76,6 +77,11 @@ export async function GET() {
       return acc;
     }, {} as Record<string, { count: number; mrr: number; atRiskMrr: number }>);
 
+    // Churn rate proxy: treat high-risk customers as "churned" for benchmarking
+    const churnRateProxy = customers.length > 0
+      ? (highRiskCustomers.length / customers.length) * 100
+      : 0;
+
     return NextResponse.json({
       summary: {
         totalMrr,
@@ -88,6 +94,8 @@ export async function GET() {
         atRiskCustomers: highRiskCustomers.length,
         criticalCustomers: criticalRiskCustomers.length,
         riskPercentage: totalMrr > 0 ? Math.round((atRiskMrr / totalMrr) * 100) : 0,
+        // Same benchmark table as the free audit tool (shared from lib/calculations/stripe)
+        industryPercentile: getIndustryPercentile(churnRateProxy),
       },
       customers: highRiskCustomers.map(c => ({
         id: c.id,

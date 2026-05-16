@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email/resend';
 import { email1, daysUntilNextEmail } from '@/lib/email/audit-sequence';
+import {
+  analyzeStripe,
+  getIndustryPercentile,
+  type AtRiskCustomer,
+  type StripeAuditResult,
+} from '@/lib/calculations/stripe';
 
-// ── CSV helpers ──────────────────────────────────────────────────────────────
+// ── CSV helpers ───────────────────────────────────────────────────────────────
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -45,133 +50,10 @@ function anonymizeEmail(email: string): string {
   return local.slice(0, 2) + '***@' + domain;
 }
 
-// ── Industry benchmark ───────────────────────────────────────────────────────
+// ── CSV analysis ──────────────────────────────────────────────────────────────
+// Uses the same getIndustryPercentile and AtRiskCustomer from the shared module.
 
-function getIndustryPercentile(monthlyChurnPct: number): number {
-  if (monthlyChurnPct < 0.5) return 92;
-  if (monthlyChurnPct < 1)   return 82;
-  if (monthlyChurnPct < 2)   return 68;
-  if (monthlyChurnPct < 3)   return 52;
-  if (monthlyChurnPct < 5)   return 38;
-  if (monthlyChurnPct < 7)   return 24;
-  if (monthlyChurnPct < 10)  return 14;
-  return 6;
-}
-
-// ── Stripe analysis ──────────────────────────────────────────────────────────
-
-interface AtRiskCustomer {
-  name: string;
-  email: string;
-  mrr: number;
-  reason: string;
-  urgency: 'high' | 'medium' | 'low';
-}
-
-interface AuditResult {
-  monthlyChurnRate: number;
-  revenueAtRisk: number;
-  annualizedLoss: number;
-  totalMrr: number;
-  industryPercentile: number;
-  atRiskCustomers: AtRiskCustomer[];
-  activeCount: number;
-  canceledCount: number;
-  pastDueCount: number;
-}
-
-function calcSubMrr(sub: Stripe.Subscription): number {
-  let total = 0;
-  for (const item of sub.items.data) {
-    const unitAmount = item.price.unit_amount ?? 0;
-    const qty = item.quantity ?? 1;
-    const interval = item.price.recurring?.interval ?? 'month';
-    const count = item.price.recurring?.interval_count ?? 1;
-    let monthly = 0;
-    if (interval === 'month') monthly = (unitAmount * qty) / count;
-    else if (interval === 'year') monthly = (unitAmount * qty) / (12 * count);
-    else if (interval === 'week') monthly = (unitAmount * qty * 4.33) / count;
-    else if (interval === 'day') monthly = (unitAmount * qty * 30) / count;
-    total += monthly;
-  }
-  return Math.round(total / 100);
-}
-
-async function analyzeStripe(apiKey: string): Promise<AuditResult> {
-  const stripe = new Stripe(apiKey, { apiVersion: '2023-10-16' });
-
-  // Paginate all subscriptions (cap at 500 to avoid timeout)
-  const allSubs: Stripe.Subscription[] = [];
-  let startingAfter: string | undefined;
-  while (allSubs.length < 500) {
-    const page = await stripe.subscriptions.list({
-      limit: 100,
-      starting_after: startingAfter,
-      expand: ['data.customer'],
-      status: 'all',
-    });
-    allSubs.push(...page.data);
-    if (!page.has_more) break;
-    startingAfter = page.data[page.data.length - 1].id;
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
-  const sevenDaysAhead = now + 7 * 24 * 60 * 60;
-
-  const active   = allSubs.filter(s => s.status === 'active');
-  const pastDue  = allSubs.filter(s => s.status === 'past_due');
-  const trialing = allSubs.filter(s => s.status === 'trialing');
-  const canceled = allSubs.filter(s => s.status === 'canceled' && (s.canceled_at ?? 0) > thirtyDaysAgo);
-
-  const totalMrr      = active.reduce((n, s) => n + calcSubMrr(s), 0);
-  const canceledMrr   = canceled.reduce((n, s) => n + calcSubMrr(s), 0);
-  const pastDueMrr    = pastDue.reduce((n, s) => n + calcSubMrr(s), 0);
-  const trialingAtRisk = trialing
-    .filter(s => s.trial_end !== null && s.trial_end < sevenDaysAhead)
-    .reduce((n, s) => n + calcSubMrr(s), 0);
-
-  // Include trialing + past_due in denominator — a canceled trial still counts as a churn event
-  const denominator = active.length + trialing.length + pastDue.length + canceled.length;
-  const monthlyChurnRate = denominator > 0 ? (canceled.length / denominator) * 100 : 0;
-  const revenueAtRisk    = pastDueMrr + Math.round(trialingAtRisk * 0.4);
-  const annualizedLoss   = canceledMrr * 12 + revenueAtRisk;
-
-  // Build at-risk list
-  const riskSubs: Array<Stripe.Subscription & { _reason: string; _urgency: 'high' | 'medium' }> = [
-    ...pastDue.map(s => ({ ...s, _reason: 'Payment failed', _urgency: 'high' as const })),
-    ...trialing
-      .filter(s => (s.trial_end ?? 0) < sevenDaysAhead)
-      .map(s => ({ ...s, _reason: 'Trial ending in 7 days', _urgency: 'medium' as const })),
-  ].sort((a, b) => calcSubMrr(b) - calcSubMrr(a)).slice(0, 5);
-
-  const atRiskCustomers: AtRiskCustomer[] = riskSubs.map(s => {
-    const cust = s.customer as Stripe.Customer;
-    return {
-      name: cust.name ?? cust.email?.split('@')[0] ?? 'Unknown',
-      email: cust.email ?? 'unknown',
-      mrr: calcSubMrr(s),
-      reason: s._reason,
-      urgency: s._urgency,
-    };
-  });
-
-  return {
-    monthlyChurnRate: Math.round(monthlyChurnRate * 10) / 10,
-    revenueAtRisk,
-    annualizedLoss,
-    totalMrr,
-    industryPercentile: getIndustryPercentile(monthlyChurnRate),
-    atRiskCustomers,
-    activeCount: active.length,
-    canceledCount: canceled.length,
-    pastDueCount: pastDue.length,
-  };
-}
-
-// ── CSV analysis ─────────────────────────────────────────────────────────────
-
-function analyzeCSVData(csvText: string): AuditResult {
+function analyzeCSVData(csvText: string): StripeAuditResult {
   const rows = parseCSV(csvText);
   if (rows.length === 0) throw new Error('CSV is empty or could not be parsed.');
 
@@ -188,7 +70,7 @@ function analyzeCSVData(csvText: string): AuditResult {
     if (status === 'past_due' || status === 'failed' || payFailed === 'true' || payFailed === '1') riskScore += 70;
     else if (status === 'trialing' || status === 'trial') riskScore += 30;
     else if (status === 'inactive' || status === 'paused') riskScore += 50;
-    if (daysInactive > 60) riskScore += 30;      // enough to hit the at-risk threshold alone
+    if (daysInactive > 60) riskScore += 30;      // at-risk threshold alone
     else if (daysInactive > 30) riskScore += 15;
 
     return { email: email || 'unknown', mrr, status, daysInactive, riskScore, isCanceled: status === 'canceled' };
@@ -196,6 +78,7 @@ function analyzeCSVData(csvText: string): AuditResult {
 
   const active   = customers.filter(c => !c.isCanceled && c.status !== 'canceled');
   const canceled = customers.filter(c => c.isCanceled);
+  const paused   = customers.filter(c => c.status === 'paused');
   const atRisk   = active.filter(c => c.riskScore >= 30);
 
   const totalMrr      = active.reduce((n, c) => n + c.mrr, 0);
@@ -210,29 +93,30 @@ function analyzeCSVData(csvText: string): AuditResult {
     .sort((a, b) => b.mrr - a.mrr)
     .slice(0, 5)
     .map(c => ({
-      name: anonymizeEmail(c.email),
-      email: anonymizeEmail(c.email),
-      mrr: c.mrr,
-      reason: c.riskScore >= 70 ? 'Payment failed' : c.daysInactive > 30 ? 'Inactive 30+ days' : 'Trial at risk',
-      urgency: c.riskScore >= 70 ? 'high' : 'medium',
+      name:    anonymizeEmail(c.email),
+      email:   anonymizeEmail(c.email),
+      mrr:     c.mrr,
+      reason:  c.riskScore >= 70 ? 'Payment failed' : c.daysInactive > 30 ? 'Inactive 30+ days' : 'Trial at risk',
+      urgency: (c.riskScore >= 70 ? 'high' : 'medium') as 'high' | 'medium',
     }));
 
   return {
-    monthlyChurnRate: Math.round(monthlyChurnRate * 10) / 10,
-    revenueAtRisk: Math.round(revenueAtRisk),
-    annualizedLoss: Math.round(annualizedLoss),
-    totalMrr: Math.round(totalMrr),
-    industryPercentile: getIndustryPercentile(monthlyChurnRate),
+    monthlyChurnRate:   Math.round(monthlyChurnRate * 10) / 10,
+    revenueAtRisk:      Math.round(revenueAtRisk),
+    annualizedLoss:     Math.round(annualizedLoss),
+    totalMrr:           Math.round(totalMrr),
+    industryPercentile: getIndustryPercentile(monthlyChurnRate),  // shared function
     atRiskCustomers,
-    activeCount: active.length,
+    activeCount:   active.length,
     canceledCount: canceled.length,
-    pastDueCount: atRisk.filter(c => c.riskScore >= 70).length,
+    pastDueCount:  atRisk.filter(c => c.riskScore >= 70).length,
+    pausedCount:   paused.length,
   };
 }
 
-// ── Email template ───────────────────────────────────────────────────────────
+// ── Email template ────────────────────────────────────────────────────────────
 
-function auditEmailHtml(email: string, r: AuditResult): string {
+function auditEmailHtml(r: StripeAuditResult): string {
   const churnColor = r.monthlyChurnRate > 5 ? '#ef4444' : r.monthlyChurnRate > 2 ? '#f59e0b' : '#22c55e';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://churnguardapp.com';
   return `
@@ -268,7 +152,7 @@ function auditEmailHtml(email: string, r: AuditResult): string {
 </div>`;
 }
 
-// ── Route handler ────────────────────────────────────────────────────────────
+// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   let body: { email?: string; stripeKey?: string; csvData?: string };
@@ -288,17 +172,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Provide a Stripe API key or CSV data.' }, { status: 400 });
   }
 
-  let result: AuditResult;
+  let result: StripeAuditResult;
 
   try {
-    if (stripeKey) {
-      result = await analyzeStripe(stripeKey.trim());
-    } else {
-      result = analyzeCSVData(csvData!);
-    }
+    result = stripeKey
+      ? await analyzeStripe(stripeKey.trim())   // from @/lib/calculations/stripe
+      : analyzeCSVData(csvData!);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Analysis failed.';
-    // Surface Stripe auth errors clearly
     if (message.includes('Invalid API Key') || message.includes('No such') || message.includes('authentication')) {
       return NextResponse.json({ error: 'Invalid Stripe API key. Please check and try again.' }, { status: 422 });
     }
@@ -314,14 +195,14 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         stripeConnected: !!stripeKey,
-        csvUploaded: !!csvData,
-        monthlyChurnRate: result.monthlyChurnRate,
-        revenueAtRisk: result.revenueAtRisk,
-        annualizedLoss: result.annualizedLoss,
-        totalMrr: result.totalMrr,
+        csvUploaded:     !!csvData,
+        monthlyChurnRate:   result.monthlyChurnRate,
+        revenueAtRisk:      result.revenueAtRisk,
+        annualizedLoss:     result.annualizedLoss,
+        totalMrr:           result.totalMrr,
         industryPercentile: result.industryPercentile,
-        atRiskCustomers: JSON.parse(JSON.stringify(result.atRiskCustomers)),
-        emailStep: 1,
+        atRiskCustomers:    JSON.parse(JSON.stringify(result.atRiskCustomers)),
+        emailStep:   1,
         nextEmailAt,
       },
     });
