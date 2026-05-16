@@ -128,10 +128,11 @@ async function analyzeStripe(apiKey: string): Promise<AuditResult> {
   const canceledMrr   = canceled.reduce((n, s) => n + calcSubMrr(s), 0);
   const pastDueMrr    = pastDue.reduce((n, s) => n + calcSubMrr(s), 0);
   const trialingAtRisk = trialing
-    .filter(s => (s.trial_end ?? 0) < sevenDaysAhead)
+    .filter(s => s.trial_end !== null && s.trial_end < sevenDaysAhead)
     .reduce((n, s) => n + calcSubMrr(s), 0);
 
-  const denominator = active.length + canceled.length;
+  // Include trialing + past_due in denominator — a canceled trial still counts as a churn event
+  const denominator = active.length + trialing.length + pastDue.length + canceled.length;
   const monthlyChurnRate = denominator > 0 ? (canceled.length / denominator) * 100 : 0;
   const revenueAtRisk    = pastDueMrr + Math.round(trialingAtRisk * 0.4);
   const annualizedLoss   = canceledMrr * 12 + revenueAtRisk;
@@ -187,7 +188,7 @@ function analyzeCSVData(csvText: string): AuditResult {
     if (status === 'past_due' || status === 'failed' || payFailed === 'true' || payFailed === '1') riskScore += 70;
     else if (status === 'trialing' || status === 'trial') riskScore += 30;
     else if (status === 'inactive' || status === 'paused') riskScore += 50;
-    if (daysInactive > 60) riskScore += 25;
+    if (daysInactive > 60) riskScore += 30;      // enough to hit the at-risk threshold alone
     else if (daysInactive > 30) riskScore += 15;
 
     return { email: email || 'unknown', mrr, status, daysInactive, riskScore, isCanceled: status === 'canceled' };

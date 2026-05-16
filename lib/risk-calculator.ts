@@ -15,7 +15,7 @@ export function calculateRiskScore(events: any[], currentScore: number = 50): nu
     const lastLogin = Math.max(...logins.map(e => e.timestamp));
     const daysSinceLogin = (now - lastLogin) / (1000 * 60 * 60 * 24);
     if (daysSinceLogin > 7) score += 15;
-    if (daysSinceLogin > 3) score += 10;
+    else if (daysSinceLogin > 3) score += 10;
   }
   
   // Payment failures
