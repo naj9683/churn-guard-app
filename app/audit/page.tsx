@@ -134,9 +134,188 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
   );
 }
 
+// ── PDF generation ───────────────────────────────────────────────────────────
+
+function buildRecommendations(results: AuditResult): string[] {
+  const recs: string[] = [];
+  if (results.pastDueCount > 0)
+    recs.push(`Recover ${results.pastDueCount} failed payment${results.pastDueCount !== 1 ? 's' : ''} — send a payment retry email today.`);
+  if (results.monthlyChurnRate > 5)
+    recs.push('Launch a win-back campaign targeting customers churned in the last 30 days (5–10% typically convert back).');
+  if (results.atRiskCustomers.length > 0)
+    recs.push(`Contact your top ${Math.min(results.atRiskCustomers.length, 3)} at-risk accounts personally within 48 hours before they cancel.`);
+  if (results.monthlyChurnRate > 2)
+    recs.push('Set up automated health-score alerts to catch churn signals before customers actually cancel.');
+  recs.push('Add an in-app NPS survey to identify dissatisfied customers before they churn silently.');
+  recs.push('Create a customer success check-in cadence for accounts above $500 MRR.');
+  return recs.slice(0, 4);
+}
+
+async function downloadAuditPDF(results: AuditResult, email: string): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' }) as any;
+
+  const W = 210;
+  const margin = 18;
+  const contentW = W - margin * 2;
+
+  // Header band
+  doc.setFillColor(67, 56, 202);
+  doc.rect(0, 0, W, 32, 'F');
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('ChurnGuard', margin, 12);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Churn Audit Report', margin, 19);
+  doc.setFontSize(7.5);
+  doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), W - margin, 12, { align: 'right' });
+  doc.text(email, W - margin, 19, { align: 'right' });
+
+  // Alert sub-banner
+  doc.setFillColor(254, 226, 226);
+  doc.rect(0, 32, W, 11, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(153, 27, 27);
+  doc.text('YOUR CHURN AUDIT RESULTS — CONFIDENTIAL', W / 2, 39.5, { align: 'center' });
+
+  // Key metric cards
+  const cardY = 50;
+  const cardH = 28;
+  const gap = 4;
+  const cardW = (contentW - gap * 2) / 3;
+  const churnR = results.monthlyChurnRate > 3 ? 220 : 21;
+  const churnG = results.monthlyChurnRate > 3 ? 38 : 128;
+  const churnB = results.monthlyChurnRate > 3 ? 38 : 61;
+  const metricCards = [
+    { label: 'Monthly Churn Rate',  value: `${results.monthlyChurnRate.toFixed(1)}%`, sub: 'per month',          r: churnR, g: churnG, b: churnB },
+    { label: 'Revenue at Risk',     value: `$${results.revenueAtRisk.toLocaleString()}`,  sub: 'MRR in danger now',  r: 180,    g: 105,    b: 0      },
+    { label: 'Annual Revenue Loss', value: `$${results.annualizedLoss.toLocaleString()}`, sub: 'if nothing changes', r: 220,    g: 38,     b: 38     },
+  ];
+  metricCards.forEach((card, i) => {
+    const x = margin + i * (cardW + gap);
+    doc.setFillColor(249, 250, 251);
+    doc.rect(x, cardY, cardW, cardH, 'F');
+    doc.setDrawColor(209, 213, 219);
+    doc.rect(x, cardY, cardW, cardH, 'S');
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(107, 114, 128);
+    doc.text(card.label.toUpperCase(), x + cardW / 2, cardY + 7, { align: 'center' });
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(card.r, card.g, card.b);
+    doc.text(card.value, x + cardW / 2, cardY + 18, { align: 'center' });
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(156, 163, 175);
+    doc.text(card.sub, x + cardW / 2, cardY + 24, { align: 'center' });
+  });
+
+  // Benchmark section
+  const benchY = 86;
+  doc.setFillColor(249, 250, 251);
+  doc.rect(margin, benchY, contentW, 30, 'F');
+  doc.setDrawColor(209, 213, 219);
+  doc.rect(margin, benchY, contentW, 30, 'S');
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
+  doc.text('Industry Benchmark', margin + 4, benchY + 8);
+  const bottomPct = 100 - results.industryPercentile;
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  if (bottomPct > 75)      doc.setTextColor(185, 28, 28);
+  else if (bottomPct > 50) doc.setTextColor(180, 83, 9);
+  else                     doc.setTextColor(21, 128, 61);
+  doc.text(`Bottom ${bottomPct}%`, W - margin - 4, benchY + 8, { align: 'right' });
+  // Tri-color bar
+  const barX = margin + 4;
+  const barY = benchY + 13;
+  const barW = contentW - 8;
+  const barH = 4;
+  doc.setFillColor(34, 197, 94);
+  doc.rect(barX, barY, barW / 3, barH, 'F');
+  doc.setFillColor(234, 179, 8);
+  doc.rect(barX + barW / 3, barY, barW / 3, barH, 'F');
+  doc.setFillColor(239, 68, 68);
+  doc.rect(barX + (barW * 2) / 3, barY, barW / 3, barH, 'F');
+  // Position marker
+  const markerX = barX + Math.min((results.monthlyChurnRate / 12) * barW, barW - 2);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(31, 41, 55);
+  doc.ellipse(markerX, barY + barH / 2, 2, 2, 'FD');
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(156, 163, 175);
+  doc.text(`${results.activeCount} Active   ·   ${results.canceledCount} Churned (30d)   ·   ${results.pastDueCount} Past Due`, margin + 4, benchY + 25);
+
+  // At-risk customers table
+  let tableEndY = benchY + 38;
+  if (results.atRiskCustomers.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Highest-Risk Customers', margin, tableEndY + 2);
+    autoTable(doc, {
+      startY: tableEndY + 6,
+      margin: { left: margin, right: margin },
+      head: [['Customer', 'Email', 'MRR / mo', 'Status']],
+      body: results.atRiskCustomers.slice(0, 3).map(c => [
+        c.name,
+        c.email,
+        `$${c.mrr.toLocaleString()}`,
+        c.urgency === 'high' ? 'Payment Failed' : 'At Risk',
+      ]),
+      styles: { fontSize: 7.5, cellPadding: 2.5 },
+      headStyles: { fillColor: [67, 56, 202] as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold', fontSize: 7 },
+      alternateRowStyles: { fillColor: [248, 250, 252] as [number, number, number] },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'center' } },
+    });
+    tableEndY = doc.lastAutoTable?.finalY ?? tableEndY + 36;
+  }
+
+  // Recommended actions
+  const recY = tableEndY + 8;
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
+  doc.text('Recommended Actions', margin, recY);
+  buildRecommendations(results).forEach((rec, i) => {
+    const y = recY + 8 + i * 10;
+    doc.setFillColor(67, 56, 202);
+    doc.rect(margin, y - 2.5, 2, 2, 'F');
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    const lines = doc.splitTextToSize(rec, contentW - 8);
+    doc.text(lines, margin + 5, y);
+  });
+
+  // CTA footer
+  doc.setFillColor(67, 56, 202);
+  doc.rect(0, 270, W, 27, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Prevent this churn automatically with ChurnGuard', W / 2, 280, { align: 'center' });
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Start your 14-day free trial — churnguard.app', W / 2, 288, { align: 'center' });
+  doc.setFontSize(6.5);
+  doc.setTextColor(196, 181, 253);
+  doc.text('Setup in 5 minutes · Cancel anytime · First results in hours', W / 2, 293.5, { align: 'center' });
+
+  doc.save('churnguard-audit-report.pdf');
+}
+
 // ── Results screen ───────────────────────────────────────────────────────────
 
 function ResultsScreen({ results, email }: { results: AuditResult; email: string }) {
+  const [downloading, setDownloading] = useState(false);
   const churnBad      = results.monthlyChurnRate > 3;
   const churnCritical = results.monthlyChurnRate > 7;
   const bottomPct     = 100 - results.industryPercentile;
@@ -282,6 +461,37 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
             </div>
           </div>
         )}
+
+        {/* Download PDF */}
+        <div className="flex justify-center">
+          <button
+            onClick={async () => {
+              setDownloading(true);
+              try { await downloadAuditPDF(results, email); }
+              finally { setDownloading(false); }
+            }}
+            disabled={downloading}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', boxShadow: '0 0 20px rgba(99,102,241,0.35)' }}
+          >
+            {downloading ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Generating PDF…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download My Churn Report
+              </>
+            )}
+          </button>
+        </div>
 
         {/* CTA */}
         <div
