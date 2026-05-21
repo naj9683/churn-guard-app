@@ -25,7 +25,7 @@ interface AuditResult {
   pastDueCount: number;
 }
 
-type Step = 'form' | 'analyzing' | 'results';
+type Step = 'form' | 'analyzing' | 'email-gate' | 'results';
 type InputMethod = 'stripe' | 'csv';
 
 // ── Analysis animation ───────────────────────────────────────────────────────
@@ -129,6 +129,189 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
         <span>2% — Avg</span>
         <span>5% — Danger</span>
         <span>10%+</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Email gate ────────────────────────────────────────────────────────────────
+
+function EmailGateScreen({
+  results,
+  inputMethod,
+  onUnlock,
+}: {
+  results: AuditResult;
+  inputMethod: InputMethod;
+  onUnlock: (email: string) => void;
+}) {
+  const [gateEmail, setGateEmail] = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
+
+  async function handleUnlock(e: React.FormEvent) {
+    e.preventDefault();
+    if (!gateEmail.includes('@')) { setError('Enter a valid work email.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      await fetch('/api/audit/capture-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:           gateEmail,
+          stripeConnected: inputMethod === 'stripe',
+          csvUploaded:     inputMethod === 'csv',
+          monthlyChurnRate:   results.monthlyChurnRate,
+          revenueAtRisk:      results.revenueAtRisk,
+          annualizedLoss:     results.annualizedLoss,
+          totalMrr:           results.totalMrr,
+          industryPercentile: results.industryPercentile,
+          atRiskCustomers:    results.atRiskCustomers,
+        }),
+      });
+    } catch {
+      // Lead capture failure must never block the user from seeing results
+    }
+    onUnlock(gateEmail);
+  }
+
+  const churnBad  = results.monthlyChurnRate > 3;
+  const churnColor =
+    results.monthlyChurnRate > 7 ? '#ef4444' :
+    results.monthlyChurnRate > 3 ? '#f97316' :
+    results.monthlyChurnRate > 1 ? '#f59e0b' : '#22c55e';
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
+      {/* Header */}
+      <div
+        className="py-10 px-6 text-center border-b"
+        style={{ background: 'linear-gradient(180deg,#1a0505 0%,#0a0a12 100%)', borderColor: '#3f1a1a' }}
+      >
+        <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-800/40 text-green-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          Analysis complete
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 leading-tight">
+          Your Churn Report Is Ready
+        </h1>
+        <p className="text-slate-400 text-sm max-w-sm mx-auto">
+          We found{' '}
+          <span className="text-white font-semibold">
+            {results.atRiskCustomers.length > 0
+              ? `${results.atRiskCustomers.length} customer${results.atRiskCustomers.length !== 1 ? 's' : ''} at risk of churning`
+              : 'data worth reviewing'}
+          </span>
+          . Enter your work email to unlock the full breakdown.
+        </p>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
+        <div className="w-full max-w-lg space-y-5">
+
+          {/* Blurred metric preview */}
+          <div className="grid grid-cols-3 gap-3 select-none" style={{ filter: 'blur(7px)', opacity: 0.6 }} aria-hidden>
+            <div
+              className="rounded-xl p-4 text-center border"
+              style={{
+                background: churnBad ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)',
+                borderColor: churnBad ? '#7f1d1d' : '#14532d',
+              }}
+            >
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Monthly Churn</p>
+              <p className="text-4xl font-extrabold" style={{ color: churnColor }}>
+                {results.monthlyChurnRate.toFixed(1)}%
+              </p>
+            </div>
+            <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(245,158,11,0.07)', borderColor: '#78350f' }}>
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Revenue at Risk</p>
+              <p className="text-3xl font-extrabold text-amber-400">
+                ${results.revenueAtRisk.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(239,68,68,0.07)', borderColor: '#7f1d1d' }}>
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Annual Loss</p>
+              <p className="text-3xl font-extrabold text-red-400">
+                ${results.annualizedLoss.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Gate card */}
+          <div
+            className="rounded-2xl border p-8"
+            style={{ background: '#111827', borderColor: '#1f2937' }}
+          >
+            <div className="flex justify-center mb-5">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+                </svg>
+              </div>
+            </div>
+
+            <h2 className="text-white text-xl font-bold text-center mb-1">
+              Unlock Your Complete Report
+            </h2>
+            <p className="text-slate-400 text-sm text-center mb-6">
+              See your full churn breakdown, industry benchmark, at-risk customers,<br className="hidden sm:block" /> and a prioritized action plan — sent to your inbox too.
+            </p>
+
+            <form onSubmit={handleUnlock} className="space-y-3">
+              <input
+                type="email"
+                required
+                value={gateEmail}
+                onChange={e => { setGateEmail(e.target.value); setError(''); }}
+                placeholder="you@company.com"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                autoFocus
+              />
+
+              {error && (
+                <p className="text-red-400 text-xs flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 0 24px rgba(239,68,68,0.3)' }}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Opening your report…
+                  </span>
+                ) : (
+                  'See My Full Report →'
+                )}
+              </button>
+            </form>
+
+            <p className="text-slate-600 text-xs text-center mt-4 flex items-center justify-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              No spam. We'll also email you the PDF report.
+            </p>
+          </div>
+
+        </div>
       </div>
     </div>
   );
@@ -524,20 +707,19 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
 // ── Form ─────────────────────────────────────────────────────────────────────
 
 export default function FreeAuditPage() {
-  const [step, setStep] = useState<Step>('form');
+  const [step, setStep]             = useState<Step>('form');
   const [inputMethod, setInputMethod] = useState<InputMethod>('stripe');
-  const [email, setEmail] = useState('');
-  const [stripeKey, setStripeKey] = useState('');
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [error, setError] = useState('');
-  const [results, setResults] = useState<AuditResult | null>(null);
+  const [email, setEmail]           = useState('');
+  const [stripeKey, setStripeKey]   = useState('');
+  const [csvFile, setCsvFile]       = useState<File | null>(null);
+  const [error, setError]           = useState('');
+  const [results, setResults]       = useState<AuditResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (!email.includes('@')) { setError('Enter a valid email address.'); return; }
     if (inputMethod === 'stripe' && !stripeKey.startsWith('sk_')) {
       setError('Stripe secret keys must start with sk_live_ or sk_test_'); return;
     }
@@ -546,16 +728,13 @@ export default function FreeAuditPage() {
     setStep('analyzing');
 
     let csvData: string | undefined;
-    if (inputMethod === 'csv' && csvFile) {
-      csvData = await csvFile.text();
-    }
+    if (inputMethod === 'csv' && csvFile) csvData = await csvFile.text();
 
     const [apiResult] = await Promise.allSettled([
       fetch('/api/audit/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
           stripeKey: inputMethod === 'stripe' ? stripeKey : undefined,
           csvData,
         }),
@@ -564,7 +743,7 @@ export default function FreeAuditPage() {
         if (!r.ok) throw new Error(data.error ?? 'Analysis failed.');
         return data as AuditResult;
       }),
-      new Promise(resolve => setTimeout(resolve, 4200)), // let animation complete
+      new Promise(resolve => setTimeout(resolve, 4200)),
     ]);
 
     if (apiResult.status === 'rejected') {
@@ -574,10 +753,18 @@ export default function FreeAuditPage() {
     }
 
     setResults(apiResult.value as AuditResult);
-    setStep('results');
+    setStep('email-gate');
   }
 
   if (step === 'analyzing') return <AnalyzingScreen dataSource={inputMethod} />;
+  if (step === 'email-gate' && results)
+    return (
+      <EmailGateScreen
+        results={results}
+        inputMethod={inputMethod}
+        onUnlock={capturedEmail => { setEmail(capturedEmail); setStep('results'); }}
+      />
+    );
   if (step === 'results' && results) return <ResultsScreen results={results} email={email} />;
 
   return (
@@ -625,19 +812,6 @@ export default function FreeAuditPage() {
           className="w-full max-w-md rounded-2xl border p-7"
           style={{ background: '#111827', borderColor: '#1f2937' }}
         >
-          {/* Email */}
-          <div className="mb-5">
-            <label className="block text-slate-300 text-sm font-medium mb-2">Your work email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
-
           {/* Method toggle */}
           <div className="mb-5">
             <label className="block text-slate-300 text-sm font-medium mb-2">Data source</label>
@@ -728,7 +902,7 @@ export default function FreeAuditPage() {
             Show Me My Churn Numbers →
           </button>
           <p className="text-slate-600 text-xs text-center mt-4">
-            Free forever. We'll email you the report too.
+            Free · No account needed · Results in 10 seconds
           </p>
         </form>
 
