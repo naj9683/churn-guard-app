@@ -12,7 +12,11 @@ export async function GET() {
 
     // Find user by clerkId (matching your pattern)
     const user = await prisma.user.findFirst({
-      where: { clerkId: userId }
+      where: { clerkId: userId },
+      select: {
+        id: true, createdAt: true,
+        trialEmailStep: true, nextTrialEmailAt: true,
+      },
     });
 
     if (!user) {
@@ -62,6 +66,17 @@ export async function GET() {
       take: 5,
       select: { id: true, email: true, name: true, riskScore: true, riskReason: true, mrr: true },
     });
+
+    // Enroll new users in trial email sequence on first dashboard load
+    if (user.nextTrialEmailAt === null && user.trialEmailStep === 0) {
+      const ageMs = Date.now() - user.createdAt.getTime();
+      if (ageMs < 14 * 24 * 60 * 60 * 1000) {
+        prisma.user.update({
+          where: { id: user.id },
+          data: { nextTrialEmailAt: user.createdAt },
+        }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({
       totalCustomers,

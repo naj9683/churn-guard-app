@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/audit-sequence",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/trial-sequence",
+      "schedule": "0 * * * *"
     }
   ]
 }
