@@ -32,7 +32,10 @@ export async function GET() {
         select: { id: true, crmType: true, direction: true, entityType: true, status: true, message: true, createdAt: true },
       }),
       prisma.crmIntegration.findMany({
-        select: { userId: true, type: true, enabled: true, syncStatus: true, lastError: true, lastSyncAt: true },
+        select: {
+          userId: true, type: true, enabled: true, syncStatus: true,
+          lastError: true, lastSyncAt: true, lastFullSyncAt: true, lastSyncCount: true,
+        },
       }),
       prisma.event.findMany({
         where: { timestamp: { gte: since24hMs } },

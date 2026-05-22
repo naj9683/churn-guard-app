@@ -187,21 +187,24 @@ model Task {
 }
 
 model CrmIntegration {
-  id            String    @id @default(cuid())
-  userId        String
-  type          String
-  enabled       Boolean   @default(false)
-  accessToken   String?
-  refreshToken  String?
-  expiresAt     DateTime?
-  instanceUrl   String?
-  syncDirection String    @default("bidirectional")
-  lastSyncAt    DateTime?
-  syncStatus    String    @default("disconnected")
-  lastError     String?
-  fieldMappings String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  type           String
+  enabled        Boolean   @default(false)
+  accessToken    String?
+  refreshToken   String?
+  expiresAt      DateTime?
+  instanceUrl    String?
+  syncDirection  String    @default("bidirectional")
+  lastSyncAt     DateTime?
+  lastFullSyncAt DateTime?
+  lastSyncCount  Int       @default(0)
+  syncStatus     String    @default("disconnected")
+  lastError      String?
+  fieldMappings  String?
+  webhookSecret  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([userId, type])
   @@index([userId])

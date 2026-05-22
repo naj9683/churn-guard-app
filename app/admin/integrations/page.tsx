@@ -32,6 +32,8 @@ interface CrmIntegration {
   syncStatus: string;
   lastError: string | null;
   lastSyncAt: string | null;
+  lastFullSyncAt: string | null;
+  lastSyncCount: number;
 }
 
 interface StripeEvent {
@@ -238,6 +240,33 @@ export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [syncingCrm, setSyncingCrm] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  async function triggerCrmSync(type?: 'hubspot' | 'salesforce') {
+    setSyncingCrm(type ?? 'all');
+    setSyncResult(null);
+    try {
+      const res = await fetch('/api/admin/crm-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(type ? { type } : {}),
+      });
+      const json = await res.json();
+      if (json.succeeded > 0) {
+        setSyncResult(`✓ Synced ${json.succeeded} integration(s) — refreshing data`);
+        setTimeout(fetchData, 500);
+      } else if (json.failed > 0) {
+        setSyncResult(`⚠ ${json.failed} sync(s) failed — check CRM credentials`);
+      } else {
+        setSyncResult('No enabled integrations to sync');
+      }
+    } catch (e: any) {
+      setSyncResult(`Error: ${e.message}`);
+    } finally {
+      setSyncingCrm(null);
+    }
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -430,19 +459,86 @@ export default function IntegrationsPage() {
       />
 
       {/* ── CRM ───────────────────────────────────────────────────────────── */}
-      <SectionHeader title="CRM Sync Log — last 10" />
-      {data?.crm.integrations && data.crm.integrations.length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-          {data.crm.integrations.map(ci => (
-            <div key={ci.userId + ci.type} style={{ padding: '4px 10px', background: '#111827', border: '1px solid #1f2937', borderRadius: '6px', fontSize: '11px', color: '#9ca3af' }}>
-              <span style={{ color: '#e5e7eb', fontWeight: '600', textTransform: 'capitalize' }}>{ci.type}</span>
-              {' · '}
-              <span style={{ color: ci.syncStatus === 'connected' ? '#22c55e' : ci.syncStatus === 'error' ? '#ef4444' : '#6b7280' }}>{ci.syncStatus}</span>
-              {ci.lastSyncAt && <span>{' · last sync '}{relativeTime(ci.lastSyncAt)}</span>}
-            </div>
-          ))}
+      <SectionHeader title="CRM Sync — Real-Time Status" />
+
+      {syncResult && (
+        <div style={{ marginBottom: '10px', padding: '8px 12px', borderRadius: '6px', background: syncResult.startsWith('✓') ? '#052e16' : '#1c1a03', border: `1px solid ${syncResult.startsWith('✓') ? '#166534' : '#854d0e'}`, fontSize: '12px', color: syncResult.startsWith('✓') ? '#22c55e' : '#fde68a' }}>
+          {syncResult}
         </div>
       )}
+
+      {/* Per-integration cards */}
+      {data?.crm.integrations && data.crm.integrations.length > 0 ? (
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {data.crm.integrations.map(ci => {
+            const statusColor = ci.syncStatus === 'synced' ? '#22c55e' : ci.syncStatus === 'error' || ci.syncStatus === 'partial' ? '#ef4444' : '#6b7280';
+            const crmType = ci.type as 'hubspot' | 'salesforce';
+            return (
+              <div key={ci.userId + ci.type} style={{ flex: '1', minWidth: '220px', background: '#111827', border: '1px solid #1f2937', borderRadius: '10px', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontWeight: '700', fontSize: '14px', color: '#f9fafb', textTransform: 'capitalize' }}>
+                    {ci.type === 'hubspot' ? '🟠' : '🔵'} {ci.type}
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: statusColor, textTransform: 'capitalize' }}>● {ci.syncStatus}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.9' }}>
+                  <div>Last sync: <span style={{ color: '#d1d5db' }}>{relativeTime(ci.lastSyncAt)}</span></div>
+                  <div>Last full pull: <span style={{ color: '#d1d5db' }}>{relativeTime(ci.lastFullSyncAt)}</span></div>
+                  <div>Records pushed: <span style={{ color: '#d1d5db' }}>{ci.lastSyncCount}</span></div>
+                  {ci.lastError && (
+                    <div style={{ color: '#fca5a5', fontSize: '11px', marginTop: '4px', wordBreak: 'break-all' }}>{ci.lastError.slice(0, 80)}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => triggerCrmSync(crmType)}
+                  disabled={syncingCrm !== null}
+                  style={{
+                    marginTop: '10px', width: '100%', padding: '7px 0',
+                    background: syncingCrm === crmType ? '#1f2937' : '#1e293b',
+                    border: '1px solid #334155', borderRadius: '6px',
+                    color: syncingCrm === crmType ? '#6b7280' : '#94a3b8',
+                    fontSize: '12px', fontWeight: '600', cursor: syncingCrm !== null ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {syncingCrm === crmType ? 'Syncing…' : '⟳ Sync Now (Full)'}
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Sync All button */}
+          {data.crm.integrations.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0' }}>
+              <button
+                onClick={() => triggerCrmSync()}
+                disabled={syncingCrm !== null}
+                style={{
+                  padding: '10px 20px', background: '#312e81', border: '1px solid #4338ca',
+                  borderRadius: '8px', color: '#c7d2fe', fontSize: '13px', fontWeight: '700',
+                  cursor: syncingCrm !== null ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {syncingCrm === 'all' ? 'Syncing all…' : '⟳ Sync All Now'}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ padding: '16px', background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', fontSize: '12px', color: '#4b5563', marginBottom: '12px' }}>
+          No CRM integrations connected. Users can connect HubSpot or Salesforce from their Integrations page.
+        </div>
+      )}
+
+      {/* HubSpot webhook URL */}
+      <div style={{ padding: '10px 14px', background: '#0d1117', border: '1px solid #1f2937', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', color: '#6b7280' }}>
+        <span style={{ fontWeight: '600', color: '#9ca3af' }}>HubSpot real-time webhook URL → </span>
+        <code style={{ color: '#93c5fd', fontFamily: 'monospace' }}>
+          {typeof window !== 'undefined' ? window.location.origin : 'https://churnguardapp.com'}/api/webhooks/hubspot
+        </code>
+        <span style={{ marginLeft: '8px', color: '#4b5563' }}>· add as Contact subscription in HubSpot app settings</span>
+      </div>
+
+      <SectionHeader title="CRM Sync Log — last 10" />
       <Table
         cols={['Time', 'CRM', 'Direction', 'Entity', 'Status', 'Message']}
         rows={(data?.crm.logs.slice(0, 10) ?? []).map(l => [

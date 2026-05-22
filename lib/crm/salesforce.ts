@@ -146,9 +146,20 @@ async function hasCustomField(fieldName: string, token: string, instanceUrl: str
   }
 }
 
+// ─── Sync options ─────────────────────────────────────────────────────────────
+
+export interface SalesforceSyncOptions {
+  fullSync?: boolean;
+  sinceDate?: Date;
+}
+
 // ─── Main sync function ───────────────────────────────────────────────────────
 
-export async function syncSalesforce(internalUserId: string): Promise<SyncResult> {
+export async function syncSalesforce(
+  internalUserId: string,
+  options: SalesforceSyncOptions = {},
+): Promise<SyncResult> {
+  const { fullSync = true, sinceDate } = options;
   const result: SyncResult = { pulled: 0, pushed: 0, created: 0, updated: 0, errors: [] };
 
   const { token, instanceUrl } = await getValidSalesforceToken(internalUserId);
@@ -160,90 +171,72 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
     hasCustomField('ChurnGuard_Risk_Reason__c', token, instanceUrl),
   ]);
 
-  // ── PULL: Salesforce Contacts → ChurnGuard customers ──────────────────────
-  const soql = `
-    SELECT Id, FirstName, LastName, Email, Phone, MobilePhone,
-           LastActivityDate, Account.Name, Account.AnnualRevenue
-    FROM Contact
-    WHERE Email != null
-    ORDER BY CreatedDate DESC
-    LIMIT 200
-  `.trim().replace(/\s+/g, ' ');
+  // ── PULL: Salesforce Contacts → ChurnGuard customers (skipped on push-only) ──
+  if (fullSync) {
+    const soql = `
+      SELECT Id, FirstName, LastName, Email, Phone, MobilePhone,
+             LastActivityDate, Account.Name, Account.AnnualRevenue
+      FROM Contact
+      WHERE Email != null
+      ORDER BY CreatedDate DESC
+      LIMIT 200
+    `.trim().replace(/\s+/g, ' ');
 
-  let contacts: SFContact[] = [];
-  try {
-    const data = await sfQuery(soql, token, instanceUrl);
-    contacts = data.records ?? [];
-    result.pulled = contacts.length;
-  } catch (e: any) {
-    result.errors.push(`Pull contacts: ${e.message}`);
-    return result;
-  }
-
-  for (const contact of contacts) {
-    const email = contact.Email;
-    if (!email) continue;
-
-    const name = [contact.FirstName, contact.LastName].filter(Boolean).join(' ') || email;
-    const mrr  = Math.round((contact.Account?.AnnualRevenue ?? 0) / 12);
-
+    let contacts: SFContact[] = [];
     try {
-      const existing = await prisma.customer.findFirst({
-        where: { userId: internalUserId, email },
-      });
-
-      const lastActivity = contact.LastActivityDate ? new Date(contact.LastActivityDate) : null;
-
-      if (existing) {
-        await prisma.customer.update({
-          where: { id: existing.id },
-          data: {
-            name,
-            crmId: contact.Id,
-            updatedAt: new Date(),
-            ...(lastActivity ? { lastLoginAt: lastActivity } : {}),
-          },
-        });
-        result.updated++;
-      } else {
-        await prisma.customer.create({
-          data: {
-            userId: internalUserId,
-            externalId: `salesforce_${contact.Id}`,
-            email,
-            name,
-            mrr,
-            crmId: contact.Id,
-            riskScore: 50,
-            lastLoginAt: lastActivity,
-          },
-        });
-        result.created++;
-
-        await prisma.crmSyncLog.create({
-          data: {
-            userId: internalUserId,
-            crmType: 'salesforce',
-            direction: 'inbound',
-            entityType: 'contact',
-            entityId: contact.Id,
-            status: 'success',
-            message: `Created customer from Salesforce Contact: ${email}`,
-          },
-        });
-      }
+      const data = await sfQuery(soql, token, instanceUrl);
+      contacts = data.records ?? [];
+      result.pulled = contacts.length;
     } catch (e: any) {
-      result.errors.push(`Pull ${email}: ${e.message}`);
+      result.errors.push(`Pull contacts: ${e.message}`);
+      return result;
+    }
+
+    for (const contact of contacts) {
+      const email = contact.Email;
+      if (!email) continue;
+
+      const name = [contact.FirstName, contact.LastName].filter(Boolean).join(' ') || email;
+      const mrr  = Math.round((contact.Account?.AnnualRevenue ?? 0) / 12);
+
+      try {
+        const existing = await prisma.customer.findFirst({ where: { userId: internalUserId, email } });
+        const lastActivity = contact.LastActivityDate ? new Date(contact.LastActivityDate) : null;
+
+        if (existing) {
+          await prisma.customer.update({
+            where: { id: existing.id },
+            data: { name, crmId: contact.Id, updatedAt: new Date(), ...(lastActivity ? { lastLoginAt: lastActivity } : {}) },
+          });
+          result.updated++;
+        } else {
+          await prisma.customer.create({
+            data: {
+              userId: internalUserId, externalId: `salesforce_${contact.Id}`,
+              email, name, mrr, crmId: contact.Id, riskScore: 50, lastLoginAt: lastActivity,
+            },
+          });
+          result.created++;
+          await prisma.crmSyncLog.create({
+            data: {
+              userId: internalUserId, crmType: 'salesforce', direction: 'inbound',
+              entityType: 'contact', entityId: contact.Id, status: 'success',
+              message: `Created customer from Salesforce Contact: ${email}`,
+            },
+          });
+        }
+      } catch (e: any) {
+        result.errors.push(`Pull ${email}: ${e.message}`);
+      }
     }
   }
 
   // ── PUSH: ChurnGuard risk data → Salesforce Contact fields ────────────────
-  // Derive Salesforce Contact ID from externalId ("salesforce_<id>") — never from crmId,
-  // which may have been overwritten by a HubSpot sync.
   const customers = await prisma.customer.findMany({
     where: {
       userId: internalUserId,
       externalId: { startsWith: 'salesforce_' },
+      ...(sinceDate ? { updatedAt: { gte: sinceDate } } : {}),
     },
     select: { id: true, externalId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
   });
@@ -295,7 +288,13 @@ export async function syncSalesforce(internalUserId: string): Promise<SyncResult
 
   await prisma.crmIntegration.updateMany({
     where: { userId: internalUserId, type: 'salesforce' },
-    data: { lastSyncAt: new Date(), syncStatus: result.errors.length > 0 ? 'partial' : 'synced' },
+    data: {
+      lastSyncAt: new Date(),
+      lastSyncCount: result.pushed,
+      syncStatus: result.errors.length > 0 ? 'partial' : 'synced',
+      lastError: result.errors.length > 0 ? result.errors.slice(0, 3).join('; ') : null,
+      ...(fullSync ? { lastFullSyncAt: new Date() } : {}),
+    },
   });
 
   return result;

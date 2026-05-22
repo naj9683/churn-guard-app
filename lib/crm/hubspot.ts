@@ -208,9 +208,64 @@ async function fetchAllContacts(token: string): Promise<HsContact[]> {
   return contacts;
 }
 
+// ─── Single-contact pull (used by webhook handler) ───────────────────────────
+
+export async function pullSingleHubSpotContact(
+  userId: string,
+  contactId: string,
+): Promise<{ updated: boolean; error?: string }> {
+  try {
+    const token = await getValidHubSpotToken(userId);
+    const props = 'email,firstname,lastname,company,phone,mobilephone,amount,industry,lifecyclestage,notes_last_contacted';
+    const data = await hsGet(`/crm/v3/objects/contacts/${contactId}?properties=${props}`, token);
+    const contact = data as HsContact;
+    const email = contact.properties.email;
+    if (!email) return { updated: false, error: 'no email on contact' };
+
+    const name = [contact.properties.firstname, contact.properties.lastname].filter(Boolean).join(' ') || email;
+    const mrr  = parseFloat(contact.properties.amount ?? '0') || 0;
+
+    const existing = await prisma.customer.findFirst({ where: { userId, email } });
+    if (!existing) return { updated: false };
+
+    const parseLastContacted = (raw: string | undefined): Date | null => {
+      if (!raw) return null;
+      const ms = parseInt(raw, 10);
+      return isNaN(ms) || ms < 946684800000 ? null : new Date(ms);
+    };
+
+    await prisma.customer.update({
+      where: { id: existing.id },
+      data: {
+        name,
+        crmId: contact.id,
+        mrr,
+        updatedAt: new Date(),
+        ...(parseLastContacted(contact.properties.notes_last_contacted)
+          ? { lastLoginAt: parseLastContacted(contact.properties.notes_last_contacted)! }
+          : {}),
+      },
+    });
+    return { updated: true };
+  } catch (e: any) {
+    return { updated: false, error: e.message };
+  }
+}
+
+// ─── Sync options ─────────────────────────────────────────────────────────────
+
+export interface HubSpotSyncOptions {
+  fullSync?: boolean;  // default true — whether to pull contacts from HubSpot
+  sinceDate?: Date;    // if set, only push customers updated since this date
+}
+
 // ─── Main sync function ───────────────────────────────────────────────────────
 
-export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
+export async function syncHubSpot(
+  internalUserId: string,
+  options: HubSpotSyncOptions = {},
+): Promise<SyncResult> {
+  const { fullSync = true, sinceDate } = options;
   const result: SyncResult = { pulled: 0, pushed: 0, created: 0, updated: 0, errors: [] };
 
   const token = await getValidHubSpotToken(internalUserId);
@@ -221,83 +276,69 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
     result.errors.push(`Property setup: ${propErrors.join('; ')} — ensure crm.schemas.contacts.write scope is enabled in your HubSpot app, then reconnect.`);
   }
 
-  // ── PULL: HubSpot contacts → ChurnGuard customers ─────────────────────────
-  const contacts = await fetchAllContacts(token);
-  result.pulled = contacts.length;
+  // ── PULL: HubSpot contacts → ChurnGuard customers (skipped on push-only runs) ──
+  if (fullSync) {
+    const contacts = await fetchAllContacts(token);
+    result.pulled = contacts.length;
 
-  for (const contact of contacts) {
-    const email = contact.properties.email;
-    if (!email) continue;
+    const parseLastContacted = (raw: string | undefined): Date | null => {
+      if (!raw) return null;
+      const ms = parseInt(raw, 10);
+      if (isNaN(ms) || ms < 946684800000) return null;
+      return new Date(ms);
+    };
 
-    const name = [contact.properties.firstname, contact.properties.lastname].filter(Boolean).join(' ') || email;
-    const mrr  = parseFloat(contact.properties.amount ?? '0') || 0;
+    for (const contact of contacts) {
+      const email = contact.properties.email;
+      if (!email) continue;
 
-    try {
-      const existing = await prisma.customer.findFirst({
-        where: { userId: internalUserId, email },
-      });
+      const name = [contact.properties.firstname, contact.properties.lastname].filter(Boolean).join(' ') || email;
+      const mrr  = parseFloat(contact.properties.amount ?? '0') || 0;
 
-      // notes_last_contacted is ms epoch; reject values before 2000 (HubSpot test data sends e.g. "2026" = 2.026s from epoch)
-      const parseLastContacted = (raw: string | undefined): Date | null => {
-        if (!raw) return null;
-        const ms = parseInt(raw, 10);
-        if (isNaN(ms) || ms < 946684800000) return null; // < 2000-01-01
-        return new Date(ms);
-      };
+      try {
+        const existing = await prisma.customer.findFirst({ where: { userId: internalUserId, email } });
 
-      if (existing) {
-        const lastLoginAt = parseLastContacted(contact.properties.notes_last_contacted);
-        await prisma.customer.update({
-          where: { id: existing.id },
-          data: {
-            name,
-            crmId: contact.id,
-            updatedAt: new Date(),
-            ...(lastLoginAt ? { lastLoginAt } : {}),
-          },
-        });
-        result.updated++;
-      } else {
-        await prisma.customer.create({
-          data: {
-            userId: internalUserId,
-            externalId: `hubspot_${contact.id}`,
-            email,
-            name,
-            mrr,
-            crmId: contact.id,
-            riskScore: 50,
-            lastLoginAt: parseLastContacted(contact.properties.notes_last_contacted),
-          },
-        });
-        result.created++;
-
-        // Log sync
-        await prisma.crmSyncLog.create({
-          data: {
-            userId: internalUserId,
-            crmType: 'hubspot',
-            direction: 'inbound',
-            entityType: 'contact',
-            entityId: contact.id,
-            status: 'success',
-            message: `Created customer from HubSpot contact: ${email}`,
-          },
-        });
+        if (existing) {
+          const lastLoginAt = parseLastContacted(contact.properties.notes_last_contacted);
+          await prisma.customer.update({
+            where: { id: existing.id },
+            data: { name, crmId: contact.id, updatedAt: new Date(), ...(lastLoginAt ? { lastLoginAt } : {}) },
+          });
+          result.updated++;
+        } else {
+          await prisma.customer.create({
+            data: {
+              userId: internalUserId,
+              externalId: `hubspot_${contact.id}`,
+              email, name, mrr,
+              crmId: contact.id,
+              riskScore: 50,
+              lastLoginAt: parseLastContacted(contact.properties.notes_last_contacted),
+            },
+          });
+          result.created++;
+          await prisma.crmSyncLog.create({
+            data: {
+              userId: internalUserId, crmType: 'hubspot', direction: 'inbound',
+              entityType: 'contact', entityId: contact.id, status: 'success',
+              message: `Created customer from HubSpot contact: ${email}`,
+            },
+          });
+        }
+      } catch (e: any) {
+        result.errors.push(`Pull ${email}: ${e.message}`);
       }
-    } catch (e: any) {
-      result.errors.push(`Pull ${email}: ${e.message}`);
     }
   }
 
   // ── PUSH: ChurnGuard risk data → HubSpot contact properties ──────────────
-  // Only push customers that originated from HubSpot (externalId = "hubspot_<numericId>").
-  // Derive the HubSpot contact ID from externalId directly — never from crmId, which
-  // may have been overwritten by a Salesforce sync.
+  // Only push customers from HubSpot. When sinceDate is set, only push those
+  // that changed since last sync (smart/incremental push).
   const customers = await prisma.customer.findMany({
     where: {
       userId: internalUserId,
       externalId: { startsWith: 'hubspot_' },
+      ...(sinceDate ? { updatedAt: { gte: sinceDate } } : {}),
     },
     select: { id: true, externalId: true, email: true, riskScore: true, healthScore: true, riskReason: true },
   });
@@ -348,10 +389,15 @@ export async function syncHubSpot(internalUserId: string): Promise<SyncResult> {
     }
   }
 
-  // Update lastSyncAt on integration record
   await prisma.crmIntegration.updateMany({
     where: { userId: internalUserId, type: 'hubspot' },
-    data: { lastSyncAt: new Date(), syncStatus: result.errors.length > 0 ? 'partial' : 'synced' },
+    data: {
+      lastSyncAt: new Date(),
+      lastSyncCount: result.pushed,
+      syncStatus: result.errors.length > 0 ? 'partial' : 'synced',
+      lastError: result.errors.length > 0 ? result.errors.slice(0, 3).join('; ') : null,
+      ...(fullSync ? { lastFullSyncAt: new Date() } : {}),
+    },
   });
 
   return result;
