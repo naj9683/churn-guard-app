@@ -6,7 +6,7 @@ author: "Najwa Saadi"
 authorRole: "Founder, ChurnGuard"
 tags: ["churn prevention", "customer retention", "SaaS metrics"]
 readTime: "9 min read"
-featured: true
+featured: false
 ---
 
 The average SaaS company loses **5–7% of its customers every month**. That compounds fast: at 6% monthly churn, you replace your entire customer base every 18 months just to stay flat.
