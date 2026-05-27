@@ -62,6 +62,7 @@ const STYLES = `
   .prose td { padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.5); }
   .prose tr:last-child td { border-bottom: none; }
   .prose tr:nth-child(even) td { background: rgba(30,41,59,0.4); }
+  .prose img { max-width: 100%; border-radius: 8px; margin: 0 0 1.4em; display: block; }
   .toc-link { display: block; padding: 6px 10px; border-radius: 6px; color: #64748b; font-size: 13px; text-decoration: none; line-height: 1.4; border-left: 2px solid transparent; }
   .toc-link:hover { color: #818cf8; background: rgba(99,102,241,0.06); border-left-color: #6366f1; }
   .post-layout { display: grid; grid-template-columns: 1fr 260px; gap: 56px; align-items: start; max-width: 1100px; margin: 0 auto; padding: 56px 24px 80px; }
