@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 const STYLES = `
   .prose { color: #cbd5e1; font-size: 17px; line-height: 1.8; }
   .prose h2 { color: #f1f5f9; font-size: 24px; font-weight: 700; margin: 2.5em 0 0.75em; letter-spacing: -0.02em; border-bottom: 1px solid #1e293b; padding-bottom: 0.5em; scroll-margin-top: 80px; }
-  .prose h3 { color: #e2e8f0; font-size: 19px; font-weight: 700; margin: 2em 0 0.6em; letter-spacing: -0.01em; }
+  .prose h3 { color: #e2e8f0; font-size: 19px; font-weight: 700; margin: 2em 0 0.6em; letter-spacing: -0.01em; scroll-margin-top: 80px; }
   .prose p { margin: 0 0 1.4em; }
   .prose strong { color: #f1f5f9; font-weight: 700; }
   .prose em { color: #c4b5fd; font-style: italic; }

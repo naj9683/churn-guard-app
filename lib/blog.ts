@@ -87,10 +87,11 @@ function markdownToHtml(md: string): string {
   while (i < lines.length) {
     const line = lines[i];
 
-    // H3
+    // H3 — add id for jump links (ToC anchor support)
     if (/^### /.test(line)) {
       const text = line.slice(4);
-      html.push(`<h3>${inlineMarkdown(escHtml(text))}</h3>`);
+      const id = slugify(text);
+      html.push(`<h3 id="${id}">${inlineMarkdown(escHtml(text))}</h3>`);
       i++; continue;
     }
     // H2 — add id for jump links
@@ -173,25 +174,41 @@ function markdownToHtml(md: string): string {
       continue;
     }
 
-    // Ordered list
+    // Ordered list — supports loose (multi-line) items with indented continuation lines
     if (/^\d+\. /.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\. /.test(lines[i])) {
-        items.push(`<li>${inlineMarkdown(escHtml(lines[i].replace(/^\d+\. /, '')))}</li>`);
+      while (i < lines.length) {
+        if (lines[i].trim() === '' && items.length > 0) {
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim() === '') j++;
+          if (j < lines.length && /^\d+\. /.test(lines[j])) { i = j; continue; }
+          break;
+        }
+        if (!/^\d+\. /.test(lines[i])) break;
+        const parts: string[] = [inlineMarkdown(escHtml(lines[i].replace(/^\d+\. /, '').trim()))];
         i++;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (l.trim() === '' || /^\d+\. /.test(l)) break;
+          if (/^[ \t]{3}/.test(l)) { const t = l.trim(); if (t) parts.push(inlineMarkdown(escHtml(t))); i++; }
+          else break;
+        }
+        items.push(`<li>${parts.join('<br>')}</li>`);
       }
-      html.push(`<ol>${items.join('')}</ol>`);
+      if (items.length > 0) html.push(`<ol>${items.join('')}</ol>`);
       continue;
     }
 
     // Blank line
     if (line.trim() === '') { i++; continue; }
 
-    // Paragraph
+    // Paragraph — trailing two spaces create a hard line break (<br>)
     const paraLines: string[] = [];
     while (i < lines.length && lines[i].trim() !== '' &&
       !/^(#{1,3} |---+$|```|> |[-*] |\d+\. |\|)/.test(lines[i])) {
-      paraLines.push(inlineMarkdown(escHtml(lines[i])));
+      const raw = lines[i];
+      const hard = raw.endsWith('  ');
+      paraLines.push(inlineMarkdown(escHtml(raw.trimEnd())) + (hard ? '<br>' : ''));
       i++;
     }
     if (paraLines.length > 0) {
