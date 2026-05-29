@@ -236,8 +236,8 @@ export default function LoginPage() {
           {/* Footer */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f3f4f6', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
             Don't have an account?{' '}
-            <Link href="/signup" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
-              Start free trial →
+            <Link href="/pricing" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
+              Sign up →
             </Link>
           </div>
         </div>
