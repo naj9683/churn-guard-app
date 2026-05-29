@@ -175,19 +175,19 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/login"
+              href="/auth/login"
               className="text-sm px-4 py-2 rounded-lg border text-slate-300 hover:text-white transition-colors"
               style={{ borderColor: '#334155' }}
             >
               Login
             </Link>
-            <a
-              href="#pricing"
+            <Link
+              href="/signup"
               className="text-sm px-5 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
               Get Started
-            </a>
+            </Link>
           </div>
 
           <button
@@ -209,15 +209,15 @@ export default function LandingPage() {
             <a href="#pricing" className="text-slate-300 text-sm" onClick={() => setMobileOpen(false)}>Pricing</a>
             <Link href="/blog" className="text-slate-300 text-sm" onClick={() => setMobileOpen(false)}>Blog</Link>
             <Link href="/audit" className="text-amber-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Audit</Link>
-            <Link href="/login" className="text-slate-300 text-sm">Login</Link>
-            <a
-              href="#pricing"
+            <Link href="/auth/login" className="text-slate-300 text-sm">Login</Link>
+            <Link
+              href="/signup"
               onClick={() => setMobileOpen(false)}
               className="text-sm px-4 py-3 rounded-xl font-semibold text-white text-center"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
               Get Started
-            </a>
+            </Link>
           </div>
         )}
       </header>
@@ -292,8 +292,8 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <a
-                  href="#pricing"
+                <Link
+                  href="/signup"
                   className="px-8 py-4 rounded-xl font-bold text-white text-base text-center hover:opacity-90 hover:scale-105 transition-all"
                   style={{
                     background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
@@ -301,7 +301,7 @@ export default function LandingPage() {
                   }}
                 >
                   Get Started
-                </a>
+                </Link>
                 <button
                   onClick={() => setShowDemo(true)}
                   className="px-8 py-4 rounded-xl font-semibold text-slate-300 text-base text-center border hover:text-white transition-colors"
