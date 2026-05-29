@@ -369,7 +369,7 @@ export default function PricingPage() {
                   <span style={{ color: '#94a3b8', fontSize: '1rem' }}>/month</span>
                   {tier.trialNote && (
                     <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>
-                      <Link href="/signup" style={{ color: '#10b981', textDecoration: 'none' }}>
+                      <Link href="/signup?plan=trial" style={{ color: '#10b981', textDecoration: 'none' }}>
                         {tier.trialNote}
                       </Link>
                     </p>
