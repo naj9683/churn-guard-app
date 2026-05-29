@@ -1,39 +1,22 @@
 'use client';
 
 import { useSignUp, useUser } from '@clerk/nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { loadStripe } from '@stripe/stripe-js';
 
-const PLANS: Record<string, { name: string; price: string; tier: string; features: string[] }> = {
-  seed: {
-    name: 'Seed',
-    tier: 'Seed',
-    price: '$79/mo',
-    features: ['100 customers tracked', 'Basic automation rules', 'Slack alerts', 'Email sequences', 'CRM sync'],
-  },
-  growth: {
-    name: 'Growth',
-    tier: 'Growth',
-    price: '$149/mo',
-    features: ['Unlimited customers', 'Advanced playbooks', 'SMS via Twilio', 'VIP alerts', 'AI-written emails', 'Priority support'],
-  },
-  scale: {
-    name: 'Scale',
-    tier: 'Scale',
-    price: '$299/mo',
-    features: ['Unlimited everything', 'API access', 'Custom risk models', 'White-glove onboarding', 'Dedicated CSM'],
-  },
-};
+const TRIAL_FEATURES = [
+  '100 customers tracked',
+  'Basic automation rules',
+  'Slack alerts',
+  'Email sequences',
+  'CRM sync',
+];
 
 function SignupForm() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const { user, isLoaded: userLoaded } = useUser();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const planKey = (searchParams.get('plan') ?? 'growth').toLowerCase();
-  const plan = PLANS[planKey] ?? PLANS.growth;
 
   const [step, setStep] = useState<'signup' | 'verify'>('signup');
   const [email, setEmail] = useState('');
@@ -43,30 +26,11 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Already signed in → go straight to Stripe
+  // Already signed in → go to dashboard (not Stripe)
   useEffect(() => {
     if (!userLoaded || !user) return;
-    redirectToCheckout();
-  }, [userLoaded, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function redirectToCheckout() {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: plan.tier }),
-      });
-      if (!res.ok) throw new Error('Failed to create checkout session');
-      const { sessionId } = await res.json();
-      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-      await stripe?.redirectToCheckout({ sessionId });
-    } catch (err: any) {
-      setError(err?.message ?? 'Could not start checkout. Please try again.');
-      setLoading(false);
-    }
-  }
+    router.push('/dashboard');
+  }, [userLoaded, user, router]);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +66,7 @@ function SignupForm() {
       const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        await redirectToCheckout();
+        router.push('/dashboard');
       } else {
         setError('Verification incomplete. Please try again.');
         setLoading(false);
@@ -125,8 +89,8 @@ function SignupForm() {
     color: '#111827', background: '#fff',
   };
   const focusInput = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = '#6366f1';
-    e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)';
+    e.target.style.borderColor = '#10b981';
+    e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)';
   };
   const blurInput = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.style.borderColor = '#d1d5db';
@@ -150,21 +114,21 @@ function SignupForm() {
           <Link href="/" style={{ textDecoration: 'none' }}>
             <div style={{
               width: '52px', height: '52px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               borderRadius: '14px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 14px',
-              boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
+              boxShadow: '0 8px 24px rgba(16,185,129,0.3)',
             }}>
               <span style={{ color: '#fff', fontSize: '24px', fontWeight: '700' }}>C</span>
             </div>
           </Link>
           <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '700', color: '#111827', letterSpacing: '-0.5px' }}>
-            {step === 'signup' ? 'Create your account' : 'Verify your email'}
+            {step === 'signup' ? 'Start your free trial' : 'Verify your email'}
           </h1>
           <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
             {step === 'signup'
-              ? `You're signing up for the ${plan.name} plan (${plan.price})`
+              ? '30 days full access · No credit card required'
               : `Enter the 6-digit code sent to ${email}`}
           </p>
         </div>
@@ -176,25 +140,28 @@ function SignupForm() {
           padding: '28px 32px',
           boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
         }}>
-          {/* Plan badge */}
+          {/* Trial badge */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '12px 16px',
-            background: 'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(139,92,246,0.06))',
-            border: '1px solid rgba(99,102,241,0.2)',
+            background: 'rgba(16,185,129,0.06)',
+            border: '1px solid rgba(16,185,129,0.2)',
             borderRadius: '10px',
             marginBottom: '24px',
           }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#6366f1' }}>
-                {plan.name} Plan
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#10b981' }}>
+                Free Trial — 30 days
               </div>
               <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                {plan.features.slice(0, 2).join(' · ')}
+                {TRIAL_FEATURES.slice(0, 2).join(' · ')}
               </div>
             </div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-              {plan.price}
+            <div style={{
+              fontSize: '12px', fontWeight: '700', color: '#fff',
+              background: '#10b981', padding: '4px 10px', borderRadius: '6px',
+            }}>
+              $0
             </div>
           </div>
 
@@ -273,16 +240,19 @@ function SignupForm() {
                 disabled={loading || !email || !password}
                 style={{
                   width: '100%', padding: '12px',
-                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#10b981,#059669)',
                   color: '#fff', border: 'none', borderRadius: '8px',
                   fontSize: '15px', fontWeight: '600',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(99,102,241,0.3)',
+                  boxShadow: loading ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
                 }}
               >
-                {loading ? 'Creating account…' : `Create account & pay ${plan.price}`}
+                {loading ? 'Creating account…' : 'Start free trial →'}
               </button>
+              <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
+                No credit card required. Cancel anytime.
+              </p>
             </form>
           ) : (
             <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -318,15 +288,15 @@ function SignupForm() {
                 disabled={loading || code.length < 6}
                 style={{
                   width: '100%', padding: '12px',
-                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#10b981,#059669)',
                   color: '#fff', border: 'none', borderRadius: '8px',
                   fontSize: '15px', fontWeight: '600',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(99,102,241,0.3)',
+                  boxShadow: loading ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
                 }}
               >
-                {loading ? 'Verifying…' : 'Verify & continue to payment'}
+                {loading ? 'Verifying…' : 'Verify email →'}
               </button>
               <button
                 type="button"

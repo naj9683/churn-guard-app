@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
+const TRIAL_DAYS = 30;
 
 export async function GET() {
   try {
@@ -31,9 +32,21 @@ export async function GET() {
       },
     });
 
-    const hasAccess = !!(user && user.subscriptions.length > 0);
+    if (!user) {
+      return NextResponse.json({ hasAccess: false });
+    }
 
-    return NextResponse.json({ hasAccess });
+    const hasPaidSubscription = user.subscriptions.length > 0;
+
+    // Trial check: within 30 days of account creation, no payment required
+    const ageMs = Date.now() - user.createdAt.getTime();
+    const ageDays = ageMs / 86_400_000;
+    const onTrial = !hasPaidSubscription && ageDays < TRIAL_DAYS;
+    const trialDaysLeft = onTrial ? Math.ceil(TRIAL_DAYS - ageDays) : 0;
+
+    const hasAccess = hasPaidSubscription || onTrial;
+
+    return NextResponse.json({ hasAccess, onTrial, trialDaysLeft });
   } catch (error) {
     console.error('Subscription status error:', error);
     return NextResponse.json({ hasAccess: false }, { status: 500 });

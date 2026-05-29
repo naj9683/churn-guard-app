@@ -69,6 +69,7 @@ export default function Dashboard() {
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [analysisMsg, setAnalysisMsg] = useState<string | null>(null);
   const [activeRules, setActiveRules] = useState<number | null>(null);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -121,6 +122,9 @@ export default function Dashboard() {
         if (!subData.hasAccess) {
           router.push('/pricing');
           return;
+        }
+        if (subData.onTrial && subData.trialDaysLeft != null) {
+          setTrialDaysLeft(subData.trialDaysLeft);
         }
         // Admin email bypasses onboarding checks entirely
         if (subData.isAdmin) return;
@@ -322,6 +326,37 @@ export default function Dashboard() {
         flex: 1,
         padding: '32px'
       }}>
+        {/* Trial banner */}
+        {trialDaysLeft !== null && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            marginBottom: '24px',
+            background: trialDaysLeft <= 5 ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.07)',
+            border: `1px solid ${trialDaysLeft <= 5 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+          }}>
+            <span style={{ fontSize: '14px', color: trialDaysLeft <= 5 ? '#ef4444' : '#10b981', fontWeight: '500' }}>
+              {trialDaysLeft <= 5
+                ? `⚠️ Your free trial ends in ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} — upgrade to keep your data`
+                : `🟢 Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`}
+            </span>
+            <Link href="/settings/billing" style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#fff',
+              background: trialDaysLeft <= 5 ? '#ef4444' : '#10b981',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+            }}>
+              Upgrade →
+            </Link>
+          </div>
+        )}
+
         {/* Header */}
         <div style={{
           display: 'flex',
