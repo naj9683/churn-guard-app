@@ -1,9 +1,14 @@
 'use client';
 
 import { useSignUp, useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import Link from 'next/link';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+const PAID_PLANS: Record<string, string> = { seed: 'Seed', growth: 'Growth', scale: 'Scale' };
 
 const TRIAL_FEATURES = [
   '100 customers tracked',
@@ -17,6 +22,9 @@ function SignupForm() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const { user, isLoaded: userLoaded } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planSlug = searchParams.get('plan') ?? 'trial';
+  const tierName = PAID_PLANS[planSlug] ?? null;
 
   const [step, setStep] = useState<'signup' | 'verify'>('signup');
   const [email, setEmail] = useState('');
@@ -26,11 +34,27 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Already signed in → go to dashboard (not Stripe)
   useEffect(() => {
     if (!userLoaded || !user) return;
-    router.push('/dashboard');
-  }, [userLoaded, user, router]);
+    if (tierName) redirectToStripe(tierName);
+    else router.push('/dashboard');
+  }, [userLoaded, user]);
+
+  async function redirectToStripe(tier: string) {
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      if (!res.ok) throw new Error();
+      const { sessionId } = await res.json();
+      const stripe = await stripePromise;
+      await stripe?.redirectToCheckout({ sessionId });
+    } catch {
+      router.push('/dashboard');
+    }
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +90,8 @@ function SignupForm() {
       const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.push('/dashboard');
+        if (tierName) await redirectToStripe(tierName);
+        else router.push('/dashboard');
       } else {
         setError('Verification incomplete. Please try again.');
         setLoading(false);

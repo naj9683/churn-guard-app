@@ -124,18 +124,18 @@ export default function PricingPage() {
   };
 
   const handleSubscribe = async (tierName: string, price: number) => {
-    if (!user) {
-      window.location.href = '/sign-in';
-      return;
-    }
-
     if (tierName === 'Free Trial') {
-      window.location.href = '/signup';
+      window.location.href = '/signup?plan=trial';
       return;
     }
 
     if (tierName === 'Enterprise') {
       window.location.href = 'mailto:sales@churnguard.io?subject=Enterprise Inquiry';
+      return;
+    }
+
+    if (!user) {
+      window.location.href = `/signup?plan=${tierName.toLowerCase()}`;
       return;
     }
 
@@ -145,10 +145,7 @@ export default function PricingPage() {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          tier: tierName,
-          price: price 
-        }),
+        body: JSON.stringify({ tier: tierName, price }),
       });
 
       if (!response.ok) throw new Error('Checkout failed');
