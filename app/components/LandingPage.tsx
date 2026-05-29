@@ -127,7 +127,7 @@ export default function LandingPage() {
   // Scroll-highlight: whichever pricing card is most centered in viewport
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
-    (['seed', 'growth', 'scale'] as const).forEach(plan => {
+    (['freeTrial', 'seed', 'growth', 'scale'] as const).forEach(plan => {
       const el = planRefs.current[plan];
       if (!el) return;
       const obs = new IntersectionObserver(
@@ -638,7 +638,7 @@ export default function LandingPage() {
 
       {/* ── PRICING ────────────────────────────────────────────────────────── */}
       <section id="pricing" style={{ background: '#0f172a' }} className="py-28 px-5 sm:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <FadeSection className="text-center mb-16">
             <h2
               className="font-bold text-white mb-4"
@@ -655,9 +655,66 @@ export default function LandingPage() {
             <p className="text-slate-500 text-sm">Flat-rate based on MRR band. No meter anxiety.</p>
           </FadeSection>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
-            {/* Seed */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-center">
+            {/* Free Trial */}
             <FadeSection>
+              <div
+                ref={el => { planRefs.current['freeTrial'] = el; }}
+                className="rounded-2xl p-7 border h-full flex flex-col relative"
+                style={{
+                  background: activePlan === 'freeTrial' ? '#0d1f18' : '#0a1a12',
+                  borderColor: '#10b981',
+                  boxShadow: activePlan === 'freeTrial' ? '0 0 30px rgba(16,185,129,0.25)' : '0 0 12px rgba(16,185,129,0.1)',
+                  opacity: activePlan && activePlan !== 'freeTrial' ? 0.5 : 1,
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.boxShadow = '0 0 40px rgba(16,185,129,0.35)';
+                  el.style.transform = 'scale(1.02)';
+                  el.style.opacity = '1';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.boxShadow = activePlan === 'freeTrial' ? '0 0 30px rgba(16,185,129,0.25)' : '0 0 12px rgba(16,185,129,0.1)';
+                  el.style.transform = 'scale(1)';
+                  el.style.opacity = activePlan && activePlan !== 'freeTrial' ? '0.5' : '1';
+                }}
+              >
+                <div
+                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1.5 rounded-full text-white tracking-wide whitespace-nowrap"
+                  style={{ background: '#10b981' }}
+                >
+                  NO CREDIT CARD
+                </div>
+                <div className="mb-5">
+                  <h3 className="font-bold text-lg mb-1" style={{ color: '#10b981' }}>Free Trial</h3>
+                  <p className="text-slate-500 text-xs">30 days full access</p>
+                </div>
+                <div className="mb-6">
+                  <span className="text-3xl font-extrabold text-white">$0</span>
+                  <span className="text-slate-500 text-sm ml-1">/30 days</span>
+                  <p className="text-slate-600 text-xs mt-1.5">Then $79/mo (Seed plan)</p>
+                </div>
+                <ul className="space-y-2.5 text-sm text-slate-400 mb-8 flex-1">
+                  {['100 customers tracked', 'Basic automation rules', 'Slack alerts', 'Email sequences', 'CRM sync'].map(f => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span style={{ color: '#10b981' }}>✓</span>{f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/signup"
+                  className="block text-center py-3 px-5 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
+                  style={{ background: '#10b981' }}
+                >
+                  Start Free Trial
+                </Link>
+              </div>
+            </FadeSection>
+
+            {/* Seed */}
+            <FadeSection style={{ transitionDelay: '60ms' }}>
               <div
                 ref={el => { planRefs.current['seed'] = el; }}
                 className="rounded-2xl p-7 border h-full flex flex-col"
@@ -690,6 +747,11 @@ export default function LandingPage() {
                 <div className="mb-6">
                   <span className="text-3xl font-extrabold text-slate-200">$79</span>
                   <span className="text-slate-600 text-sm ml-1">/mo</span>
+                  <p className="text-slate-600 text-xs mt-1.5">
+                    <Link href="/signup" style={{ color: '#10b981', textDecoration: 'none' }}>
+                      Or start with 30-day free trial
+                    </Link>
+                  </p>
                 </div>
                 <ul className="space-y-2.5 text-sm text-slate-500 mb-8 flex-1">
                   {['100 customers tracked', 'Basic automation rules', 'Slack alerts', 'Email sequences', 'CRM sync'].map(f => (
@@ -709,7 +771,7 @@ export default function LandingPage() {
             </FadeSection>
 
             {/* Growth — featured, larger */}
-            <FadeSection style={{ transitionDelay: '80ms' }}>
+            <FadeSection style={{ transitionDelay: '120ms' }}>
               <div
                 ref={el => { planRefs.current['growth'] = el; }}
                 className="rounded-2xl p-8 flex flex-col relative"
@@ -772,7 +834,7 @@ export default function LandingPage() {
             </FadeSection>
 
             {/* Scale */}
-            <FadeSection style={{ transitionDelay: '160ms' }}>
+            <FadeSection style={{ transitionDelay: '180ms' }}>
               <div
                 ref={el => { planRefs.current['scale'] = el; }}
                 className="rounded-2xl p-7 border h-full flex flex-col"
@@ -825,7 +887,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-slate-600 text-sm mt-8">
-            Cancel anytime&nbsp;·&nbsp;No contracts&nbsp;·&nbsp;No setup fees
+            30-day free trial&nbsp;·&nbsp;Cancel anytime&nbsp;·&nbsp;No contracts&nbsp;·&nbsp;No setup fees
           </p>
         </div>
       </section>
