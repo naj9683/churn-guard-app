@@ -109,6 +109,43 @@ export async function GET(req: NextRequest) {
       };
     }
 
+    if (stepKey === 'trial_day_17') {
+      const [customerCount, playbookCount, revenueAgg] = await Promise.all([
+        prisma.customer.count({ where: { userId: user.id } }),
+        prisma.playbook.count({ where: { userId: user.id, isActive: true } }),
+        prisma.customer.aggregate({ where: { userId: user.id }, _sum: { mrr: true } }),
+      ]);
+      vars = {
+        ...vars,
+        customers:        customerCount.toLocaleString(),
+        playbooks:        playbookCount.toString(),
+        revenueMonitored: (revenueAgg._sum?.mrr ?? 0).toLocaleString(),
+      };
+    }
+
+    if (stepKey === 'trial_day_21') {
+      const inactivePlaybooks = await prisma.playbook.count({
+        where: { userId: user.id, isActive: false },
+      });
+      vars = { ...vars, inactivePlaybooks: inactivePlaybooks.toString() };
+    }
+
+    if (stepKey === 'trial_day_25') {
+      const [customerCount, playbookCount, riskAgg, revenueAgg] = await Promise.all([
+        prisma.customer.count({ where: { userId: user.id } }),
+        prisma.playbook.count({ where: { userId: user.id, isActive: true } }),
+        prisma.customer.aggregate({ where: { userId: user.id }, _avg: { riskScore: true } }),
+        prisma.customer.aggregate({ where: { userId: user.id }, _sum: { mrr: true } }),
+      ]);
+      vars = {
+        ...vars,
+        customers:        customerCount.toLocaleString(),
+        playbooks:        playbookCount.toString(),
+        avgRisk:          Math.round(riskAgg._avg?.riskScore ?? 0).toString(),
+        revenueMonitored: (revenueAgg._sum?.mrr ?? 0).toLocaleString(),
+      };
+    }
+
     // Load template and render
     const tpl     = await getTemplate(stepKey);
     const subject = renderTemplate(tpl.subject, vars);

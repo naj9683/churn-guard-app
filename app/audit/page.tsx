@@ -487,7 +487,7 @@ async function downloadAuditPDF(results: AuditResult, email: string): Promise<vo
   doc.text('Prevent this churn automatically with ChurnGuard', W / 2, 280, { align: 'center' });
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('Start your 14-day free trial — churnguard.app', W / 2, 288, { align: 'center' });
+  doc.text('Start your 30-day free trial — churnguard.app', W / 2, 288, { align: 'center' });
   doc.setFontSize(6.5);
   doc.setTextColor(196, 181, 253);
   doc.text('Setup in 5 minutes · Cancel anytime · First results in hours', W / 2, 293.5, { align: 'center' });

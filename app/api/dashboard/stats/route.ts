@@ -70,7 +70,7 @@ export async function GET() {
     // Enroll new users in trial email sequence on first dashboard load
     if (user.nextTrialEmailAt === null && user.trialEmailStep === 0) {
       const ageMs = Date.now() - user.createdAt.getTime();
-      if (ageMs < 14 * 24 * 60 * 60 * 1000) {
+      if (ageMs < 30 * 24 * 60 * 60 * 1000) {
         prisma.user.update({
           where: { id: user.id },
           data: { nextTrialEmailAt: user.createdAt },

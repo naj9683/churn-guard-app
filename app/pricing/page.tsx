@@ -15,16 +15,37 @@ interface PricingTier {
   features: string[];
   cta: string;
   popular?: boolean;
+  freeTrial?: boolean;
+  trialNote?: string;
+  priceNote?: string;
   roiText: string;
 }
 
 const tiers: PricingTier[] = [
+  {
+    name: 'Free Trial',
+    mrrRange: '30 days full access',
+    price: -1,
+    maxMrr: 0,
+    freeTrial: true,
+    roiText: 'No credit card required',
+    priceNote: 'Then $79/mo (Seed plan)',
+    features: [
+      '100 customers tracked',
+      'Basic automation rules',
+      'Slack alerts',
+      'Email sequences',
+      'CRM sync',
+    ],
+    cta: 'Start Free Trial',
+  },
   {
     name: 'Seed',
     mrrRange: '$0 – $50K',
     price: 79,
     maxMrr: 50000,
     roiText: 'Protect $50K MRR for 0.16%',
+    trialNote: 'Or start with 30-day free trial',
     features: [
       'Revenue at Risk (RaR) Dashboard',
       'Up to 100 customers tracked',
@@ -105,6 +126,11 @@ export default function PricingPage() {
   const handleSubscribe = async (tierName: string, price: number) => {
     if (!user) {
       window.location.href = '/sign-in';
+      return;
+    }
+
+    if (tierName === 'Free Trial') {
+      window.location.href = '/signup';
       return;
     }
 
@@ -266,16 +292,37 @@ export default function PricingPage() {
             style={{
               background: tier.popular ? '#1e293b' : 'rgba(30, 41, 59, 0.5)',
               borderRadius: '1rem',
-              border: tier.popular ? '2px solid #6366f1' : '1px solid #334155',
+              border: tier.freeTrial ? '2px solid #10b981' : tier.popular ? '2px solid #6366f1' : '1px solid #334155',
               padding: '2rem',
               position: 'relative',
               transform: hoveredTier === tier.name ? 'translateY(-4px)' : 'translateY(0)',
               transition: 'all 0.3s ease',
-              boxShadow: tier.popular ? '0 20px 25px -5px rgba(99, 102, 241, 0.2)' : 'none',
+              boxShadow: tier.freeTrial && hoveredTier === tier.name
+                ? '0 20px 25px -5px rgba(16, 185, 129, 0.2)'
+                : tier.popular
+                  ? '0 20px 25px -5px rgba(99, 102, 241, 0.2)'
+                  : 'none',
               display: 'flex',
               flexDirection: 'column'
             }}
           >
+            {tier.freeTrial && (
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#10b981',
+                color: 'white',
+                padding: '0.25rem 1rem',
+                borderRadius: '9999px',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+                NO CREDIT CARD
+              </div>
+            )}
             {tier.popular && (
               <div style={{
                 position: 'absolute',
@@ -295,34 +342,51 @@ export default function PricingPage() {
             )}
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: '700', 
+              <h3 style={{
+                fontSize: '1.5rem',
+                fontWeight: '700',
                 marginBottom: '0.5rem',
-                color: tier.popular ? '#818cf8' : 'white'
+                color: tier.freeTrial ? '#10b981' : tier.popular ? '#818cf8' : 'white'
               }}>
                 {tier.name}
               </h3>
               <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                For MRR {tier.mrrRange}
+                {tier.freeTrial ? tier.mrrRange : `For MRR ${tier.mrrRange}`}
               </p>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              {tier.price > 0 ? (
+              {tier.freeTrial ? (
+                <>
+                  <span style={{ fontSize: '3rem', fontWeight: '800' }}>$0</span>
+                  <span style={{ color: '#94a3b8', fontSize: '1rem' }}>/30 days</span>
+                  {tier.priceNote && (
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>
+                      {tier.priceNote}
+                    </p>
+                  )}
+                </>
+              ) : tier.price > 0 ? (
                 <>
                   <span style={{ fontSize: '3rem', fontWeight: '800' }}>${tier.price}</span>
                   <span style={{ color: '#94a3b8', fontSize: '1rem' }}>/month</span>
+                  {tier.trialNote && (
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>
+                      <Link href="/signup" style={{ color: '#10b981', textDecoration: 'none' }}>
+                        {tier.trialNote}
+                      </Link>
+                    </p>
+                  )}
                 </>
               ) : (
                 <span style={{ fontSize: '2rem', fontWeight: '700', color: '#94a3b8' }}>Custom</span>
               )}
-              
-              <div style={{ 
+
+              <div style={{
                 marginTop: '0.75rem',
                 display: 'inline-block',
-                background: tier.popular ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                color: tier.popular ? '#10b981' : '#818cf8',
+                background: tier.freeTrial ? 'rgba(16, 185, 129, 0.1)' : tier.popular ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                color: tier.freeTrial ? '#10b981' : tier.popular ? '#10b981' : '#818cf8',
                 padding: '0.25rem 0.75rem',
                 borderRadius: '0.375rem',
                 fontSize: '0.75rem',
@@ -341,9 +405,9 @@ export default function PricingPage() {
                 marginBottom: '2rem',
                 fontSize: '1rem',
                 fontWeight: '600',
-                background: tier.popular ? '#6366f1' : (tier.name === 'Enterprise' ? '#334155' : 'transparent'),
+                background: tier.freeTrial ? '#10b981' : tier.popular ? '#6366f1' : (tier.name === 'Enterprise' ? '#334155' : 'transparent'),
                 color: 'white',
-                border: tier.popular ? 'none' : '2px solid #334155',
+                border: tier.freeTrial ? 'none' : tier.popular ? 'none' : '2px solid #334155',
                 borderRadius: '0.5rem',
                 cursor: loading === tier.name ? 'not-allowed' : 'pointer',
                 opacity: loading === tier.name ? 0.7 : 1,
@@ -380,8 +444,8 @@ export default function PricingPage() {
                     fontSize: '0.875rem',
                     color: feature.startsWith('Everything') ? '#64748b' : '#e2e8f0'
                   }}>
-                    <span style={{ 
-                      color: tier.popular ? '#10b981' : '#6366f1',
+                    <span style={{
+                      color: tier.freeTrial ? '#10b981' : tier.popular ? '#10b981' : '#6366f1',
                       fontSize: '1rem',
                       lineHeight: '1.25'
                     }}>
@@ -424,9 +488,10 @@ export default function PricingPage() {
             fontSize: '0.875rem',
             color: '#64748b'
           }}>
+            <span>✓ 30-day free trial</span>
             <span>✓ Cancel anytime</span>
+            <span>✓ No contracts</span>
             <span>✓ No setup fees</span>
-            <span>✓ 14-day free trial</span>
           </div>
         </div>
       </div>

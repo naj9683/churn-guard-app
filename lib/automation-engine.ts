@@ -444,9 +444,9 @@ export async function runAutomationEngine(opts: EngineOptions = {}): Promise<Eng
       });
       const trialIds = trialEvents.map(e => e.customerId);
       if (trialIds.length === 0) {
-        // Fallback: customers on trial plan created 14-withinDays to 14 days ago
-        const trialStart = new Date(nowMs - 14 * 86_400_000);
-        const trialEnd   = new Date(nowMs - (14 - withinDays) * 86_400_000);
+        // Fallback: customers on trial plan created 30-withinDays to 30 days ago
+        const trialStart = new Date(nowMs - 30 * 86_400_000);
+        const trialEnd   = new Date(nowMs - (30 - withinDays) * 86_400_000);
         candidates = await prisma.customer.findMany({
           where: { ...customerWhere, plan: 'trial', createdAt: { gte: trialStart, lte: trialEnd } },
         });

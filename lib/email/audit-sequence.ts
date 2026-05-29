@@ -121,7 +121,7 @@ export function email2(lead: AuditLeadData): { subject: string; html: string } {
       You already know your numbers from the audit. The question is: what are you doing about them?
     </p>
 
-    ${cta('Start Your 14-Day Free Trial →', PRICING_URL)}
+    ${cta('Start Your 30-Day Free Trial →', PRICING_URL)}
 
     <p style="color:#475569;font-size:12px;text-align:center;margin-top:16px;">No credit card. Cancel anytime.</p>
   `;
