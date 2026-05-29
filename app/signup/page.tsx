@@ -10,13 +10,12 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 const PAID_PLANS: Record<string, string> = { seed: 'Seed', growth: 'Growth', scale: 'Scale' };
 
-const TRIAL_FEATURES = [
-  '100 customers tracked',
-  'Basic automation rules',
-  'Slack alerts',
-  'Email sequences',
-  'CRM sync',
-];
+const PLAN_CONFIG: Record<string, { label: string; price: number; isPaid: boolean }> = {
+  trial:  { label: 'Free Trial', price: 0,   isPaid: false },
+  seed:   { label: 'Seed',       price: 79,  isPaid: true  },
+  growth: { label: 'Growth',     price: 149, isPaid: true  },
+  scale:  { label: 'Scale',      price: 299, isPaid: true  },
+};
 
 function SignupForm() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -25,6 +24,12 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const planSlug = searchParams.get('plan') ?? 'trial';
   const tierName = PAID_PLANS[planSlug] ?? null;
+  const plan = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.trial;
+
+  const accent      = plan.isPaid ? '#6366f1' : '#10b981';
+  const accentDark  = plan.isPaid ? '#4f46e5' : '#059669';
+  const accentShadow = plan.isPaid ? 'rgba(99,102,241,0.3)' : 'rgba(16,185,129,0.3)';
+  const accentFocus  = plan.isPaid ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)';
 
   const [step, setStep] = useState<'signup' | 'verify'>('signup');
   const [email, setEmail] = useState('');
@@ -70,12 +75,12 @@ function SignupForm() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setStep('verify');
     } catch (err: any) {
-      const msg =
+      setError(
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
         err?.message ??
-        'Sign up failed. Please try again.';
-      setError(msg);
+        'Sign up failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -97,12 +102,12 @@ function SignupForm() {
         setLoading(false);
       }
     } catch (err: any) {
-      const msg =
+      setError(
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
         err?.message ??
-        'Invalid code. Please try again.';
-      setError(msg);
+        'Invalid code. Please try again.'
+      );
       setLoading(false);
     }
   }
@@ -114,13 +119,29 @@ function SignupForm() {
     color: '#111827', background: '#fff',
   };
   const focusInput = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = '#10b981';
-    e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)';
+    e.target.style.borderColor = accent;
+    e.target.style.boxShadow = `0 0 0 3px ${accentFocus}`;
   };
   const blurInput = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.style.borderColor = '#d1d5db';
     e.target.style.boxShadow = 'none';
   };
+
+  const headingText = step === 'verify'
+    ? 'Verify your email'
+    : plan.isPaid ? `Get started with ${plan.label}` : 'Start your free trial';
+
+  const subtitleText = step === 'verify'
+    ? `Enter the 6-digit code sent to ${email}`
+    : plan.isPaid
+      ? `${plan.label} plan · $${plan.price}/month · Create your account to continue`
+      : '30 days full access · No credit card required';
+
+  const btnLabel = loading
+    ? (step === 'verify' ? 'Verifying…' : 'Creating account…')
+    : step === 'verify'
+      ? 'Verify email →'
+      : plan.isPaid ? 'Continue to payment →' : 'Start free trial →';
 
   return (
     <div style={{
@@ -139,23 +160,19 @@ function SignupForm() {
           <Link href="/" style={{ textDecoration: 'none' }}>
             <div style={{
               width: '52px', height: '52px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background: `linear-gradient(135deg, ${accent} 0%, ${accentDark} 100%)`,
               borderRadius: '14px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 14px',
-              boxShadow: '0 8px 24px rgba(16,185,129,0.3)',
+              boxShadow: `0 8px 24px ${accentShadow}`,
             }}>
               <span style={{ color: '#fff', fontSize: '24px', fontWeight: '700' }}>C</span>
             </div>
           </Link>
           <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '700', color: '#111827', letterSpacing: '-0.5px' }}>
-            {step === 'signup' ? 'Start your free trial' : 'Verify your email'}
+            {headingText}
           </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-            {step === 'signup'
-              ? '30 days full access · No credit card required'
-              : `Enter the 6-digit code sent to ${email}`}
-          </p>
+          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>{subtitleText}</p>
         </div>
 
         <div style={{
@@ -165,28 +182,28 @@ function SignupForm() {
           padding: '28px 32px',
           boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
         }}>
-          {/* Trial badge */}
+          {/* Plan badge */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '12px 16px',
-            background: 'rgba(16,185,129,0.06)',
-            border: '1px solid rgba(16,185,129,0.2)',
+            background: plan.isPaid ? 'rgba(99,102,241,0.06)' : 'rgba(16,185,129,0.06)',
+            border: `1px solid ${plan.isPaid ? 'rgba(99,102,241,0.2)' : 'rgba(16,185,129,0.2)'}`,
             borderRadius: '10px',
             marginBottom: '24px',
           }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#10b981' }}>
-                Free Trial — 30 days
+              <div style={{ fontSize: '13px', fontWeight: '600', color: accent }}>
+                {plan.isPaid ? `${plan.label} Plan` : 'Free Trial — 30 days'}
               </div>
               <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                {TRIAL_FEATURES.slice(0, 2).join(' · ')}
+                {plan.isPaid ? 'Full access · Cancel anytime' : '100 customers · Slack alerts · Email sequences'}
               </div>
             </div>
             <div style={{
               fontSize: '12px', fontWeight: '700', color: '#fff',
-              background: '#10b981', padding: '4px 10px', borderRadius: '6px',
+              background: accent, padding: '4px 10px', borderRadius: '6px',
             }}>
-              $0
+              {plan.isPaid ? `$${plan.price}/mo` : '$0'}
             </div>
           </div>
 
@@ -265,19 +282,21 @@ function SignupForm() {
                 disabled={loading || !email || !password}
                 style={{
                   width: '100%', padding: '12px',
-                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#10b981,#059669)',
+                  background: loading ? '#9ca3af' : `linear-gradient(135deg, ${accent}, ${accentDark})`,
                   color: '#fff', border: 'none', borderRadius: '8px',
                   fontSize: '15px', fontWeight: '600',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
+                  boxShadow: loading ? 'none' : `0 4px 12px ${accentShadow}`,
                 }}
               >
-                {loading ? 'Creating account…' : 'Start free trial →'}
+                {btnLabel}
               </button>
-              <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
-                No credit card required. Cancel anytime.
-              </p>
+              {!plan.isPaid && (
+                <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
+                  No credit card required. Cancel anytime.
+                </p>
+              )}
             </form>
           ) : (
             <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -313,15 +332,15 @@ function SignupForm() {
                 disabled={loading || code.length < 6}
                 style={{
                   width: '100%', padding: '12px',
-                  background: loading ? '#9ca3af' : 'linear-gradient(135deg,#10b981,#059669)',
+                  background: loading ? '#9ca3af' : `linear-gradient(135deg, ${accent}, ${accentDark})`,
                   color: '#fff', border: 'none', borderRadius: '8px',
                   fontSize: '15px', fontWeight: '600',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
+                  boxShadow: loading ? 'none' : `0 4px 12px ${accentShadow}`,
                 }}
               >
-                {loading ? 'Verifying…' : 'Verify email →'}
+                {btnLabel}
               </button>
               <button
                 type="button"
@@ -342,7 +361,7 @@ function SignupForm() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '18px' }}>
-          <Link href="/#pricing" style={{ fontSize: '13px', color: '#9ca3af', textDecoration: 'none' }}>
+          <Link href="/pricing" style={{ fontSize: '13px', color: '#9ca3af', textDecoration: 'none' }}>
             ← Compare plans
           </Link>
         </div>
