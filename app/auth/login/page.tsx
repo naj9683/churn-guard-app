@@ -1,27 +1,62 @@
 'use client';
 
 import { useSignIn, useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import Link from 'next/link';
 
-const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-export default function LoginPage() {
+const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
+const TIER_MAP: Record<string, string> = { seed: 'Seed', growth: 'Growth', scale: 'Scale' };
+
+function LoginForm() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { user, isLoaded: userLoaded } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect') ?? '';
+  const planParam     = searchParams.get('plan') ?? '';
 
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
-  // Already signed in → go to dashboard. Subscription gate is in the dashboard layout.
+  // Already signed in — honour redirect param
   useEffect(() => {
     if (!userLoaded || !user) return;
-    router.replace('/dashboard');
+    handlePostLogin();
   }, [userLoaded, user]);
+
+  async function redirectToStripe(planSlug: string) {
+    const tier = TIER_MAP[planSlug];
+    if (!tier) { router.replace('/settings/billing'); return; }
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      if (!res.ok) throw new Error();
+      const { sessionId } = await res.json();
+      const stripe = await stripePromise;
+      await stripe?.redirectToCheckout({ sessionId });
+    } catch {
+      router.replace('/settings/billing');
+    }
+  }
+
+  function handlePostLogin() {
+    if (redirectParam === 'billing' && planParam) {
+      redirectToStripe(planParam);
+    } else if (redirectParam === 'billing') {
+      router.replace('/settings/billing');
+    } else {
+      router.replace('/dashboard');
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,11 +87,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Regular user — email + password via Clerk (two-step: identify then authenticate)
-      if (!password) {
-        setError('Please enter your password.');
-        return;
-      }
+      if (!password) { setError('Please enter your password.'); setLoading(false); return; }
 
       const created = await signIn.create({ identifier: email.trim() });
 
@@ -70,31 +101,32 @@ export default function LoginPage() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         router.refresh();
-        router.push('/dashboard');
+        handlePostLogin();
       } else {
         throw new Error('Sign-in could not be completed. Please try again.');
       }
     } catch (err: any) {
-      const msg =
+      setError(
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
         err?.message ??
-        'Invalid email or password. Please try again.';
-      setError(msg);
+        'Invalid email or password. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   }
 
   const isAdminEmail = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const planLabel    = TIER_MAP[planParam];
+  const subheading   = planLabel
+    ? `Sign in to upgrade to the ${planLabel} plan`
+    : 'AI-powered churn prevention platform';
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#f8fafc',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      minHeight: '100vh', background: '#f8fafc',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
       padding: '24px',
     }}>
@@ -106,10 +138,8 @@ export default function LoginPage() {
             <div style={{
               width: '52px', height: '52px',
               background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              borderRadius: '14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
+              borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
             }}>
               <span style={{ color: '#fff', fontSize: '24px', fontWeight: '700' }}>C</span>
             </div>
@@ -117,18 +147,26 @@ export default function LoginPage() {
           <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '700', color: '#111827', letterSpacing: '-0.5px' }}>
             Sign in to ChurnGuard
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-            AI-powered churn prevention platform
-          </p>
+          <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{subheading}</p>
         </div>
+
+        {/* Upgrade-context banner */}
+        {planLabel && (
+          <div style={{
+            padding: '12px 16px', marginBottom: '16px',
+            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)',
+            borderRadius: '10px', fontSize: '13px', color: '#4f46e5',
+            display: 'flex', gap: '10px', alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '16px' }}>↑</span>
+            <span>Sign in then we&apos;ll take you straight to <strong>{planLabel}</strong> checkout.</span>
+          </div>
+        )}
 
         {/* Card */}
         <div style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '16px',
-          padding: '32px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px',
+          padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
         }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
@@ -138,19 +176,9 @@ export default function LoginPage() {
                 Email address
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoFocus
-                autoComplete="email"
-                placeholder="you@company.com"
-                style={{
-                  width: '100%', padding: '10px 14px',
-                  border: '1px solid #d1d5db', borderRadius: '8px',
-                  fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                  color: '#111827', background: '#fff',
-                }}
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                required autoFocus autoComplete="email" placeholder="you@company.com"
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', color: '#111827', background: '#fff' }}
                 onFocus={e => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
                 onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'none'; }}
               />
@@ -160,28 +188,15 @@ export default function LoginPage() {
             {!isAdminEmail && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Password
-                  </label>
-                  <Link
-                    href="/sign-in"
-                    style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none' }}
-                  >
+                  <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Password</label>
+                  <Link href="/sign-in" style={{ fontSize: '13px', color: '#6366f1', textDecoration: 'none' }}>
                     Forgot password?
                   </Link>
                 </div>
                 <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  style={{
-                    width: '100%', padding: '10px 14px',
-                    border: '1px solid #d1d5db', borderRadius: '8px',
-                    fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                    color: '#111827', background: '#fff',
-                  }}
+                  type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password" placeholder="••••••••"
+                  style={{ width: '100%', padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', color: '#111827', background: '#fff' }}
                   onFocus={e => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
                   onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'none'; }}
                 />
@@ -190,11 +205,7 @@ export default function LoginPage() {
 
             {/* Admin badge */}
             {isAdminEmail && (
-              <div style={{
-                padding: '10px 14px',
-                background: '#f5f3ff', border: '1px solid #e0d9ff', borderRadius: '8px',
-                fontSize: '13px', color: '#6366f1', display: 'flex', alignItems: 'center', gap: '8px',
-              }}>
+              <div style={{ padding: '10px 14px', background: '#f5f3ff', border: '1px solid #e0d9ff', borderRadius: '8px', fontSize: '13px', color: '#6366f1', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -205,19 +216,13 @@ export default function LoginPage() {
 
             {/* Error */}
             {error && (
-              <div style={{
-                padding: '10px 14px',
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px',
-                fontSize: '13px', color: '#dc2626',
-              }}>
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#dc2626' }}>
                 {error}
               </div>
             )}
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading || !email}
+            <button type="submit" disabled={loading || !email}
               style={{
                 width: '100%', padding: '12px',
                 background: loading ? '#9ca3af' : '#6366f1',
@@ -227,15 +232,14 @@ export default function LoginPage() {
                 fontFamily: 'inherit',
                 boxShadow: loading ? 'none' : '0 4px 12px rgba(99,102,241,0.3)',
                 transition: 'all 0.15s',
-              }}
-            >
-              {loading ? 'Signing in…' : 'Sign in'}
+              }}>
+              {loading ? 'Signing in…' : planLabel ? `Sign in & upgrade to ${planLabel} →` : 'Sign in'}
             </button>
           </form>
 
           {/* Footer */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f3f4f6', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/pricing" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
               Sign up →
             </Link>
@@ -250,5 +254,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

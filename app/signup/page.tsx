@@ -31,12 +31,17 @@ function SignupForm() {
   const accentShadow = plan.isPaid ? 'rgba(99,102,241,0.3)' : 'rgba(16,185,129,0.3)';
   const accentFocus  = plan.isPaid ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)';
 
+  const loginHref = tierName
+    ? `/auth/login?redirect=billing&plan=${planSlug}`
+    : '/auth/login';
+
   const [step, setStep] = useState<'signup' | 'verify'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [emailTaken, setEmailTaken] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -75,12 +80,18 @@ function SignupForm() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setStep('verify');
     } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        'Sign up failed. Please try again.'
-      );
+      const errCode = err?.errors?.[0]?.code ?? '';
+      const errMsg  = (err?.errors?.[0]?.message ?? '').toLowerCase();
+      if (errCode === 'form_identifier_exists' || errMsg.includes('taken')) {
+        setEmailTaken(true);
+      } else {
+        setError(
+          err?.errors?.[0]?.longMessage ??
+          err?.errors?.[0]?.message ??
+          err?.message ??
+          'Sign up failed. Please try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -216,7 +227,7 @@ function SignupForm() {
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={e => { setEmail(e.target.value); setEmailTaken(false); setError(''); }}
                   required
                   autoFocus
                   autoComplete="email"
@@ -268,6 +279,22 @@ function SignupForm() {
                   </button>
                 </div>
               </div>
+              {emailTaken && (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px',
+                  fontSize: '13px', color: '#92400e',
+                }}>
+                  <div style={{ fontWeight: '600', marginBottom: '6px' }}>
+                    {tierName
+                      ? `You already have an account. Sign in to upgrade to ${plan.label}.`
+                      : 'You already have an account. Sign in to continue.'}
+                  </div>
+                  <Link href={loginHref} style={{ color: '#6366f1', fontWeight: '600', textDecoration: 'none' }}>
+                    Sign in to your account →
+                  </Link>
+                </div>
+              )}
               {error && (
                 <div style={{
                   padding: '10px 14px',
@@ -279,15 +306,15 @@ function SignupForm() {
               )}
               <button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={loading || !email || !password || emailTaken}
                 style={{
                   width: '100%', padding: '12px',
-                  background: loading ? '#9ca3af' : `linear-gradient(135deg, ${accent}, ${accentDark})`,
+                  background: loading || emailTaken ? '#9ca3af' : `linear-gradient(135deg, ${accent}, ${accentDark})`,
                   color: '#fff', border: 'none', borderRadius: '8px',
                   fontSize: '15px', fontWeight: '600',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: loading || emailTaken ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  boxShadow: loading ? 'none' : `0 4px 12px ${accentShadow}`,
+                  boxShadow: loading || emailTaken ? 'none' : `0 4px 12px ${accentShadow}`,
                 }}
               >
                 {btnLabel}

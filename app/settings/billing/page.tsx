@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import Layout from '@/app/components/Layout';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+const UPGRADE_PLANS = [
+  { name: 'Seed',   tier: 'Seed',   price: 79,  desc: 'Up to $50K MRR' },
+  { name: 'Growth', tier: 'Growth', price: 149, desc: 'Up to $200K MRR', popular: true },
+  { name: 'Scale',  tier: 'Scale',  price: 299, desc: 'Up to $1M MRR' },
+];
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -58,6 +67,7 @@ export default function BillingPage() {
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   // Cancel modal state
@@ -81,6 +91,26 @@ export default function BillingPage() {
   useEffect(() => {
     loadBilling().finally(() => setLoading(false));
   }, []);
+
+  async function handleUpgrade(tier: string) {
+    setUpgradeLoading(tier);
+    setError('');
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      if (!res.ok) throw new Error();
+      const { sessionId } = await res.json();
+      const stripe = await stripePromise;
+      await stripe?.redirectToCheckout({ sessionId });
+    } catch {
+      setError('Failed to start checkout. Please try again.');
+    } finally {
+      setUpgradeLoading(null);
+    }
+  }
 
   async function openPortal() {
     setPortalLoading(true);
@@ -203,15 +233,44 @@ export default function BillingPage() {
             </div>
           ) : (
             <div>
-              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#6b7280' }}>
-                {hasStripeCustomer ? 'No active subscription found.' : 'You have no active subscription.'}
+              <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#6b7280' }}>
+                Choose a plan to unlock ChurnGuard&apos;s full churn prevention tools.
               </p>
-              <a
-                href="/pricing"
-                style={{ display: 'inline-block', padding: '10px 24px', background: '#6366f1', color: '#fff', borderRadius: '8px', fontWeight: '600', fontSize: '14px', textDecoration: 'none' }}
-              >
-                View Plans →
-              </a>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px' }}>
+                {UPGRADE_PLANS.map(p => (
+                  <div key={p.name} style={{
+                    border: p.popular ? '2px solid #6366f1' : '1px solid #e5e7eb',
+                    borderRadius: '10px', padding: '16px', position: 'relative',
+                  }}>
+                    {p.popular && (
+                      <div style={{
+                        position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
+                        background: '#6366f1', color: '#fff', fontSize: '10px', fontWeight: '700',
+                        padding: '2px 10px', borderRadius: '20px', whiteSpace: 'nowrap',
+                      }}>Most Popular</div>
+                    )}
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '2px' }}>{p.name}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px' }}>{p.desc}</div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#6366f1', marginBottom: '12px' }}>
+                      ${p.price}<span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>/mo</span>
+                    </div>
+                    <button
+                      onClick={() => handleUpgrade(p.tier)}
+                      disabled={upgradeLoading === p.tier}
+                      style={{
+                        width: '100%', padding: '8px',
+                        background: upgradeLoading === p.tier ? '#9ca3af' : '#6366f1',
+                        color: '#fff', border: 'none', borderRadius: '7px',
+                        fontSize: '13px', fontWeight: '600',
+                        cursor: upgradeLoading === p.tier ? 'not-allowed' : 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {upgradeLoading === p.tier ? 'Loading…' : `Upgrade to ${p.name} →`}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </Section>
