@@ -52,16 +52,27 @@ export default function LoginPage() {
         return;
       }
 
-      // Regular user — email + password via Clerk
+      // Regular user — email + password via Clerk (two-step: identify then authenticate)
       if (!password) {
         setError('Please enter your password.');
         return;
       }
 
-      const result = await signIn.create({ identifier: email.trim(), password });
+      const created = await signIn.create({ identifier: email.trim() });
+
+      let result;
+      if (created.status === 'needs_first_factor') {
+        result = await signIn.attemptFirstFactor({ strategy: 'password', password });
+      } else {
+        result = created;
+      }
+
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+        router.refresh();
         router.push('/dashboard');
+      } else {
+        throw new Error('Sign-in could not be completed. Please try again.');
       }
     } catch (err: any) {
       const msg =
@@ -225,8 +236,8 @@ export default function LoginPage() {
           {/* Footer */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f3f4f6', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
             Don't have an account?{' '}
-            <Link href="/pricing" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
-              View plans →
+            <Link href="/signup" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>
+              Start free trial →
             </Link>
           </div>
         </div>
