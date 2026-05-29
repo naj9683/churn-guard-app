@@ -33,7 +33,23 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ hasAccess: false });
+      // Prisma record not yet created (new signup — created lazily).
+      // Provision it now and grant full trial access.
+      const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || undefined;
+      try {
+        await prisma.user.upsert({
+          where: { clerkId: userId },
+          update: {},
+          create: {
+            clerkId: userId,
+            email: email ?? `${userId}@unknown.com`,
+            ...(name ? { name } : {}),
+          },
+        });
+      } catch {
+        // Race condition or constraint conflict — safe to ignore, access still granted below
+      }
+      return NextResponse.json({ hasAccess: true, onTrial: true, trialDaysLeft: TRIAL_DAYS });
     }
 
     const hasPaidSubscription = user.subscriptions.length > 0;
