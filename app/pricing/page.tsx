@@ -1,11 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { loadStripe } from '@stripe/stripe-js';
 import Link from 'next/link';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PricingTier {
   name: string;
@@ -114,7 +110,6 @@ const tiers: PricingTier[] = [
 ];
 
 export default function PricingPage() {
-  const { user } = useUser();
   const [loading, setLoading] = useState<string | null>(null);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
   const [selectedMrr, setSelectedMrr] = useState(2000);
@@ -123,42 +118,13 @@ export default function PricingPage() {
     return (mrr * 12).toLocaleString();
   };
 
-  const handleSubscribe = async (tierName: string, price: number) => {
-    if (tierName === 'Free Trial') {
-      window.location.href = '/signup?plan=trial';
-      return;
-    }
-
+  const handleSubscribe = (tierName: string) => {
     if (tierName === 'Enterprise') {
       window.location.href = 'mailto:sales@churnguard.io?subject=Enterprise Inquiry';
       return;
     }
-
-    if (!user) {
-      window.location.href = `/signup?plan=${tierName.toLowerCase()}`;
-      return;
-    }
-
-    setLoading(tierName);
-
-    try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tierName, price }),
-      });
-
-      if (!response.ok) throw new Error('Checkout failed');
-
-      const { sessionId } = await response.json();
-      const stripe = await stripePromise;
-      await stripe?.redirectToCheckout({ sessionId });
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
-    } finally {
-      setLoading(null);
-    }
+    const slug = tierName === 'Free Trial' ? 'trial' : tierName.toLowerCase();
+    window.location.href = `/signup?plan=${slug}`;
   };
 
   return (
@@ -394,8 +360,7 @@ export default function PricingPage() {
             </div>
 
             <button
-              onClick={() => handleSubscribe(tier.name, tier.price)}
-              disabled={loading === tier.name}
+              onClick={() => handleSubscribe(tier.name)}
               style={{
                 width: '100%',
                 padding: '0.875rem',
@@ -406,12 +371,11 @@ export default function PricingPage() {
                 color: 'white',
                 border: tier.freeTrial ? 'none' : tier.popular ? 'none' : '2px solid #334155',
                 borderRadius: '0.5rem',
-                cursor: loading === tier.name ? 'not-allowed' : 'pointer',
-                opacity: loading === tier.name ? 0.7 : 1,
+                cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
             >
-              {loading === tier.name ? 'Processing...' : tier.cta}
+              {tier.cta}
             </button>
 
             <div style={{ flex: 1 }}>
