@@ -121,63 +121,55 @@ function SlackModal({ onSave, onCancel, saving, error }: {
   );
 }
 
-// Modal for per-tenant Postmark config
+// Modal for per-tenant Postmark credentials
 function PostmarkModal({ onSave, onCancel, saving, error }: {
-  onSave: (apiKey: string, fromEmail: string, fromName: string) => void;
+  onSave: (token: string, senderEmail: string) => void;
   onCancel: () => void;
   saving: boolean;
   error: string;
 }) {
-  const [apiKey, setApiKey] = useState('');
-  const [fromEmail, setFromEmail] = useState('');
-  const [fromName, setFromName] = useState('ChurnGuard');
-  const canSave = apiKey.trim() && fromEmail.trim();
+  const [token, setToken] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
+  const canSave = token.trim() && senderEmail.trim();
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: '#fff', borderRadius: '14px', padding: '28px', width: '500px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
         <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '600', color: '#111827' }}>Connect Postmark</h3>
         <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
-          Enter your Postmark Server API Token and sender details. ChurnGuard will use these credentials exclusively for your account — other tenants are unaffected.
+          Your credentials are encrypted and stored per-account. All emails from your playbooks, campaigns, and interventions will send from your own Postmark server.
         </p>
 
         <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-          Server API Token <span style={{ color: '#ef4444' }}>*</span>
+          Postmark Server API Token <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <input
           type="password"
-          value={apiKey}
-          onChange={e => setApiKey(e.target.value)}
-          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '14px', fontFamily: 'monospace' }}
+          value={token}
+          onChange={e => setToken(e.target.value)}
+          placeholder="Paste your Postmark Server API Token here"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box', marginBottom: '6px', fontFamily: 'monospace' }}
           autoFocus
         />
+        <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '14px' }}>
+          Get your token at{' '}
+          <a href="https://account.postmarkapp.com/servers" target="_blank" rel="noreferrer" style={{ color: '#d97706' }}>
+            account.postmarkapp.com/servers
+          </a>{' '}
+          → Your Server → API Tokens
+        </div>
 
         <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-          From Email Address <span style={{ color: '#ef4444' }}>*</span>
+          Verified Sender Email <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <input
           type="email"
-          value={fromEmail}
-          onChange={e => setFromEmail(e.target.value)}
-          placeholder="noreply@yourcompany.com"
-          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '14px' }}
-        />
-
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-          From Name
-        </label>
-        <input
-          value={fromName}
-          onChange={e => setFromName(e.target.value)}
-          placeholder="ChurnGuard"
-          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '6px' }}
+          value={senderEmail}
+          onChange={e => setSenderEmail(e.target.value)}
+          placeholder="e.g. support@yourcompany.com"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box', marginBottom: '6px' }}
         />
         <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
-          Find your Server API Token in{' '}
-          <a href="https://account.postmarkapp.com/servers" target="_blank" rel="noreferrer" style={{ color: '#ffbb00' }}>
-            Postmark → Servers → API Tokens
-          </a>.
-          The sender address must be a verified sender signature in your Postmark account.
+          Must be a verified sender signature in your Postmark account.
         </div>
 
         {error && <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error}</div>}
@@ -186,11 +178,11 @@ function PostmarkModal({ onSave, onCancel, saving, error }: {
             Cancel
           </button>
           <button
-            onClick={() => onSave(apiKey, fromEmail, fromName)}
+            onClick={() => onSave(token, senderEmail)}
             disabled={saving || !canSave}
             style={{ padding: '9px 18px', background: saving || !canSave ? '#9ca3af' : '#d97706', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: saving || !canSave ? 'not-allowed' : 'pointer' }}
           >
-            {saving ? 'Saving…' : 'Connect Postmark'}
+            {saving ? 'Saving…' : 'Save & Connect'}
           </button>
         </div>
       </div>
@@ -242,7 +234,7 @@ export default function IntegrationsPage() {
   const [slackSaving, setSlackSaving] = useState(false);
   const [slackError, setSlackError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
-  const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
+  const [resendStatus, setResendStatus] = useState<{ configured: boolean; senderEmail: string | null; senderName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showPostmarkModal, setShowPostmarkModal] = useState(false);
@@ -279,9 +271,10 @@ export default function IntegrationsPage() {
   async function sendTestEmail() {
     setTestEmailSending(true);
     setTestEmailResult(null);
-    const res = await fetch('/api/integrations/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: 'najwa.saadi1@hotmail.com' }) });
+    const to = user?.primaryEmailAddress?.emailAddress ?? 'test@example.com';
+    const res = await fetch('/api/integrations/resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to }) });
     const d = await res.json();
-    setTestEmailResult(res.ok ? { ok: true, msg: 'Sent to najwa.saadi1@hotmail.com' } : { ok: false, msg: d.error ?? 'Send failed' });
+    setTestEmailResult(res.ok ? { ok: true, msg: `Sent to ${to}` } : { ok: false, msg: d.error ?? 'Send failed' });
     setTestEmailSending(false);
     loadResend();
   }
@@ -348,13 +341,13 @@ export default function IntegrationsPage() {
   }
 
   // ── Postmark ───────────────────────────────────────────────────────────────
-  async function savePostmarkConfig(apiKey: string, fromEmail: string, fromName: string) {
+  async function savePostmarkConfig(token: string, senderEmail: string) {
     setPostmarkSaving(true);
     setPostmarkError('');
     const res = await fetch('/api/integrations/resend', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, fromEmail, fromName }),
+      body: JSON.stringify({ token, senderEmail }),
     });
     const d = await res.json();
     if (res.ok) {
@@ -395,7 +388,7 @@ export default function IntegrationsPage() {
         )}
         {showPostmarkModal && (
           <PostmarkModal
-            onSave={savePostmarkConfig}
+            onSave={(token, senderEmail) => savePostmarkConfig(token, senderEmail)}
             onCancel={() => { setShowPostmarkModal(false); setPostmarkError(''); }}
             saving={postmarkSaving}
             error={postmarkError}
@@ -469,10 +462,10 @@ export default function IntegrationsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: resendStatus.recentLogs.length > 0 || testEmailResult ? '12px' : '0' }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
-                        Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.fromEmail ?? '—'}</span>
+                        Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.senderEmail ?? '—'}</span>
                       </div>
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        {resendStatus.fromName} · <button onClick={() => { setShowPostmarkModal(true); setPostmarkError(''); }} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', cursor: 'pointer', padding: 0 }}>Edit settings</button>
+                        Token encrypted · <button onClick={() => { setShowPostmarkModal(true); setPostmarkError(''); }} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', cursor: 'pointer', padding: 0 }}>Update credentials</button>
                       </div>
                     </div>
                     <button

@@ -1,26 +1,40 @@
 import { prisma } from '@/lib/prisma';
 
-// Postmark HTTP API — same sendEmail signature so all callers work unchanged
+import { decrypt } from '@/lib/encrypt';
+
+// Postmark HTTP API
+// - When userId is provided: uses ONLY the tenant's stored (encrypted) credentials.
+//   If none are configured, the send is skipped (not silently failed).
+// - When no userId: uses global POSTMARK_API_KEY env var (platform admin emails only).
 export async function sendEmail(to: string, subject: string, html: string, userId?: string) {
-  // Per-tenant config takes priority; falls back to global env vars
-  let apiKey = process.env.POSTMARK_API_KEY;
-  let fromName = process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard';
-  let fromEmail = process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
+  let apiKey: string | null = null;
+  let fromName = 'ChurnGuard';
+  let fromEmail = 'admin@churnguardapp.com';
 
   if (userId) {
     const userCfg = await prisma.user.findUnique({
       where: { id: userId },
       select: { postmarkApiKey: true, postmarkFromEmail: true, postmarkFromName: true },
     }).catch(() => null);
-    if (userCfg?.postmarkApiKey) {
-      apiKey = userCfg.postmarkApiKey;
-      if (userCfg.postmarkFromEmail) fromEmail = userCfg.postmarkFromEmail;
-      if (userCfg.postmarkFromName) fromName = userCfg.postmarkFromName;
+
+    if (!userCfg?.postmarkApiKey) {
+      console.warn(`[sendEmail] Tenant ${userId} has no Postmark token — email not sent`);
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'skipped', errorMessage: 'Postmark not connected' } }).catch(() => {});
+      return { success: false, errorMessage: 'Postmark not connected for this account' };
     }
+
+    apiKey = decrypt(userCfg.postmarkApiKey);
+    if (userCfg.postmarkFromEmail) fromEmail = userCfg.postmarkFromEmail;
+    if (userCfg.postmarkFromName) fromName = userCfg.postmarkFromName;
+  } else {
+    // Platform admin emails (no tenant context)
+    apiKey = process.env.POSTMARK_API_KEY ?? null;
+    fromName = process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard';
+    fromEmail = process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
   }
 
   if (!apiKey) {
-    console.log('📧 EMAIL WOULD BE SENT:', to, subject);
+    console.log('📧 EMAIL WOULD BE SENT (no API key):', to, subject);
     prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now() } }).catch(() => {});
     return { success: true, data: { id: 'mock-email-id' } };
   }
