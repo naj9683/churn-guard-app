@@ -121,6 +121,83 @@ function SlackModal({ onSave, onCancel, saving, error }: {
   );
 }
 
+// Modal for per-tenant Postmark config
+function PostmarkModal({ onSave, onCancel, saving, error }: {
+  onSave: (apiKey: string, fromEmail: string, fromName: string) => void;
+  onCancel: () => void;
+  saving: boolean;
+  error: string;
+}) {
+  const [apiKey, setApiKey] = useState('');
+  const [fromEmail, setFromEmail] = useState('');
+  const [fromName, setFromName] = useState('ChurnGuard');
+  const canSave = apiKey.trim() && fromEmail.trim();
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '14px', padding: '28px', width: '500px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '600', color: '#111827' }}>Connect Postmark</h3>
+        <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+          Enter your Postmark Server API Token and sender details. ChurnGuard will use these credentials exclusively for your account — other tenants are unaffected.
+        </p>
+
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+          Server API Token <span style={{ color: '#ef4444' }}>*</span>
+        </label>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '14px', fontFamily: 'monospace' }}
+          autoFocus
+        />
+
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+          From Email Address <span style={{ color: '#ef4444' }}>*</span>
+        </label>
+        <input
+          type="email"
+          value={fromEmail}
+          onChange={e => setFromEmail(e.target.value)}
+          placeholder="noreply@yourcompany.com"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '14px' }}
+        />
+
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+          From Name
+        </label>
+        <input
+          value={fromName}
+          onChange={e => setFromName(e.target.value)}
+          placeholder="ChurnGuard"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '6px' }}
+        />
+        <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
+          Find your Server API Token in{' '}
+          <a href="https://account.postmarkapp.com/servers" target="_blank" rel="noreferrer" style={{ color: '#ffbb00' }}>
+            Postmark → Servers → API Tokens
+          </a>.
+          The sender address must be a verified sender signature in your Postmark account.
+        </div>
+
+        {error && <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error}</div>}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} style={{ padding: '9px 18px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(apiKey, fromEmail, fromName)}
+            disabled={saving || !canSave}
+            style={{ padding: '9px 18px', background: saving || !canSave ? '#9ca3af' : '#d97706', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: saving || !canSave ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Saving…' : 'Connect Postmark'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Stripe info panel shown when clicking Connect
 function StripeInfoPanel({ onClose }: { onClose: () => void }) {
   const webhookUrl = typeof window !== 'undefined'
@@ -168,6 +245,10 @@ export default function IntegrationsPage() {
   const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [showPostmarkModal, setShowPostmarkModal] = useState(false);
+  const [postmarkSaving, setPostmarkSaving] = useState(false);
+  const [postmarkError, setPostmarkError] = useState('');
+  const [postmarkDisconnecting, setPostmarkDisconnecting] = useState(false);
 
   useEffect(() => { loadStatus(); loadResend(); }, []);
 
@@ -266,6 +347,39 @@ export default function IntegrationsPage() {
     setBusyFor('slack', false);
   }
 
+  // ── Postmark ───────────────────────────────────────────────────────────────
+  async function savePostmarkConfig(apiKey: string, fromEmail: string, fromName: string) {
+    setPostmarkSaving(true);
+    setPostmarkError('');
+    const res = await fetch('/api/integrations/resend', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, fromEmail, fromName }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setShowPostmarkModal(false);
+      setTestEmailResult(null);
+      await loadResend();
+    } else {
+      setPostmarkError(d.error || 'Failed to save Postmark config.');
+    }
+    setPostmarkSaving(false);
+  }
+
+  async function disconnectPostmark() {
+    if (!confirm('Disconnect Postmark? Automated emails will stop sending.')) return;
+    setPostmarkDisconnecting(true);
+    const res = await fetch('/api/integrations/resend', { method: 'DELETE' });
+    if (res.ok) {
+      setTestEmailResult(null);
+      await loadResend();
+    } else {
+      setErrorFor('postmark', 'Failed to disconnect Postmark.');
+    }
+    setPostmarkDisconnecting(false);
+  }
+
   if (loading) return <Layout title="Integrations"><div style={{ color: '#9ca3af' }}>Loading…</div></Layout>;
 
   return (
@@ -277,6 +391,14 @@ export default function IntegrationsPage() {
             onCancel={() => { setShowSlackModal(false); setSlackError(''); }}
             saving={slackSaving}
             error={slackError}
+          />
+        )}
+        {showPostmarkModal && (
+          <PostmarkModal
+            onSave={savePostmarkConfig}
+            onCancel={() => { setShowPostmarkModal(false); setPostmarkError(''); }}
+            saving={postmarkSaving}
+            error={postmarkError}
           />
         )}
 
@@ -337,61 +459,61 @@ export default function IntegrationsPage() {
             <IntegrationCard
               icon="📧" name="Postmark"
               desc="Transactional emails — retention sequences, playbook alerts, and campaign delivery"
-              connected={!!resendStatus?.configured} accentColor="#ffbb00" active={!!resendStatus?.configured}
+              connected={!!resendStatus?.configured} accentColor="#ffbb00"
+              loading={postmarkDisconnecting}
+              onConnect={() => { setShowPostmarkModal(true); setPostmarkError(''); }}
+              onDisconnect={disconnectPostmark}
             >
-              <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                {resendStatus?.configured ? (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: resendStatus.recentLogs.length > 0 || testEmailResult ? '12px' : '0' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
-                          Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.fromEmail ?? '—'}</span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>API key configured in Vercel environment</div>
+              {resendStatus?.configured && (
+                <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: resendStatus.recentLogs.length > 0 || testEmailResult ? '12px' : '0' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
+                        Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.fromEmail ?? '—'}</span>
                       </div>
-                      <button
-                        onClick={sendTestEmail}
-                        disabled={testEmailSending}
-                        style={{ padding: '7px 16px', background: testEmailSending ? '#e5e7eb' : '#6366f1', color: testEmailSending ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: testEmailSending ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
-                      >
-                        {testEmailSending ? 'Sending…' : 'Send Test Email'}
-                      </button>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                        {resendStatus.fromName} · <button onClick={() => { setShowPostmarkModal(true); setPostmarkError(''); }} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', cursor: 'pointer', padding: 0 }}>Edit settings</button>
+                      </div>
                     </div>
-                    {testEmailResult && (
-                      <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testEmailResult.ok ? '#f0fdf4' : '#fef2f2', color: testEmailResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testEmailResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
-                        {testEmailResult.ok ? '✅ ' : '❌ '}{testEmailResult.msg}
-                      </div>
-                    )}
-                    {resendStatus.recentLogs.length > 0 ? (
-                      <div>
-                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Last 5 Emails</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {resendStatus.recentLogs.map(log => (
-                            <div key={log.id} style={{ fontSize: '12px', padding: '5px 8px', background: log.status === 'failed' ? '#fef9f9' : '#fff', border: `1px solid ${log.status === 'failed' ? '#fecaca' : '#e5e7eb'}`, borderRadius: '5px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ width: '48px', fontWeight: '600', color: log.status === 'failed' ? '#ef4444' : log.status === 'mock' ? '#f59e0b' : '#10b981', textTransform: 'capitalize', flexShrink: 0 }}>{log.status}</span>
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.subject}</span>
-                                <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                              {log.status === 'failed' && log.errorMessage && (
-                                <div style={{ marginTop: '3px', fontSize: '11px', color: '#dc2626', paddingLeft: '56px' }}>{log.errorMessage}</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : !testEmailResult && (
-                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                        No emails sent yet — they&apos;ll appear here once your automations and campaigns start sending.
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>POSTMARK_API_KEY</code> to your Vercel environment variables to enable email delivery.
+                    <button
+                      onClick={sendTestEmail}
+                      disabled={testEmailSending}
+                      style={{ padding: '7px 16px', background: testEmailSending ? '#e5e7eb' : '#6366f1', color: testEmailSending ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: testEmailSending ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+                    >
+                      {testEmailSending ? 'Sending…' : 'Send Test Email'}
+                    </button>
                   </div>
-                )}
-              </div>
+                  {testEmailResult && (
+                    <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', background: testEmailResult.ok ? '#f0fdf4' : '#fef2f2', color: testEmailResult.ok ? '#15803d' : '#dc2626', border: `1px solid ${testEmailResult.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                      {testEmailResult.ok ? '✅ ' : '❌ '}{testEmailResult.msg}
+                    </div>
+                  )}
+                  {resendStatus.recentLogs.length > 0 ? (
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Last 5 Emails</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {resendStatus.recentLogs.map(log => (
+                          <div key={log.id} style={{ fontSize: '12px', padding: '5px 8px', background: log.status === 'failed' ? '#fef9f9' : '#fff', border: `1px solid ${log.status === 'failed' ? '#fecaca' : '#e5e7eb'}`, borderRadius: '5px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '48px', fontWeight: '600', color: log.status === 'failed' ? '#ef4444' : log.status === 'mock' ? '#f59e0b' : '#10b981', textTransform: 'capitalize', flexShrink: 0 }}>{log.status}</span>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.subject}</span>
+                              <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            {log.status === 'failed' && log.errorMessage && (
+                              <div style={{ marginTop: '3px', fontSize: '11px', color: '#dc2626', paddingLeft: '56px' }}>{log.errorMessage}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : !testEmailResult && (
+                    <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                      No emails sent yet — they&apos;ll appear here once your automations and campaigns start sending.
+                    </div>
+                  )}
+                </div>
+              )}
+              {error.postmark && <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.postmark}</div>}
             </IntegrationCard>
           </div>
         </Section>

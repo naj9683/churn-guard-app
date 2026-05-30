@@ -2,7 +2,22 @@ import { prisma } from '@/lib/prisma';
 
 // Postmark HTTP API — same sendEmail signature so all callers work unchanged
 export async function sendEmail(to: string, subject: string, html: string, userId?: string) {
-  const apiKey = process.env.POSTMARK_API_KEY;
+  // Per-tenant config takes priority; falls back to global env vars
+  let apiKey = process.env.POSTMARK_API_KEY;
+  let fromName = process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard';
+  let fromEmail = process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
+
+  if (userId) {
+    const userCfg = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { postmarkApiKey: true, postmarkFromEmail: true, postmarkFromName: true },
+    }).catch(() => null);
+    if (userCfg?.postmarkApiKey) {
+      apiKey = userCfg.postmarkApiKey;
+      if (userCfg.postmarkFromEmail) fromEmail = userCfg.postmarkFromEmail;
+      if (userCfg.postmarkFromName) fromName = userCfg.postmarkFromName;
+    }
+  }
 
   if (!apiKey) {
     console.log('📧 EMAIL WOULD BE SENT:', to, subject);
@@ -10,7 +25,7 @@ export async function sendEmail(to: string, subject: string, html: string, userI
     return { success: true, data: { id: 'mock-email-id' } };
   }
 
-  const from = `${process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard'} <${process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com'}>`;
+  const from = `${fromName} <${fromEmail}>`;
 
   try {
     const res = await fetch('https://api.postmarkapp.com/email', {

@@ -19,6 +19,9 @@ model User {
   crmType            String?
   crmApiKey          String?
   slackWebhookUrl    String?
+  postmarkApiKey     String?
+  postmarkFromEmail  String?
+  postmarkFromName   String?
   widgetEnabled      Boolean?         @default(true)
   alertFrequency     String           @default("immediate")
   alertRiskThreshold Int              @default(70)
