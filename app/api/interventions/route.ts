@@ -183,21 +183,33 @@ async function executeIntervention(
   return log;
 }
 
-// GET handler - list all interventions
+// GET handler - list interventions for the authenticated user only
 export async function GET() {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ interventions: [], count: 0 });
+    }
+
     const interventions = await prisma.interventionOutcome.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
         customer: { select: { name: true, email: true } },
       },
     });
-    
-    return NextResponse.json({ 
-      interventions,
-      count: interventions.length
-    });
+
+    return NextResponse.json({ interventions, count: interventions.length });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch interventions' }, { status: 500 });
   }
