@@ -362,7 +362,7 @@ export default function IntegrationsPage() {
                         {testEmailResult.ok ? '✅ ' : '❌ '}{testEmailResult.msg}
                       </div>
                     )}
-                    {resendStatus.recentLogs.length > 0 && (
+                    {resendStatus.recentLogs.length > 0 ? (
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Last 5 Emails</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -379,6 +379,10 @@ export default function IntegrationsPage() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    ) : !testEmailResult && (
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                        No emails sent yet — they&apos;ll appear here once your automations and campaigns start sending.
                       </div>
                     )}
                   </>

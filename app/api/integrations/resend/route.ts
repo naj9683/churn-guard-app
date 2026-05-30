@@ -4,25 +4,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true },
+  });
 
   const configured = !!process.env.POSTMARK_API_KEY;
   const fromEmail = process.env.POSTMARK_FROM_EMAIL ?? null;
   const fromName = process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard';
 
-  const recentLogs = await prisma.emailLog.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-    select: { id: true, to: true, subject: true, status: true, messageId: true, errorMessage: true, createdAt: true },
-  });
+  const recentLogs = user
+    ? await prisma.emailLog.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, to: true, subject: true, status: true, messageId: true, errorMessage: true, createdAt: true },
+      })
+    : [];
 
   return NextResponse.json({ configured, fromEmail, fromName, recentLogs });
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const userRecord = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
+  const userId = userRecord?.id;
 
   if (!process.env.POSTMARK_API_KEY) {
     return NextResponse.json({ error: 'POSTMARK_API_KEY not configured' }, { status: 503 });
