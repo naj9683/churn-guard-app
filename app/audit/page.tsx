@@ -25,7 +25,7 @@ interface AuditResult {
   pastDueCount: number;
 }
 
-type Step = 'form' | 'analyzing' | 'email-gate' | 'results';
+type Step = 'hubspot' | 'form' | 'analyzing' | 'results';
 type InputMethod = 'stripe' | 'csv';
 
 // ── Analysis animation ───────────────────────────────────────────────────────
@@ -134,28 +134,30 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
   );
 }
 
-// ── HubSpot lead-gate (replaces email gate) ──────────────────────────────────
+// ── HubSpot lead-capture gate (FIRST SCREEN — shown before the calculator) ────
+//
+// Flow: HubSpot form → onFormSubmit postMessage fires → save email to
+// sessionStorage → transition to 'form' step (the calculator).
+//
+// Why sessionStorage: HubSpot may be configured to redirect the parent page to
+// /audit after submission. We catch onFormSubmit (fires before the redirect),
+// save the email + a done flag, then when the page reloads we pick it up and
+// skip straight to the calculator. Once the form is set to "Show thank you
+// message" in HubSpot dashboard the redirect stops and onFormSubmitted handles
+// the transition directly without a page reload.
 
-function HubSpotGateScreen({
-  results,
-  inputMethod,
-  onUnlock,
-}: {
-  results: AuditResult;
-  inputMethod: InputMethod;
-  onUnlock: (email: string) => void;
-}) {
-  const [unlocked, setUnlocked] = useState(false);
+const HS_DONE_KEY  = 'cg_hs_done';
+const HS_EMAIL_KEY = 'cg_hs_email';
+
+function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  const [submitted, setSubmitted]     = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
-  const churnBad = results.monthlyChurnRate > 3;
-  const churnColor =
-    results.monthlyChurnRate > 7 ? '#ef4444' :
-    results.monthlyChurnRate > 3 ? '#f97316' :
-    results.monthlyChurnRate > 1 ? '#f59e0b' : '#22c55e';
-
   useEffect(() => {
-    // Inject HubSpot embed script once
+    // Inject HubSpot embed script once per page load
     if (!document.querySelector('script[src*="js-eu1.hsforms.net/forms/embed/147977159"]')) {
       const s = document.createElement('script');
       s.src = 'https://js-eu1.hsforms.net/forms/embed/147977159.js';
@@ -163,39 +165,31 @@ function HubSpotGateScreen({
       document.head.appendChild(s);
     }
 
-    // Fallback: show skip link if HubSpot hasn't fired after 10 s (ad blocker, slow network)
-    const fallbackTimer = setTimeout(() => setShowFallback(true), 10000);
+    // Show skip link after 12 s in case the form is blocked (ad blocker, CSP, etc.)
+    const fallbackTimer = setTimeout(() => setShowFallback(true), 12000);
 
     let fired = false;
     function onMessage(ev: MessageEvent) {
       if (fired) return;
       if (!ev.data || ev.data.type !== 'hsFormCallback') return;
       const eventName: string = ev.data.eventName ?? '';
+      // onFormSubmit fires the moment the user clicks submit — before any redirect.
+      // onFormSubmitted fires after HubSpot's server confirms — only when no redirect.
       if (eventName !== 'onFormSubmit' && eventName !== 'onFormSubmitted') return;
       fired = true;
 
       const fields: Array<{ name: string; value: string }> = Array.isArray(ev.data.data) ? ev.data.data : [];
       const email = fields.find(f => f.name === 'email')?.value ?? '';
 
-      fetch('/api/audit/capture-lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          stripeConnected: inputMethod === 'stripe',
-          csvUploaded:     inputMethod === 'csv',
-          monthlyChurnRate:   results.monthlyChurnRate,
-          revenueAtRisk:      results.revenueAtRisk,
-          annualizedLoss:     results.annualizedLoss,
-          totalMrr:           results.totalMrr,
-          industryPercentile: results.industryPercentile,
-          atRiskCustomers:    results.atRiskCustomers,
-        }),
-      }).catch(() => {});
+      // Persist before any potential redirect so the reload case also works
+      try {
+        sessionStorage.setItem(HS_DONE_KEY, '1');
+        sessionStorage.setItem(HS_EMAIL_KEY, email);
+      } catch { /* private browsing may block sessionStorage */ }
 
       clearTimeout(fallbackTimer);
-      setUnlocked(true);
-      setTimeout(() => onUnlock(email), 500);
+      setSubmitted(true);
+      setTimeout(() => onDoneRef.current(email), 600);
     }
 
     window.addEventListener('message', onMessage);
@@ -203,11 +197,9 @@ function HubSpotGateScreen({
       window.removeEventListener('message', onMessage);
       clearTimeout(fallbackTimer);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Brief "Opening your report…" transition
-  if (unlocked) {
+  if (submitted) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: '#0a0a12' }}>
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
@@ -215,121 +207,116 @@ function HubSpotGateScreen({
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-white font-semibold text-lg">Opening your report…</p>
+        <p className="text-white font-semibold text-lg">Loading your audit tool…</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
-      {/* Header */}
-      <div
-        className="py-10 px-6 text-center border-b"
-        style={{ background: 'linear-gradient(180deg,#0d0a20 0%,#0a0a12 100%)', borderColor: '#1e1a3a' }}
+      {/* Nav */}
+      <header
+        className="sticky top-0 z-50 border-b border-slate-800/60 px-5 h-14 flex items-center justify-between"
+        style={{ background: 'rgba(10,10,18,0.92)', backdropFilter: 'blur(16px)' }}
       >
-        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-700/40 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          Analysis complete
+        <Link href="/" className="flex items-center gap-2 font-bold text-white text-base">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛡️</div>
+          ChurnGuard
+        </Link>
+        <Link href="/#pricing" className="text-sm text-slate-400 hover:text-white transition-colors">
+          View Plans →
+        </Link>
+      </header>
+
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
+        {/* Hero */}
+        <div className="text-center max-w-xl mb-10">
+          <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-700/40 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            Free · No credit card · Results in 10 seconds
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
+            Find Out Exactly<br />
+            <span style={{ background: 'linear-gradient(135deg,#f97316,#ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              How Much You're Losing
+            </span>
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Enter your details to see your free churn risk audit — monthly churn rate, revenue at risk, and customers about to cancel.
+          </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 leading-tight">
-          Your Churn Report Is Ready
-        </h1>
-        <p className="text-slate-400 text-sm max-w-sm mx-auto">
-          We found{' '}
-          <span className="text-white font-semibold">
-            {results.atRiskCustomers.length > 0
-              ? `${results.atRiskCustomers.length} customer${results.atRiskCustomers.length !== 1 ? 's' : ''} at risk`
-              : 'data worth reviewing'}
-          </span>
-          . Enter your details below to unlock your free audit.
-        </p>
-      </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
-        <div className="w-full max-w-lg space-y-5">
-
-          {/* Blurred metric preview — incentive to fill in the form */}
-          <div className="grid grid-cols-3 gap-3 select-none" style={{ filter: 'blur(7px)', opacity: 0.55 }} aria-hidden>
-            <div className="rounded-xl p-4 text-center border" style={{ background: churnBad ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)', borderColor: churnBad ? '#7f1d1d' : '#14532d' }}>
-              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Monthly Churn</p>
-              <p className="text-4xl font-extrabold" style={{ color: churnColor }}>{results.monthlyChurnRate.toFixed(1)}%</p>
-            </div>
-            <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(245,158,11,0.07)', borderColor: '#78350f' }}>
-              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Revenue at Risk</p>
-              <p className="text-3xl font-extrabold text-amber-400">${results.revenueAtRisk.toLocaleString()}</p>
-            </div>
-            <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(239,68,68,0.07)', borderColor: '#7f1d1d' }}>
-              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Annual Loss</p>
-              <p className="text-3xl font-extrabold text-red-400">${results.annualizedLoss.toLocaleString()}</p>
+        {/* HubSpot form card */}
+        <div
+          className="w-full max-w-md rounded-2xl border p-8"
+          style={{ background: '#111827', borderColor: '#1f2937' }}
+        >
+          <div className="flex justify-center mb-5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+              🛡️
             </div>
           </div>
+          <h2 className="text-white text-lg font-bold text-center mb-1">
+            Enter your details to see your free churn risk audit
+          </h2>
+          <p className="text-slate-500 text-sm text-center mb-6">
+            First Name · Last Name · Email · Company
+          </p>
 
-          {/* HubSpot gate card */}
-          <div className="rounded-2xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1f2937' }}>
-            {/* Card header */}
-            <div className="px-8 pt-8 pb-0 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-                  🛡️
-                </div>
-              </div>
-              <h2 className="text-white text-xl font-bold mb-1">
-                Enter your details to see your free churn risk audit
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                Your full breakdown — monthly churn, revenue at risk, and at-risk customers — unlocks immediately after.
-              </p>
-            </div>
-
-            {/* HubSpot form embed */}
-            <div className="px-6 pb-6 cg-hs-wrapper">
-              <div
-                className="hs-form-frame"
-                data-region="eu1"
-                data-form-id="31ad22e3-ed18-4279-8639-a51cd2ee69f7"
-                data-portal-id="147977159"
-              />
-            </div>
-
-            {/* Fallback shown after 10 s (ad blocker / slow load) */}
-            {showFallback && (
-              <div className="px-8 pb-6 text-center border-t" style={{ borderColor: '#1f2937' }}>
-                <p className="text-slate-600 text-xs mt-4 mb-1">Having trouble with the form?</p>
-                <button
-                  onClick={() => onUnlock('')}
-                  className="text-indigo-400 text-xs hover:underline"
-                >
-                  Skip and see results anyway →
-                </button>
-              </div>
-            )}
-
-            <div className="px-8 pb-6 text-center">
-              <p className="text-slate-600 text-xs flex items-center justify-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                No spam. We take your privacy seriously.
-              </p>
-            </div>
+          {/* HubSpot form embed — renders into an iframe */}
+          <div className="cg-hs-wrapper">
+            <div
+              className="hs-form-frame"
+              data-region="eu1"
+              data-form-id="31ad22e3-ed18-4279-8639-a51cd2ee69f7"
+              data-portal-id="147977159"
+            />
           </div>
 
-        </div>
-      </div>
+          {/* Fallback skip link — shown after 12 s if form never loads */}
+          {showFallback && (
+            <div className="mt-5 text-center">
+              <p className="text-slate-600 text-xs mb-1">Form not loading? (Ad blocker?)</p>
+              <button
+                onClick={() => onDoneRef.current('')}
+                className="text-indigo-400 text-xs hover:underline"
+              >
+                Skip and go to the calculator →
+              </button>
+            </div>
+          )}
 
-      {/* Override HubSpot form iframe styles to fit dark theme */}
+          <p className="text-slate-700 text-xs text-center mt-5 flex items-center justify-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            No spam — we take your privacy seriously.
+          </p>
+        </div>
+
+        {/* Social proof */}
+        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-600">
+          {['Used by 200+ SaaS founders', 'Results in under 10 seconds', 'Stripe key never stored'].map(t => (
+            <span key={t} className="flex items-center gap-1.5">
+              <svg className="w-3 h-3 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              {t}
+            </span>
+          ))}
+        </div>
+      </main>
+
+      {/* HubSpot iframe width fix */}
       <style>{`
         .cg-hs-wrapper .hs-form-frame { display: block; width: 100%; }
         .cg-hs-wrapper .hs-form-frame iframe {
           width: 100% !important;
-          min-height: 320px !important;
+          min-height: 340px !important;
           border: none !important;
-          border-radius: 12px !important;
-          overflow: hidden !important;
         }
-        @keyframes cgPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
       `}</style>
     </div>
   );
@@ -725,14 +712,29 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
 // ── Form ─────────────────────────────────────────────────────────────────────
 
 export default function FreeAuditPage() {
-  const [step, setStep]             = useState<Step>('form');
+  const [step, setStep]               = useState<Step>('hubspot');
   const [inputMethod, setInputMethod] = useState<InputMethod>('stripe');
-  const [email, setEmail]           = useState('');
-  const [stripeKey, setStripeKey]   = useState('');
-  const [csvFile, setCsvFile]       = useState<File | null>(null);
-  const [error, setError]           = useState('');
-  const [results, setResults]       = useState<AuditResult | null>(null);
+  const [hsEmail, setHsEmail]         = useState('');
+  const [stripeKey, setStripeKey]     = useState('');
+  const [csvFile, setCsvFile]         = useState<File | null>(null);
+  const [error, setError]             = useState('');
+  const [results, setResults]         = useState<AuditResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Redirect-case recovery: HubSpot redirected the parent page to /audit.
+  // We saved a done flag + email in sessionStorage just before the redirect fired.
+  useEffect(() => {
+    try {
+      const done = sessionStorage.getItem(HS_DONE_KEY);
+      if (done === '1') {
+        const email = sessionStorage.getItem(HS_EMAIL_KEY) ?? '';
+        sessionStorage.removeItem(HS_DONE_KEY);
+        sessionStorage.removeItem(HS_EMAIL_KEY);
+        setHsEmail(email);
+        setStep('form');
+      }
+    } catch { /* sessionStorage unavailable in private mode */ }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -770,20 +772,34 @@ export default function FreeAuditPage() {
       return;
     }
 
-    setResults(apiResult.value as AuditResult);
-    setStep('email-gate');
+    const auditData = apiResult.value as AuditResult;
+    setResults(auditData);
+
+    // Capture lead with full analysis data now that we have it
+    fetch('/api/audit/capture-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email:              hsEmail,
+        stripeConnected:    inputMethod === 'stripe',
+        csvUploaded:        inputMethod === 'csv',
+        monthlyChurnRate:   auditData.monthlyChurnRate,
+        revenueAtRisk:      auditData.revenueAtRisk,
+        annualizedLoss:     auditData.annualizedLoss,
+        totalMrr:           auditData.totalMrr,
+        industryPercentile: auditData.industryPercentile,
+        atRiskCustomers:    auditData.atRiskCustomers,
+      }),
+    }).catch(() => {});
+
+    setStep('results');
   }
 
+  if (step === 'hubspot')
+    return <HubSpotGateScreen onDone={email => { setHsEmail(email); setStep('form'); }} />;
+
   if (step === 'analyzing') return <AnalyzingScreen dataSource={inputMethod} />;
-  if (step === 'email-gate' && results)
-    return (
-      <HubSpotGateScreen
-        results={results}
-        inputMethod={inputMethod}
-        onUnlock={capturedEmail => { setEmail(capturedEmail); setStep('results'); }}
-      />
-    );
-  if (step === 'results' && results) return <ResultsScreen results={results} email={email} />;
+  if (step === 'results' && results) return <ResultsScreen results={results} email={hsEmail} />;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
@@ -826,6 +842,7 @@ export default function FreeAuditPage() {
 
         {/* Form card */}
         <form
+          id="calculator-section"
           onSubmit={handleSubmit}
           className="w-full max-w-md rounded-2xl border p-7"
           style={{ background: '#111827', borderColor: '#1f2937' }}
