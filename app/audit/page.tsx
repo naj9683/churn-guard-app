@@ -134,9 +134,9 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
   );
 }
 
-// ── Email gate ────────────────────────────────────────────────────────────────
+// ── HubSpot lead-gate (replaces email gate) ──────────────────────────────────
 
-function EmailGateScreen({
+function HubSpotGateScreen({
   results,
   inputMethod,
   onUnlock,
@@ -145,21 +145,43 @@ function EmailGateScreen({
   inputMethod: InputMethod;
   onUnlock: (email: string) => void;
 }) {
-  const [gateEmail, setGateEmail] = useState('');
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
+  const [unlocked, setUnlocked] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
-  async function handleUnlock(e: React.FormEvent) {
-    e.preventDefault();
-    if (!gateEmail.includes('@')) { setError('Enter a valid work email.'); return; }
-    setLoading(true);
-    setError('');
-    try {
-      await fetch('/api/audit/capture-lead', {
+  const churnBad = results.monthlyChurnRate > 3;
+  const churnColor =
+    results.monthlyChurnRate > 7 ? '#ef4444' :
+    results.monthlyChurnRate > 3 ? '#f97316' :
+    results.monthlyChurnRate > 1 ? '#f59e0b' : '#22c55e';
+
+  useEffect(() => {
+    // Inject HubSpot embed script once
+    if (!document.querySelector('script[src*="js-eu1.hsforms.net/forms/embed/147977159"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://js-eu1.hsforms.net/forms/embed/147977159.js';
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+
+    // Fallback: show skip link if HubSpot hasn't fired after 10 s (ad blocker, slow network)
+    const fallbackTimer = setTimeout(() => setShowFallback(true), 10000);
+
+    let fired = false;
+    function onMessage(ev: MessageEvent) {
+      if (fired) return;
+      if (!ev.data || ev.data.type !== 'hsFormCallback') return;
+      const eventName: string = ev.data.eventName ?? '';
+      if (eventName !== 'onFormSubmit' && eventName !== 'onFormSubmitted') return;
+      fired = true;
+
+      const fields: Array<{ name: string; value: string }> = Array.isArray(ev.data.data) ? ev.data.data : [];
+      const email = fields.find(f => f.name === 'email')?.value ?? '';
+
+      fetch('/api/audit/capture-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email:           gateEmail,
+          email,
           stripeConnected: inputMethod === 'stripe',
           csvUploaded:     inputMethod === 'csv',
           monthlyChurnRate:   results.monthlyChurnRate,
@@ -169,27 +191,43 @@ function EmailGateScreen({
           industryPercentile: results.industryPercentile,
           atRiskCustomers:    results.atRiskCustomers,
         }),
-      });
-    } catch {
-      // Lead capture failure must never block the user from seeing results
-    }
-    onUnlock(gateEmail);
-  }
+      }).catch(() => {});
 
-  const churnBad  = results.monthlyChurnRate > 3;
-  const churnColor =
-    results.monthlyChurnRate > 7 ? '#ef4444' :
-    results.monthlyChurnRate > 3 ? '#f97316' :
-    results.monthlyChurnRate > 1 ? '#f59e0b' : '#22c55e';
+      clearTimeout(fallbackTimer);
+      setUnlocked(true);
+      setTimeout(() => onUnlock(email), 500);
+    }
+
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(fallbackTimer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Brief "Opening your report…" transition
+  if (unlocked) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: '#0a0a12' }}>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="text-white font-semibold text-lg">Opening your report…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
       {/* Header */}
       <div
         className="py-10 px-6 text-center border-b"
-        style={{ background: 'linear-gradient(180deg,#1a0505 0%,#0a0a12 100%)', borderColor: '#3f1a1a' }}
+        style={{ background: 'linear-gradient(180deg,#0d0a20 0%,#0a0a12 100%)', borderColor: '#1e1a3a' }}
       >
-        <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-800/40 text-green-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-700/40 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
@@ -202,117 +240,97 @@ function EmailGateScreen({
           We found{' '}
           <span className="text-white font-semibold">
             {results.atRiskCustomers.length > 0
-              ? `${results.atRiskCustomers.length} customer${results.atRiskCustomers.length !== 1 ? 's' : ''} at risk of churning`
+              ? `${results.atRiskCustomers.length} customer${results.atRiskCustomers.length !== 1 ? 's' : ''} at risk`
               : 'data worth reviewing'}
           </span>
-          . Enter your work email to unlock the full breakdown.
+          . Enter your details below to unlock your free audit.
         </p>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-lg space-y-5">
 
-          {/* Blurred metric preview */}
-          <div className="grid grid-cols-3 gap-3 select-none" style={{ filter: 'blur(7px)', opacity: 0.6 }} aria-hidden>
-            <div
-              className="rounded-xl p-4 text-center border"
-              style={{
-                background: churnBad ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)',
-                borderColor: churnBad ? '#7f1d1d' : '#14532d',
-              }}
-            >
+          {/* Blurred metric preview — incentive to fill in the form */}
+          <div className="grid grid-cols-3 gap-3 select-none" style={{ filter: 'blur(7px)', opacity: 0.55 }} aria-hidden>
+            <div className="rounded-xl p-4 text-center border" style={{ background: churnBad ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)', borderColor: churnBad ? '#7f1d1d' : '#14532d' }}>
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Monthly Churn</p>
-              <p className="text-4xl font-extrabold" style={{ color: churnColor }}>
-                {results.monthlyChurnRate.toFixed(1)}%
-              </p>
+              <p className="text-4xl font-extrabold" style={{ color: churnColor }}>{results.monthlyChurnRate.toFixed(1)}%</p>
             </div>
             <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(245,158,11,0.07)', borderColor: '#78350f' }}>
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Revenue at Risk</p>
-              <p className="text-3xl font-extrabold text-amber-400">
-                ${results.revenueAtRisk.toLocaleString()}
-              </p>
+              <p className="text-3xl font-extrabold text-amber-400">${results.revenueAtRisk.toLocaleString()}</p>
             </div>
             <div className="rounded-xl p-4 text-center border" style={{ background: 'rgba(239,68,68,0.07)', borderColor: '#7f1d1d' }}>
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Annual Loss</p>
-              <p className="text-3xl font-extrabold text-red-400">
-                ${results.annualizedLoss.toLocaleString()}
-              </p>
+              <p className="text-3xl font-extrabold text-red-400">${results.annualizedLoss.toLocaleString()}</p>
             </div>
           </div>
 
-          {/* Gate card */}
-          <div
-            className="rounded-2xl border p-8"
-            style={{ background: '#111827', borderColor: '#1f2937' }}
-          >
-            <div className="flex justify-center mb-5">
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
-                </svg>
+          {/* HubSpot gate card */}
+          <div className="rounded-2xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1f2937' }}>
+            {/* Card header */}
+            <div className="px-8 pt-8 pb-0 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+                  🛡️
+                </div>
               </div>
+              <h2 className="text-white text-xl font-bold mb-1">
+                Enter your details to see your free churn risk audit
+              </h2>
+              <p className="text-slate-400 text-sm mb-6">
+                Your full breakdown — monthly churn, revenue at risk, and at-risk customers — unlocks immediately after.
+              </p>
             </div>
 
-            <h2 className="text-white text-xl font-bold text-center mb-1">
-              Unlock Your Complete Report
-            </h2>
-            <p className="text-slate-400 text-sm text-center mb-6">
-              See your full churn breakdown, industry benchmark, at-risk customers,<br className="hidden sm:block" /> and a prioritized action plan — sent to your inbox too.
-            </p>
-
-            <form onSubmit={handleUnlock} className="space-y-3">
-              <input
-                type="email"
-                required
-                value={gateEmail}
-                onChange={e => { setGateEmail(e.target.value); setError(''); }}
-                placeholder="you@company.com"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                autoFocus
+            {/* HubSpot form embed */}
+            <div className="px-6 pb-6 cg-hs-wrapper">
+              <div
+                className="hs-form-frame"
+                data-region="eu1"
+                data-form-id="31ad22e3-ed18-4279-8639-a51cd2ee69f7"
+                data-portal-id="147977159"
               />
+            </div>
 
-              {error && (
-                <p className="text-red-400 text-xs flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </p>
-              )}
+            {/* Fallback shown after 10 s (ad blocker / slow load) */}
+            {showFallback && (
+              <div className="px-8 pb-6 text-center border-t" style={{ borderColor: '#1f2937' }}>
+                <p className="text-slate-600 text-xs mt-4 mb-1">Having trouble with the form?</p>
+                <button
+                  onClick={() => onUnlock('')}
+                  className="text-indigo-400 text-xs hover:underline"
+                >
+                  Skip and see results anyway →
+                </button>
+              </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 0 24px rgba(239,68,68,0.3)' }}
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Opening your report…
-                  </span>
-                ) : (
-                  'See My Full Report →'
-                )}
-              </button>
-            </form>
-
-            <p className="text-slate-600 text-xs text-center mt-4 flex items-center justify-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              No spam. We'll also email you the PDF report.
-            </p>
+            <div className="px-8 pb-6 text-center">
+              <p className="text-slate-600 text-xs flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                No spam. We take your privacy seriously.
+              </p>
+            </div>
           </div>
 
         </div>
       </div>
+
+      {/* Override HubSpot form iframe styles to fit dark theme */}
+      <style>{`
+        .cg-hs-wrapper .hs-form-frame { display: block; width: 100%; }
+        .cg-hs-wrapper .hs-form-frame iframe {
+          width: 100% !important;
+          min-height: 320px !important;
+          border: none !important;
+          border-radius: 12px !important;
+          overflow: hidden !important;
+        }
+        @keyframes cgPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+      `}</style>
     </div>
   );
 }
@@ -759,7 +777,7 @@ export default function FreeAuditPage() {
   if (step === 'analyzing') return <AnalyzingScreen dataSource={inputMethod} />;
   if (step === 'email-gate' && results)
     return (
-      <EmailGateScreen
+      <HubSpotGateScreen
         results={results}
         inputMethod={inputMethod}
         onUnlock={capturedEmail => { setEmail(capturedEmail); setStep('results'); }}
