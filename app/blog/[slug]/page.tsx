@@ -53,8 +53,8 @@ const STYLES = `
   .prose a:hover { color: #a5b4fc; }
   .prose blockquote { border-left: 3px solid #6366f1; padding: 4px 0 4px 20px; margin: 0 0 1.4em; color: #94a3b8; font-style: italic; }
   .prose code { background: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #c4b5fd; font-family: monospace; }
-  .prose pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 10px; padding: 20px; overflow-x: auto; margin: 0 0 1.4em; -webkit-overflow-scrolling: touch; }
-  .prose pre code { background: none; padding: 0; color: #1e293b; }
+  .prose pre { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; overflow-x: auto; margin: 0 0 1.4em; }
+  .prose pre code { background: none; padding: 0; color: #e2e8f0; }
   .prose hr { border: none; border-top: 1px solid #1e293b; margin: 2.5em 0; }
   .prose .table-wrap { overflow-x: auto; margin: 0 0 1.4em; border-radius: 10px; border: 1px solid #334155; }
   .prose table { width: 100%; border-collapse: collapse; }

@@ -28,22 +28,29 @@ This guide cuts through the noise. I'll show you exactly how to connect Meta Ads
 
 **The Porter Metrics Dashboard — Starting Point**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Porter Metrics                               [Sign Up Free] │
-│                                                             │
-│  Connect your data to AI tools in minutes                  │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Meta Ads   │  │ Google Ads   │  │  Shopify     │     │
-│  │   [Logo]     │  │   [Logo]     │  │   [Logo]     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                             │
-│  + 325 more sources                                         │
-│                                                             │
-│  [Get Started — No Credit Card Required]                    │
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:28px; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <div style="font-weight:800; font-size:20px; color:#0f172a; letter-spacing:-0.3px;">Porter Metrics</div>
+    <div style="background:#4f46e5; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; box-shadow:0 2px 8px rgba(79,70,229,0.25);">Sign Up Free</div>
+  </div>
+  <div style="color:#64748b; font-size:15px; margin-bottom:24px; line-height:1.5;">Connect your data to AI tools in minutes</div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px;">
+    <div style="border:1.5px solid #e2e8f0; border-radius:10px; padding:20px 12px; text-align:center; background:#fafafa;">
+      <div style="font-size:28px; margin-bottom:8px;">📊</div>
+      <div style="font-size:13px; font-weight:700; color:#0f172a;">Meta Ads</div>
+    </div>
+    <div style="border:1.5px solid #e2e8f0; border-radius:10px; padding:20px 12px; text-align:center; background:#fafafa;">
+      <div style="font-size:28px; margin-bottom:8px;">🔍</div>
+      <div style="font-size:13px; font-weight:700; color:#0f172a;">Google Ads</div>
+    </div>
+    <div style="border:1.5px solid #e2e8f0; border-radius:10px; padding:20px 12px; text-align:center; background:#fafafa;">
+      <div style="font-size:28px; margin-bottom:8px;">🛒</div>
+      <div style="font-size:13px; font-weight:700; color:#0f172a;">Shopify</div>
+    </div>
+  </div>
+  <div style="color:#94a3b8; font-size:13px; margin-bottom:18px; font-weight:500;">+ 325 more sources</div>
+  <div style="background:#0f172a; color:#fff; text-align:center; padding:14px; border-radius:10px; font-size:14px; font-weight:700; letter-spacing:0.3px;">Get Started — No Credit Card Required</div>
+</div>
 
 *Porter's free tier supports up to 3 Meta ad accounts with zero setup code.*
 
@@ -92,24 +99,33 @@ Porter's free tier covers up to **3 Meta ad accounts** with usage limits. No cre
 
 **Step 1: Create Your Connector**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Create New Connection                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Select Source:          [ Meta Ads             ▼ ]         │
-│                                                             │
-│  Select Destination:     [ Claude AI            ▼ ]         │
-│                                                             │
-│  Connection Name:      [ My Meta Ads to Claude ]          │
-│                                                             │
-│              [   Authorize & Connect   ]                    │
-│                                                             │
-│  ✓ Free plan — 3 accounts included                          │
-│  ✓ No code required                                         │
-│  ✓ Read + write access available                            │
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:28px; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="font-weight:800; font-size:18px; color:#0f172a; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid #f1f5f9;">Create New Connection</div>
+  <div style="margin-bottom:20px;">
+    <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Select Source</div>
+    <div style="border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; background:#fafafa;">
+      <span style="font-size:15px; font-weight:600; color:#0f172a;">Meta Ads</span>
+      <span style="color:#94a3b8; font-size:12px;">▼</span>
+    </div>
+  </div>
+  <div style="margin-bottom:24px;">
+    <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Select Destination</div>
+    <div style="border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; background:#fafafa;">
+      <span style="font-size:15px; font-weight:600; color:#0f172a;">Claude AI</span>
+      <span style="color:#94a3b8; font-size:12px;">▼</span>
+    </div>
+  </div>
+  <div style="margin-bottom:24px;">
+    <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Connection Name</div>
+    <div style="border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; background:#fafafa; color:#0f172a; font-size:15px; font-weight:500;">My Meta Ads to Claude</div>
+  </div>
+  <div style="background:#4f46e5; color:#fff; text-align:center; padding:14px; border-radius:10px; font-size:14px; font-weight:700; margin-bottom:20px; box-shadow:0 4px 12px rgba(79,70,229,0.3);">Authorize &amp; Connect</div>
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b;"><span style="color:#22c55e; font-weight:700;">✓</span> Free plan — 3 accounts included</div>
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b;"><span style="color:#22c55e; font-weight:700;">✓</span> No code required</div>
+    <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b;"><span style="color:#22c55e; font-weight:700;">✓</span> Read + write access available</div>
+  </div>
+</div>
 
 *Select Meta Ads as the source and Claude as the destination. Name it anything you want.*
 
@@ -122,28 +138,36 @@ Porter's free tier covers up to **3 Meta ad accounts** with usage limits. No cre
 
 **Step 2: Authorize Your Meta Ad Account**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Connect Meta Ads Account                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Sign in with Facebook to continue...                       │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │  Select Ad Accounts to Connect:                     │    │
-│  │                                                     │    │
-│  │  ☑  Demo Business Manager — Ad Account 1            │    │
-│  │  ☐  Demo Business Manager — Ad Account 2            │    │
-│  │  ☑  Allow future accounts automatically            │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-│  [  Authorize Porter Metrics  ]    [  Cancel  ]             │
-│                                                             │
-│  🔒 Porter only accesses reporting and campaign data.       │
-│     Your login credentials are never stored.                │
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:28px; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="font-weight:800; font-size:18px; color:#0f172a; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid #f1f5f9;">Connect Meta Ads Account</div>
+  <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:10px; padding:16px; margin-bottom:24px; display:flex; align-items:center; gap:12px;">
+    <div style="font-size:20px;">📘</div>
+    <div style="font-size:14px; color:#1e40af; font-weight:600;">Sign in with Facebook to continue...</div>
+  </div>
+  <div style="border:1.5px solid #e2e8f0; border-radius:10px; padding:20px; background:#fafafa; margin-bottom:20px;">
+    <div style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px;">Select Ad Accounts to Connect:</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:10px; background:#fff; border-radius:6px; border:1px solid #e2e8f0;">
+      <div style="width:18px; height:18px; background:#4f46e5; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700;">✓</div>
+      <div style="font-size:14px; color:#0f172a; font-weight:600;">Demo Business Manager — Ad Account 1</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:10px; background:#fff; border-radius:6px; border:1px solid #e2e8f0;">
+      <div style="width:18px; height:18px; border:2px solid #cbd5e1; border-radius:4px;"></div>
+      <div style="font-size:14px; color:#64748b; font-weight:500;">Demo Business Manager — Ad Account 2</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#fff; border-radius:6px; border:1px solid #e2e8f0;">
+      <div style="width:18px; height:18px; background:#4f46e5; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700;">✓</div>
+      <div style="font-size:14px; color:#0f172a; font-weight:600;">Allow future accounts automatically</div>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px;">
+    <div style="flex:1; background:#4f46e5; color:#fff; text-align:center; padding:14px; border-radius:10px; font-size:14px; font-weight:700;">Authorize Porter Metrics</div>
+    <div style="flex:1; background:#f1f5f9; color:#64748b; text-align:center; padding:14px; border-radius:10px; font-size:14px; font-weight:700;">Cancel</div>
+  </div>
+  <div style="margin-top:18px; display:flex; align-items:flex-start; gap:8px; font-size:12px; color:#94a3b8; line-height:1.5;">
+    <span style="font-size:14px;">🔒</span>
+    <div>Porter only accesses reporting and campaign data. Your login credentials are never stored.</div>
+  </div>
+</div>
 
 *Choose which ad accounts Claude can access. Enable "future accounts" to avoid re-authenticating later.*
 
@@ -162,28 +186,51 @@ You'll see Porter's tools appear in the connectors panel. You're live.
 
 **Step 3: The Porter MCP Inside Claude**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Claude.ai                                    [New Chat]   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  +  Attach files or tools                                   │
-│  │                                                          │
-│  ├─ 📎 Files                                                │
-│  ├─ 🔗 Connectors  ─────────────────────────────┐          │
-│  │   ├─ ✅ Porter (Meta Ads) — Active            │          │
-│  │   ├─    Google Analytics                      │          │
-│  │   ├─    Shopify                               │          │
-│  │   └─    + Add Custom Connector...             │          │
-│  │                                               │          │
-│  │   Porter MCP Server:                          │          │
-│  │   https://mcp.portermetrics.com/mcp           │          │
-│  │   Status: Connected ✓                         │          │
-│  └───────────────────────────────────────────────┘          │
-│                                                             │
-│  [ Ask Claude anything about your Meta Ads... ]            │
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:0; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; overflow:hidden;">
+  <div style="background:#fafafa; padding:14px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+    <div style="font-weight:700; font-size:15px; color:#0f172a;">Claude.ai</div>
+    <div style="background:#fff; border:1px solid #e2e8f0; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; color:#64748b;">New Chat</div>
+  </div>
+  <div style="padding:24px 20px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; color:#64748b; font-size:14px; font-weight:600;">
+      <span style="font-size:18px; color:#0f172a;">+</span> Attach files or tools
+    </div>
+    <div style="border-left:3px solid #e2e8f0; padding-left:16px; margin-left:4px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; color:#64748b; font-size:14px;">
+        <span>📎</span> Files
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; color:#0f172a; font-size:14px; font-weight:700;">
+        <span>🔗</span> Connectors
+      </div>
+      <div style="border-left:3px solid #e2e8f0; padding-left:16px; margin-left:4px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:8px 12px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0;">
+          <span style="color:#22c55e; font-weight:700;">✓</span>
+          <span style="font-size:14px; font-weight:700; color:#0f172a;">Porter (Meta Ads)</span>
+          <span style="font-size:11px; background:#22c55e; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700; margin-left:auto;">Active</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:8px 12px; color:#64748b; font-size:14px;">
+          <span style="width:16px;"></span> Google Analytics
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:8px 12px; color:#64748b; font-size:14px;">
+          <span style="width:16px;"></span> Shopify
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; color:#4f46e5; font-size:14px; font-weight:600;">
+          <span style="width:16px;"></span> + Add Custom Connector...
+        </div>
+      </div>
+      <div style="margin-top:16px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+        <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Porter MCP Server</div>
+        <div style="font-size:13px; color:#0f172a; font-weight:600; font-family:monospace; margin-bottom:6px;">https://mcp.portermetrics.com/mcp</div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:13px; color:#22c55e; font-weight:700;">
+          <span style="width:8px; height:8px; background:#22c55e; border-radius:50%; display:inline-block;"></span> Connected
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fafafa; padding:14px 20px; border-top:1px solid #e2e8f0;">
+    <div style="background:#fff; border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; color:#94a3b8; font-size:14px;">Ask Claude anything about your Meta Ads...</div>
+  </div>
+</div>
 
 *Once added, Porter appears in your Claude connectors panel with a green checkmark. The connection is live.*
 
@@ -201,29 +248,55 @@ If you see a table with real campaign data, the connection works. If you get an 
 
 **What a Live Prompt Result Looks Like**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  You: What were my best-performing campaigns last week?      │
-├─────────────────────────────────────────────────────────────┤
-│  Claude:                                                    │
-│                                                             │
-│  Here is your Meta Ads performance summary (Last 7 Days):  │
-│                                                             │
-│  ┌─────────────────────┬────────┬──────┬─────┬──────────┐  │
-│  │ Campaign            │ Spend  │ ROAS │ CTR │ Status   │  │
-│  ├─────────────────────┼────────┼──────┼─────┼──────────┤  │
-│  │ SaaS Demo Campaign 1│ $150   │ 2.4  │ 1.2%│ 🟢 Good  │  │
-│  │ SaaS Demo Campaign 2│ $89    │ 1.8  │ 0.9%│ 🟡 Watch │  │
-│  │ SaaS Demo Campaign 3│ $210   │ 3.1  │ 1.5%│ 🟢 Good  │  │
-│  │ SaaS Demo Campaign 4│ $45    │ 0.0  │ 0.3%│ 🔴 Pause │  │
-│  └─────────────────────┴────────┴──────┴─────┴──────────┘  │
-│                                                             │
-│  ⚠️  Campaign 4 has spent $45 with zero conversions.       │
-│      Recommendation: Pause or adjust targeting.             │
-│                                                             │
-│  [ Copy to Clipboard ]    [ Export CSV ]    [ Apply Changes]│
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:0; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; overflow:hidden;">
+  <div style="background:#fafafa; padding:14px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+    <div style="font-weight:700; font-size:15px; color:#0f172a;">Claude Chat</div>
+    <div style="font-size:12px; color:#94a3b8;">Just now</div>
+  </div>
+  <div style="padding:24px 20px;">
+    <div style="display:flex; gap:12px; margin-bottom:24px;">
+      <div style="width:32px; height:32px; background:#e2e8f0; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#64748b;">Y</div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px 12px 12px 4px; padding:14px 18px; font-size:15px; color:#0f172a; line-height:1.5; max-width:80%;">
+        What were my best-performing campaigns last week?
+      </div>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <div style="width:32px; height:32px; background:#0f172a; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff;">C</div>
+      <div style="max-width:85%;">
+        <div style="font-size:15px; color:#0f172a; margin-bottom:18px; line-height:1.5;">Here is your Meta Ads performance summary (Last 7 Days):</div>
+        <div style="border:1.5px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:16px;">
+          <div style="display:grid; grid-template-columns:1.4fr 0.7fr 0.6fr 0.6fr 0.8fr; background:#f8fafc; padding:12px 16px; border-bottom:1.5px solid #e2e8f0; font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.3px;">
+            <div>Campaign</div><div>Spend</div><div>ROAS</div><div>CTR</div><div>Status</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 0.7fr 0.6fr 0.6fr 0.8fr; padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; color:#0f172a; align-items:center;">
+            <div style="font-weight:600;">SaaS Demo Campaign 1</div><div style="font-weight:700;">$150</div><div style="font-weight:700;">2.4</div><div>1.2%</div><div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; background:#22c55e; border-radius:50%;"></span><span style="font-size:12px; font-weight:700; color:#22c55e;">Good</span></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 0.7fr 0.6fr 0.6fr 0.8fr; padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; color:#0f172a; align-items:center; background:#fffbeb;">
+            <div style="font-weight:600;">SaaS Demo Campaign 2</div><div style="font-weight:700;">$89</div><div style="font-weight:700;">1.8</div><div>0.9%</div><div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; background:#f59e0b; border-radius:50%;"></span><span style="font-size:12px; font-weight:700; color:#f59e0b;">Watch</span></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 0.7fr 0.6fr 0.6fr 0.8fr; padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; color:#0f172a; align-items:center;">
+            <div style="font-weight:600;">SaaS Demo Campaign 3</div><div style="font-weight:700;">$210</div><div style="font-weight:700;">3.1</div><div>1.5%</div><div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; background:#22c55e; border-radius:50%;"></span><span style="font-size:12px; font-weight:700; color:#22c55e;">Good</span></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 0.7fr 0.6fr 0.6fr 0.8fr; padding:12px 16px; font-size:14px; color:#0f172a; align-items:center; background:#fef2f2;">
+            <div style="font-weight:600;">SaaS Demo Campaign 4</div><div style="font-weight:700;">$45</div><div style="font-weight:700;">0.0</div><div>0.3%</div><div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; background:#ef4444; border-radius:50%;"></span><span style="font-size:12px; font-weight:700; color:#ef4444;">Pause</span></div>
+          </div>
+        </div>
+        <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; padding:14px 16px; margin-bottom:16px; display:flex; gap:10px; align-items:flex-start;">
+          <span style="font-size:16px;">⚠️</span>
+          <div style="font-size:14px; color:#92400e; line-height:1.5;">
+            <strong>Campaign 4</strong> has spent $45 with zero conversions.<br>
+            Recommendation: Pause or adjust targeting.
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; padding:10px; text-align:center; font-size:13px; font-weight:600; color:#64748b;">Copy to Clipboard</div>
+          <div style="flex:1; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; padding:10px; text-align:center; font-size:13px; font-weight:600; color:#64748b;">Export CSV</div>
+          <div style="flex:1; background:#0f172a; border-radius:8px; padding:10px; text-align:center; font-size:13px; font-weight:700; color:#fff;">Apply Changes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 *This is the exact format Claude returns when you run the reporting prompts. No Ads Manager clicking required.*
 
@@ -273,27 +346,53 @@ Don't waste tokens on vague questions. These prompts are tested, specific, and d
 
 **Safety Rules at a Glance**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Meta Ads Safety Guardrails — Built Into Porter MCP         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────┬────────────────────────────────────────────────┐ │
-│  │  1   │ Max 4 budget changes per ad set per hour       │ │
-│  ├──────┼────────────────────────────────────────────────┤ │
-│  │  2   │ Every write action requires your approval      │ │
-│  ├──────┼────────────────────────────────────────────────┤ │
-│  │  3   │ No browser automation — API only               │ │
-│  ├──────┼────────────────────────────────────────────────┤ │
-│  │  4   │ Budget scaling capped at 20% per change        │ │
-│  ├──────┼────────────────────────────────────────────────┤ │
-│  │  5   │ Sequential account access with 15-min delays   │ │
-│  └──────┴────────────────────────────────────────────────┘ │
-│                                                             │
-│  🔒 Porter enforces these automatically.                    │
-│     No manual rate-limit math required.                     │
-└─────────────────────────────────────────────────────────────┘
-```
+<div style="background:#ffffff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.08); border:1px solid #e5e7eb; padding:28px; max-width:640px; margin:20px auto; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="font-weight:800; font-size:18px; color:#0f172a; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid #f1f5f9;">Meta Ads Safety Guardrails — Built Into Porter MCP</div>
+  <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+    <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:#fafafa; border-radius:10px; border:1.5px solid #e2e8f0;">
+      <div style="min-width:32px; height:32px; background:#4f46e5; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">1</div>
+      <div>
+        <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:2px;">Max 4 budget changes per ad set per hour</div>
+        <div style="font-size:13px; color:#64748b;">Prevents automated enforcement triggers</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:#fafafa; border-radius:10px; border:1.5px solid #e2e8f0;">
+      <div style="min-width:32px; height:32px; background:#4f46e5; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">2</div>
+      <div>
+        <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:2px;">Every write action requires your approval</div>
+        <div style="font-size:13px; color:#64748b;">No campaign changes run until you confirm</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:#fafafa; border-radius:10px; border:1.5px solid #e2e8f0;">
+      <div style="min-width:32px; height:32px; background:#4f46e5; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">3</div>
+      <div>
+        <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:2px;">No browser automation — API only</div>
+        <div style="font-size:13px; color:#64748b;">Only Meta's official Marketing API is used</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:#fafafa; border-radius:10px; border:1.5px solid #e2e8f0;">
+      <div style="min-width:32px; height:32px; background:#4f46e5; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">4</div>
+      <div>
+        <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:2px;">Budget scaling capped at 20% per change</div>
+        <div style="font-size:13px; color:#64748b;">Avoids suspicious spend spike flags</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:#fafafa; border-radius:10px; border:1.5px solid #e2e8f0;">
+      <div style="min-width:32px; height:32px; background:#4f46e5; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">5</div>
+      <div>
+        <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:2px;">Sequential account access with 15-min delays</div>
+        <div style="font-size:13px; color:#64748b;">Prevents parallel burst API call bans</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:flex-start; gap:10px; padding:14px 16px; background:#f0fdf4; border-radius:10px; border:1.5px solid #bbf7d0;">
+    <span style="font-size:18px;">🔒</span>
+    <div style="font-size:14px; color:#166534; line-height:1.5;">
+      <strong>Porter enforces these automatically.</strong><br>
+      No manual rate-limit math required.
+    </div>
+  </div>
+</div>
 
 *These rules are enforced at the platform level. You cannot accidentally trigger a ban through normal use.*
 

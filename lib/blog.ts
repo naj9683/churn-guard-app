@@ -202,6 +202,25 @@ function markdownToHtml(md: string): string {
     // Blank line
     if (line.trim() === '') { i++; continue; }
 
+    // Raw HTML block — <div> and block-level elements pass through unescaped.
+    // Tracks nesting depth so blank lines inside a component don't break collection.
+    if (/^<(?:div|section|article|figure|aside|main)\b/.test(line.trimStart())) {
+      const htmlLines: string[] = [];
+      let depth = 0;
+      while (i < lines.length) {
+        const l = lines[i];
+        if (l.trim() === '' && depth <= 0) break;
+        htmlLines.push(l);
+        const opens  = (l.match(/<(?:div|section|article|figure|aside|main)\b/g)  || []).length;
+        const closes = (l.match(/<\/(?:div|section|article|figure|aside|main)>/g) || []).length;
+        depth += opens - closes;
+        i++;
+        if (l.trim() !== '' && depth <= 0) break;
+      }
+      html.push(htmlLines.join('\n'));
+      continue;
+    }
+
     // Paragraph — trailing two spaces create a hard line break (<br>)
     const paraLines: string[] = [];
     while (i < lines.length && lines[i].trim() !== '' &&
