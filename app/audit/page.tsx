@@ -261,7 +261,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           <h2 className="text-white text-lg font-bold text-center mb-1">
             Enter your details to see your free churn risk audit
           </h2>
-          <p className="text-slate-500 text-sm text-center mb-6">
+          <p className="text-slate-300 text-sm text-center mb-6">
             First Name · Last Name · Email · Company
           </p>
 
@@ -278,7 +278,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           {/* Fallback skip link — shown after 12 s if form never loads */}
           {showFallback && (
             <div className="mt-5 text-center">
-              <p className="text-slate-600 text-xs mb-1">Form not loading? (Ad blocker?)</p>
+              <p className="text-slate-400 text-xs mb-1">Form not loading? (Ad blocker?)</p>
               <button
                 onClick={() => onDoneRef.current('')}
                 className="text-indigo-400 text-xs hover:underline"
@@ -288,8 +288,8 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
             </div>
           )}
 
-          <p className="text-slate-700 text-xs text-center mt-5 flex items-center justify-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <p className="text-slate-400 text-xs text-center mt-5 flex items-center justify-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             No spam — we take your privacy seriously.
@@ -297,10 +297,10 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         </div>
 
         {/* Social proof */}
-        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-600">
+        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
           {['Used by 200+ SaaS founders', 'Results in under 10 seconds', 'Stripe key never stored'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
-              <svg className="w-3 h-3 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {t}
@@ -309,13 +309,40 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         </div>
       </main>
 
-      {/* HubSpot iframe width fix */}
+      {/* HubSpot iframe width fix + label contrast overrides for dark background */}
       <style>{`
         .cg-hs-wrapper .hs-form-frame { display: block; width: 100%; }
         .cg-hs-wrapper .hs-form-frame iframe {
           width: 100% !important;
           min-height: 340px !important;
           border: none !important;
+        }
+        /* Label contrast — applies when HubSpot renders into the DOM (not sandboxed iframe) */
+        .cg-hs-wrapper label,
+        .cg-hs-wrapper .hs-form-field > label,
+        .cg-hs-wrapper .hs-form legend,
+        .cg-hs-wrapper .inputs-list label {
+          color: #e5e7eb !important;
+        }
+        .cg-hs-wrapper .hs-field-desc,
+        .cg-hs-wrapper .hs-richtext p {
+          color: #d1d5db !important;
+        }
+        .cg-hs-wrapper .legal-consent-container,
+        .cg-hs-wrapper .legal-consent-container p,
+        .cg-hs-wrapper .hs-richtext {
+          color: #9ca3af !important;
+        }
+        .cg-hs-wrapper .hs-form-required,
+        .cg-hs-wrapper .hs-error-msg {
+          color: #ef4444 !important;
+        }
+        .cg-hs-wrapper .hs-input,
+        .cg-hs-wrapper input[type="text"],
+        .cg-hs-wrapper input[type="email"],
+        .cg-hs-wrapper select {
+          color: #0f172a !important;
+          background: #ffffff !important;
         }
       `}</style>
     </div>
@@ -701,7 +728,7 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
           >
             Activate ChurnGuard — Stop This Loss →
           </Link>
-          <p className="text-slate-600 text-xs mt-4">Setup in 5 minutes · Cancel anytime · First results in hours</p>
+          <p className="text-slate-400 text-xs mt-4">Setup in 5 minutes · Cancel anytime · First results in hours</p>
         </div>
 
       </div>
@@ -910,7 +937,7 @@ export default function FreeAuditPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <p className="text-slate-400 text-sm">Drop CSV or click to browse</p>
-                    <p className="text-slate-600 text-xs mt-1">Columns: email, mrr, status, days_inactive</p>
+                    <p className="text-slate-400 text-xs mt-1">Columns: email, mrr, status, days_inactive</p>
                   </div>
                 )}
               </button>
@@ -936,16 +963,16 @@ export default function FreeAuditPage() {
           >
             Show Me My Churn Numbers →
           </button>
-          <p className="text-slate-600 text-xs text-center mt-4">
+          <p className="text-slate-400 text-xs text-center mt-4">
             Free · No account needed · Results in 10 seconds
           </p>
         </form>
 
         {/* Social proof */}
-        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-600">
+        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
           {['Used by 200+ SaaS founders', 'Results in under 10 seconds', 'Stripe key never stored'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
-              <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {t}
