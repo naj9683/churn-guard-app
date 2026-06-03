@@ -26,6 +26,27 @@ This guide cuts through the noise. I'll show you exactly how to connect Meta Ads
 - A clear list of what Claude + Meta Ads **cannot** do (so you don't waste time)
 - How this ties back to reducing churn for your SaaS
 
+**The Porter Metrics Dashboard — Starting Point**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Porter Metrics                               [Sign Up Free] │
+│                                                             │
+│  Connect your data to AI tools in minutes                  │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Meta Ads   │  │ Google Ads   │  │  Shopify     │     │
+│  │   [Logo]     │  │   [Logo]     │  │   [Logo]     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                             │
+│  + 325 more sources                                         │
+│                                                             │
+│  [Get Started — No Credit Card Required]                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+*Porter's free tier supports up to 3 Meta ad accounts with zero setup code.*
+
 ---
 
 ## What Meta Actually Launched (And What It Doesn't Do)
@@ -69,12 +90,62 @@ Porter's free tier covers up to **3 Meta ad accounts** with usage limits. No cre
 
 ## Step-by-Step: Connect Meta Ads to Claude with Porter (5 Minutes)
 
+**Step 1: Create Your Connector**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Create New Connection                                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Select Source:          [ Meta Ads             ▼ ]         │
+│                                                             │
+│  Select Destination:     [ Claude AI            ▼ ]         │
+│                                                             │
+│  Connection Name:      [ My Meta Ads to Claude ]          │
+│                                                             │
+│              [   Authorize & Connect   ]                    │
+│                                                             │
+│  ✓ Free plan — 3 accounts included                          │
+│  ✓ No code required                                         │
+│  ✓ Read + write access available                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+*Select Meta Ads as the source and Claude as the destination. Name it anything you want.*
+
 ### Step 1: Create Your Porter Account and Connect Meta Ads
 
 1. Go to **portermetrics.com** and sign up for a free account.
 2. Click **Create** → select **Claude** as the destination → select **Meta Ads** as the source.
 3. Sign in with your Facebook profile to grant access to your ad accounts.
 4. Select the Meta ad accounts you want Claude to query.
+
+**Step 2: Authorize Your Meta Ad Account**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Connect Meta Ads Account                                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Sign in with Facebook to continue...                       │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Select Ad Accounts to Connect:                     │    │
+│  │                                                     │    │
+│  │  ☑  Demo Business Manager — Ad Account 1            │    │
+│  │  ☐  Demo Business Manager — Ad Account 2            │    │
+│  │  ☑  Allow future accounts automatically            │    │
+│  │                                                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  [  Authorize Porter Metrics  ]    [  Cancel  ]             │
+│                                                             │
+│  🔒 Porter only accesses reporting and campaign data.       │
+│     Your login credentials are never stored.                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+*Choose which ad accounts Claude can access. Enable "future accounts" to avoid re-authenticating later.*
 
 **Pro tip:** Select "current and future Business Managers" to avoid re-authorizing later. Your Facebook email can differ from your Google account.
 
@@ -89,6 +160,33 @@ Porter's free tier covers up to **3 Meta ad accounts** with usage limits. No cre
 
 You'll see Porter's tools appear in the connectors panel. You're live.
 
+**Step 3: The Porter MCP Inside Claude**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Claude.ai                                    [New Chat]   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  +  Attach files or tools                                   │
+│  │                                                          │
+│  ├─ 📎 Files                                                │
+│  ├─ 🔗 Connectors  ─────────────────────────────┐          │
+│  │   ├─ ✅ Porter (Meta Ads) — Active            │          │
+│  │   ├─    Google Analytics                      │          │
+│  │   ├─    Shopify                               │          │
+│  │   └─    + Add Custom Connector...             │          │
+│  │                                               │          │
+│  │   Porter MCP Server:                          │          │
+│  │   https://mcp.portermetrics.com/mcp           │          │
+│  │   Status: Connected ✓                         │          │
+│  └───────────────────────────────────────────────┘          │
+│                                                             │
+│  [ Ask Claude anything about your Meta Ads... ]            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+*Once added, Porter appears in your Claude connectors panel with a green checkmark. The connection is live.*
+
 ### Step 3: Run Your First Prompt
 
 Open a new Claude chat and paste this smoke-test prompt:
@@ -100,6 +198,34 @@ If you see a table with real campaign data, the connection works. If you get an 
 ---
 
 ## 10 Copy-Paste Prompts That Actually Work
+
+**What a Live Prompt Result Looks Like**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  You: What were my best-performing campaigns last week?      │
+├─────────────────────────────────────────────────────────────┤
+│  Claude:                                                    │
+│                                                             │
+│  Here is your Meta Ads performance summary (Last 7 Days):  │
+│                                                             │
+│  ┌─────────────────────┬────────┬──────┬─────┬──────────┐  │
+│  │ Campaign            │ Spend  │ ROAS │ CTR │ Status   │  │
+│  ├─────────────────────┼────────┼──────┼─────┼──────────┤  │
+│  │ SaaS Demo Campaign 1│ $150   │ 2.4  │ 1.2%│ 🟢 Good  │  │
+│  │ SaaS Demo Campaign 2│ $89    │ 1.8  │ 0.9%│ 🟡 Watch │  │
+│  │ SaaS Demo Campaign 3│ $210   │ 3.1  │ 1.5%│ 🟢 Good  │  │
+│  │ SaaS Demo Campaign 4│ $45    │ 0.0  │ 0.3%│ 🔴 Pause │  │
+│  └─────────────────────┴────────┴──────┴─────┴──────────┘  │
+│                                                             │
+│  ⚠️  Campaign 4 has spent $45 with zero conversions.       │
+│      Recommendation: Pause or adjust targeting.             │
+│                                                             │
+│  [ Copy to Clipboard ]    [ Export CSV ]    [ Apply Changes]│
+└─────────────────────────────────────────────────────────────┘
+```
+
+*This is the exact format Claude returns when you run the reporting prompts. No Ads Manager clicking required.*
 
 Don't waste tokens on vague questions. These prompts are tested, specific, and designed for SaaS marketers running B2B campaigns.
 
@@ -144,6 +270,32 @@ Don't waste tokens on vague questions. These prompts are tested, specific, and d
 ---
 
 ## The 5 Safety Rules: How to Use Claude + Meta Ads Without Getting Banned
+
+**Safety Rules at a Glance**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Meta Ads Safety Guardrails — Built Into Porter MCP         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────┬────────────────────────────────────────────────┐ │
+│  │  1   │ Max 4 budget changes per ad set per hour       │ │
+│  ├──────┼────────────────────────────────────────────────┤ │
+│  │  2   │ Every write action requires your approval      │ │
+│  ├──────┼────────────────────────────────────────────────┤ │
+│  │  3   │ No browser automation — API only               │ │
+│  ├──────┼────────────────────────────────────────────────┤ │
+│  │  4   │ Budget scaling capped at 20% per change        │ │
+│  ├──────┼────────────────────────────────────────────────┤ │
+│  │  5   │ Sequential account access with 15-min delays   │ │
+│  └──────┴────────────────────────────────────────────────┘ │
+│                                                             │
+│  🔒 Porter enforces these automatically.                    │
+│     No manual rate-limit math required.                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+*These rules are enforced at the platform level. You cannot accidentally trigger a ban through normal use.*
 
 Meta's enforcement is **behavior-based**, not tool-based. Using Claude through an official MCP is fully allowed. Getting banned happens when you abuse the API. Follow these rules:
 
