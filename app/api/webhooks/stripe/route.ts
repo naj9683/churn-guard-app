@@ -31,12 +31,26 @@ export async function POST(req: Request) {
       await markInterventionAsSaved(customerId);
     }
 
-    // Handle subscription created
+    // Handle checkout completion — THIS is where we provision the subscription in our DB.
+    // The checkout session metadata carries the Clerk userId set at session creation time.
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      const customerId = session.customer as string;
-      console.log('Checkout completed for customer:', customerId);
-      await markInterventionAsSaved(customerId);
+      const stripeCustomerId = session.customer as string;
+      const clerkUserId = session.metadata?.userId;
+
+      console.log('Checkout completed for customer:', stripeCustomerId, 'clerkUserId:', clerkUserId);
+
+      await markInterventionAsSaved(stripeCustomerId);
+
+      if (clerkUserId && session.mode === 'subscription') {
+        await provisionSubscription(clerkUserId, stripeCustomerId, session.subscription as string | null);
+      }
+    }
+
+    // Subscription status changes (upgrades, downgrades, reactivations) — keep DB in sync.
+    if (event.type === 'customer.subscription.updated') {
+      const sub = event.data.object as Stripe.Subscription;
+      await syncSubscriptionStatus(sub);
     }
 
     // Handle payment failure — record event + fire automation rules
@@ -69,11 +83,16 @@ export async function POST(req: Request) {
       }
     }
 
-    // Handle subscription cancelled
+    // Handle subscription cancelled — mark both the platform subscription and tracked customers
     if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object as Stripe.Subscription;
-      const stripeCustomerId = subscription.customer as string;
+      const sub = event.data.object as Stripe.Subscription;
+      const stripeCustomerId = sub.customer as string;
       console.log('Subscription cancelled for Stripe customer:', stripeCustomerId);
+
+      // Cancel the platform Subscription record so the user loses dashboard access
+      await cancelPlatformSubscription(stripeCustomerId);
+
+      // Also mark any ChurnGuard-tracked customers as cancelled
       await cancelCustomer(stripeCustomerId);
     }
 
@@ -84,6 +103,108 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Webhook failed' }, { status: 500 });
   }
 }
+
+// ── Provision subscription in DB after a successful checkout ─────────────────
+
+async function provisionSubscription(
+  clerkUserId: string,
+  stripeCustomerId: string,
+  stripeSubscriptionId: string | null,
+) {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      console.error(`provisionSubscription: no DB user found for clerkId ${clerkUserId}`);
+      return;
+    }
+
+    // Store the Stripe customer ID so we can look up by it later (cancellations, etc.)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { stripeCustomerId },
+    });
+
+    // Resolve the price ID from the Stripe subscription object
+    let priceId = '';
+    if (stripeSubscriptionId) {
+      try {
+        const stripeSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        priceId = stripeSub.items.data[0]?.price?.id ?? '';
+      } catch (e: any) {
+        console.error('provisionSubscription: could not retrieve Stripe subscription:', e.message);
+      }
+    }
+
+    // Avoid duplicates — only create if no active subscription exists for this user
+    const existing = await prisma.subscription.findFirst({
+      where: { userId: user.id, status: 'active' },
+    });
+
+    if (!existing) {
+      await prisma.subscription.create({
+        data: { userId: user.id, status: 'active', priceId },
+      });
+      console.log(`✅ Subscription provisioned for user ${user.id} (${stripeCustomerId})`);
+    } else {
+      console.log(`ℹ️ Subscription already active for user ${user.id} — skipping create`);
+    }
+  } catch (error) {
+    console.error('Error provisioning subscription:', error);
+  }
+}
+
+// ── Sync subscription status on updates ─────────────────────────────────────
+
+async function syncSubscriptionStatus(stripeSub: Stripe.Subscription) {
+  try {
+    const stripeCustomerId = stripeSub.customer as string;
+    const user = await prisma.user.findFirst({
+      where: { stripeCustomerId },
+      select: { id: true },
+    });
+    if (!user) return;
+
+    const status = stripeSub.status === 'active' ? 'active' : 'canceled';
+    const priceId = stripeSub.items.data[0]?.price?.id ?? '';
+
+    await prisma.subscription.updateMany({
+      where: { userId: user.id },
+      data: { status, priceId },
+    });
+
+    console.log(`✅ Subscription status synced for user ${user.id} → ${status}`);
+  } catch (error) {
+    console.error('Error syncing subscription status:', error);
+  }
+}
+
+// ── Cancel the platform Subscription row ────────────────────────────────────
+
+async function cancelPlatformSubscription(stripeCustomerId: string) {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { stripeCustomerId },
+      select: { id: true },
+    });
+    if (!user) {
+      console.warn(`cancelPlatformSubscription: no user found for Stripe customer ${stripeCustomerId}`);
+      return;
+    }
+    const updated = await prisma.subscription.updateMany({
+      where: { userId: user.id, status: 'active' },
+      data: { status: 'canceled' },
+    });
+    console.log(`✅ Cancelled ${updated.count} platform subscription(s) for user ${user.id}`);
+  } catch (error) {
+    console.error('Error cancelling platform subscription:', error);
+  }
+}
+
+// ── Cancel ChurnGuard-tracked customers ─────────────────────────────────────
 
 async function cancelCustomer(stripeCustomerId: string) {
   try {
@@ -101,6 +222,8 @@ async function cancelCustomer(stripeCustomerId: string) {
   }
 }
 
+// ── Mark intervention as saved on payment ───────────────────────────────────
+
 async function markInterventionAsSaved(stripeCustomerId: string) {
   try {
     // Find most recent pending intervention and mark as saved
@@ -112,7 +235,7 @@ async function markInterventionAsSaved(stripeCustomerId: string) {
 
     if (interventions.length > 0) {
       const intervention = interventions[0];
-      
+
       await prisma.interventionOutcome.update({
         where: { id: intervention.id },
         data: {
@@ -123,7 +246,7 @@ async function markInterventionAsSaved(stripeCustomerId: string) {
           notes: 'Auto-marked as saved: Payment received via Stripe'
         }
       });
-      
+
       console.log(`✅ Intervention ${intervention.id} marked as saved (payment received)`);
     }
   } catch (error) {
