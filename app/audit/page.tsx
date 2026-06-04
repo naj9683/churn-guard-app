@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,68 +150,69 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
 const HS_DONE_KEY  = 'cg_hs_done';
 const HS_EMAIL_KEY = 'cg_hs_email';
 
+// Native form that submits directly to HubSpot's Forms API — no iframe, full style control.
+const HS_PORTAL  = '147977159';
+const HS_FORM_ID = '31ad22e3-ed18-4279-8639-a51cd2ee69f7';
+
 function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
-  const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
+  const [firstName,  setFirstName]  = useState('');
+  const [lastName,   setLastName]   = useState('');
+  const [email,      setEmail]      = useState('');
+  const [company,    setCompany]    = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError,  setFormError]  = useState('');
 
-  const [submitted, setSubmitted]     = useState(false);
-  const [showFallback, setShowFallback] = useState(false);
-
-  useEffect(() => {
-    // Inject HubSpot embed script once per page load
-    if (!document.querySelector('script[src*="js-eu1.hsforms.net/forms/embed/147977159"]')) {
-      const s = document.createElement('script');
-      s.src = 'https://js-eu1.hsforms.net/forms/embed/147977159.js';
-      s.defer = true;
-      document.head.appendChild(s);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!firstName.trim() || !email.trim() || !company.trim()) {
+      setFormError('Please fill in First Name, Email, and Company Name.');
+      return;
     }
-
-    // Show skip link after 12 s in case the form is blocked (ad blocker, CSP, etc.)
-    const fallbackTimer = setTimeout(() => setShowFallback(true), 12000);
-
-    let fired = false;
-    function onMessage(ev: MessageEvent) {
-      if (fired) return;
-      if (!ev.data || ev.data.type !== 'hsFormCallback') return;
-      const eventName: string = ev.data.eventName ?? '';
-      // onFormSubmit fires the moment the user clicks submit — before any redirect.
-      // onFormSubmitted fires after HubSpot's server confirms — only when no redirect.
-      if (eventName !== 'onFormSubmit' && eventName !== 'onFormSubmitted') return;
-      fired = true;
-
-      const fields: Array<{ name: string; value: string }> = Array.isArray(ev.data.data) ? ev.data.data : [];
-      const email = fields.find(f => f.name === 'email')?.value ?? '';
-
-      // Persist before any potential redirect so the reload case also works
-      try {
-        sessionStorage.setItem(HS_DONE_KEY, '1');
-        sessionStorage.setItem(HS_EMAIL_KEY, email);
-      } catch { /* private browsing may block sessionStorage */ }
-
-      clearTimeout(fallbackTimer);
-      setSubmitted(true);
-      setTimeout(() => onDoneRef.current(email), 600);
-    }
-
-    window.addEventListener('message', onMessage);
-    return () => {
-      window.removeEventListener('message', onMessage);
-      clearTimeout(fallbackTimer);
-    };
-  }, []);
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: '#0a0a12' }}>
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <p className="text-white font-semibold text-lg">Loading your audit tool…</p>
-      </div>
-    );
+    setFormError('');
+    setSubmitting(true);
+    try {
+      await fetch(
+        `https://api.hsforms.com/submissions/v3/integration/submit/${HS_PORTAL}/${HS_FORM_ID}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fields: [
+              { name: 'firstname', value: firstName.trim() },
+              { name: 'lastname',  value: lastName.trim() },
+              { name: 'email',     value: email.trim() },
+              { name: 'company',   value: company.trim() },
+            ],
+            context: {
+              pageUri:  typeof window !== 'undefined' ? window.location.href : 'https://churnguardapp.com/audit',
+              pageName: 'ChurnGuard Free Churn Audit',
+            },
+          }),
+        }
+      );
+    } catch { /* network failure — proceed anyway, lead is best-effort */ }
+    onDone(email.trim());
   }
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    color: '#e5e7eb',
+    fontSize: '13px',
+    fontWeight: 600,
+    marginBottom: '6px',
+  };
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: '#ffffff',
+    color: '#0f172a',
+    border: '1.5px solid #d1d5db',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+  const req = <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
@@ -248,7 +250,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           </p>
         </div>
 
-        {/* HubSpot form card */}
+        {/* Lead capture form card */}
         <div
           className="w-full max-w-md rounded-2xl border p-8"
           style={{ background: '#111827', borderColor: '#1f2937' }}
@@ -262,37 +264,78 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
             Enter your details to see your free churn risk audit
           </h2>
           <p className="text-slate-300 text-sm text-center mb-6">
-            First Name · Last Name · Email · Company
+            See your churn risk in 60 seconds. No credit card required.
           </p>
 
-          {/* HubSpot form embed — renders into an iframe */}
-          <div className="cg-hs-wrapper">
-            <div
-              className="hs-form-frame"
-              data-region="eu1"
-              data-form-id="31ad22e3-ed18-4279-8639-a51cd2ee69f7"
-              data-portal-id="147977159"
-            />
-          </div>
-
-          {/* Fallback skip link — shown after 12 s if form never loads */}
-          {showFallback && (
-            <div className="mt-5 text-center">
-              <p className="text-slate-400 text-xs mb-1">Form not loading? (Ad blocker?)</p>
-              <button
-                onClick={() => onDoneRef.current('')}
-                className="text-indigo-400 text-xs hover:underline"
-              >
-                Skip and go to the calculator →
-              </button>
+          <form onSubmit={handleSubmit} noValidate>
+            {/* First + Last name row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <div>
+                <label style={labelStyle}>First Name{req}</label>
+                <input
+                  type="text"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
             </div>
-          )}
+
+            {/* Email */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}>Email{req}</label>
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Company */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}>Company Name{req}</label>
+              <input
+                type="text"
+                autoComplete="organization"
+                value={company}
+                onChange={e => setCompany(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            {formError && (
+              <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>{formError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 20px rgba(99,102,241,0.35)' }}
+            >
+              {submitting ? 'Submitting…' : 'See My Free Churn Audit →'}
+            </button>
+          </form>
 
           <p className="text-slate-400 text-xs text-center mt-5 flex items-center justify-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            No spam — we take your privacy seriously.
+            We'll store your info to send your report. No spam, ever.
           </p>
         </div>
 
@@ -308,43 +351,6 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           ))}
         </div>
       </main>
-
-      {/* HubSpot iframe width fix + label contrast overrides for dark background */}
-      <style>{`
-        .cg-hs-wrapper .hs-form-frame { display: block; width: 100%; }
-        .cg-hs-wrapper .hs-form-frame iframe {
-          width: 100% !important;
-          min-height: 340px !important;
-          border: none !important;
-        }
-        /* Label contrast — applies when HubSpot renders into the DOM (not sandboxed iframe) */
-        .cg-hs-wrapper label,
-        .cg-hs-wrapper .hs-form-field > label,
-        .cg-hs-wrapper .hs-form legend,
-        .cg-hs-wrapper .inputs-list label {
-          color: #e5e7eb !important;
-        }
-        .cg-hs-wrapper .hs-field-desc,
-        .cg-hs-wrapper .hs-richtext p {
-          color: #d1d5db !important;
-        }
-        .cg-hs-wrapper .legal-consent-container,
-        .cg-hs-wrapper .legal-consent-container p,
-        .cg-hs-wrapper .hs-richtext {
-          color: #9ca3af !important;
-        }
-        .cg-hs-wrapper .hs-form-required,
-        .cg-hs-wrapper .hs-error-msg {
-          color: #ef4444 !important;
-        }
-        .cg-hs-wrapper .hs-input,
-        .cg-hs-wrapper input[type="text"],
-        .cg-hs-wrapper input[type="email"],
-        .cg-hs-wrapper select {
-          color: #0f172a !important;
-          background: #ffffff !important;
-        }
-      `}</style>
     </div>
   );
 }
@@ -739,7 +745,10 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
 // ── Form ─────────────────────────────────────────────────────────────────────
 
 export default function FreeAuditPage() {
-  const [step, setStep]               = useState<Step>('hubspot');
+  const searchParams = useSearchParams();
+  const [step, setStep]               = useState<Step>(() =>
+    searchParams.get('step') === 'calculator' ? 'form' : 'hubspot'
+  );
   const [inputMethod, setInputMethod] = useState<InputMethod>('stripe');
   const [hsEmail, setHsEmail]         = useState('');
   const [stripeKey, setStripeKey]     = useState('');
