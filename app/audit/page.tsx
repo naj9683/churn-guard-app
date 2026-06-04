@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -744,7 +744,7 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
 
 // ── Form ─────────────────────────────────────────────────────────────────────
 
-export default function FreeAuditPage() {
+function AuditPageInner() {
   const searchParams = useSearchParams();
   const [step, setStep]               = useState<Step>(() =>
     searchParams.get('step') === 'calculator' ? 'form' : 'hubspot'
@@ -990,5 +990,13 @@ export default function FreeAuditPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function FreeAuditPage() {
+  return (
+    <Suspense fallback={<div style={{ background: '#0a0a12', minHeight: '100vh' }} />}>
+      <AuditPageInner />
+    </Suspense>
   );
 }
