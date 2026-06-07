@@ -347,7 +347,8 @@ export default function InterventionsPage() {
                     <div style={{fontSize: '16px', fontWeight: '500', marginBottom: '8px'}}>
                       {filterStatus ? `No ${filterStatus} interventions` : 'No interventions yet'}
                     </div>
-                    <div>{filterStatus ? 'Try a different filter' : 'Create your first intervention to get started'}</div>
+
+                    <div>{filterStatus ? 'Try a different filter' : 'No interventions yet — they\'ll appear here when triggers fire'}</div>
                   </td>
                 </tr>
               ) : (

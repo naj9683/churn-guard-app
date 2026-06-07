@@ -370,7 +370,7 @@ function IntegrationsPageInner() {
   const [showStripeInfo, setShowStripeInfo] = useState(false);
   const [syncResult, setSyncResult] = useState<Record<string, { pulled: number; pushed: number; created: number; updated: number; errors: string[]; lastSyncAt?: string } | null>>({});
   const [syncInfo, setSyncInfo] = useState<Record<string, { lastSyncAt: string | null; syncStatus: string; lastError: string | null; reconnectRequired?: boolean }>>({});
-  const [resendStatus, setResendStatus] = useState<{ configured: boolean; fromEmail: string | null; fromName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
+  const [resendStatus, setResendStatus] = useState<{ configured: boolean; senderEmail: string | null; senderName: string; recentLogs: { id: string; to: string; subject: string; status: string; messageId: string | null; errorMessage: string | null; createdAt: string }[] } | null>(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [twilioStatus, setTwilioStatus] = useState<{
@@ -772,9 +772,9 @@ function IntegrationsPageInner() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: resendStatus.recentLogs.length > 0 || testEmailResult ? '12px' : '0' }}>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
-                          Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.fromEmail ?? '—'}</span>
+                          Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.senderEmail ?? '—'}</span>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>API key configured in Vercel environment</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Token encrypted · stored per-account</div>
                       </div>
                       <button
                         onClick={sendTestEmail}
@@ -811,7 +811,7 @@ function IntegrationsPageInner() {
                   </>
                 ) : (
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Add <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>POSTMARK_API_KEY</code> to your Vercel environment variables to enable email delivery.
+                    Click <strong>Connect</strong> to add your Postmark Server API Token and sender email. Your credentials are encrypted and stored per-account.
                   </div>
                 )}
               </div>

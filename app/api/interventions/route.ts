@@ -107,8 +107,8 @@ async function executeIntervention(
     ],
   };
 
-  // 1. Send email
-  const emailResult = await sendEmail(customer.email, subject, html);
+  // 1. Send email — pass userId so tenant's own Postmark key is used
+  const emailResult = await sendEmail(customer.email, subject, html, intervention.userId);
   if (emailResult.success) {
     log.channels.email = { status: 'sent', to: customer.email, subject, sentAt: now };
     log.timeline.push({ event: 'Email sent', timestamp: now, detail: `"${subject}" → ${customer.email}` });
