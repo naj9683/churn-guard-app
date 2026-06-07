@@ -48,7 +48,7 @@ function buildEmail(type: string, customer: { name: string | null; email: string
           <ul style="line-height:1.9">
             <li><strong>Automation Rules</strong> — set triggers and let the system act for you</li>
             <li><strong>Risk Analysis</strong> — AI scores all your customers every 6 hours</li>
-            <li><strong>CRM Sync</strong> — keep HubSpot/Salesforce in sync automatically</li>
+            <li><strong>CRM Sync</strong> — keep HubSpot in sync automatically</li>
           </ul>
           <p style="text-align:center;margin:32px 0">
             <a href="${APP_URL}/dashboard" style="background:#6366f1;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a>

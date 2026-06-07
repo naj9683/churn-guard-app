@@ -324,7 +324,7 @@ async function executeStep(
           <p>Hi ${customer.name ?? 'there'},</p>
           <p>You haven't connected an integration yet. Connecting ChurnGuard to Stripe or your CRM unlocks automatic risk scoring for all your customers.</p>
           <ul style="line-height:1.8">
-            <li><strong>HubSpot / Salesforce</strong> — sync contacts and deals</li>
+            <li><strong>HubSpot</strong> — sync contacts and deals</li>
             <li><strong>Stripe</strong> — pull MRR and payment events automatically</li>
             <li><strong>Slack</strong> — get real-time alerts when customers are at risk</li>
           </ul>
@@ -534,7 +534,7 @@ async function executeStep(
           <p>Hi ${customer.name ?? 'there'},</p>
           <p>We noticed you're no longer an active customer, and we'd love to earn your business back.</p>
           <p>As a returning customer, we're offering you <strong>3 months at 40% off</strong> — no commitment required.</p>
-          <p>A lot has changed since you left: AI-powered risk scoring, 9 new automation triggers, and HubSpot/Salesforce sync now work out of the box.</p>
+          <p>A lot has changed since you left: AI-powered risk scoring, 9 new automation triggers, and HubSpot sync now works out of the box.</p>
           <p style="text-align:center;margin:28px 0">
             <a href="${APP_URL}/pricing?promo=winback" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Claim Your 40% Discount</a>
           </p>

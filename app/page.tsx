@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     'AI churn prediction',
     'automated retention',
     'HubSpot integration',
-    'Salesforce integration',
   ],
   openGraph: {
     title: 'ChurnGuard - AI Churn Prevention for SaaS',

@@ -8,7 +8,6 @@ import Layout from '@/app/components/Layout';
 
 type Status = {
   hubspot: boolean;
-  salesforce: boolean;
   slack: boolean;
   stripe: boolean;
   crmType: string | null;
@@ -348,8 +347,8 @@ function CrmSyncPanel({
       )}
 
       <div style={{ marginTop: '10px', fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>
-        Pull: {crm === 'hubspot' ? 'HubSpot contacts → ChurnGuard customers' : 'Salesforce contacts → ChurnGuard customers'}<br />
-        Push: ChurnGuard risk scores → {crm === 'hubspot' ? 'HubSpot contact properties (churnguard_risk_score, churnguard_health_score, churnguard_risk_reason)' : 'Salesforce contact Description field (+ custom fields if created)'}
+        Pull: HubSpot contacts → ChurnGuard customers<br />
+        Push: ChurnGuard risk scores → HubSpot contact properties (churnguard_risk_score, churnguard_health_score, churnguard_risk_reason)
       </div>
     </div>
   );
@@ -361,7 +360,7 @@ function IntegrationsPageInner() {
   const urlConnected = searchParams.get('connected');
   const { user } = useUser();
 
-  const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
+  const [status, setStatus] = useState<Status>({ hubspot: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string>>({});
@@ -406,7 +405,6 @@ function IntegrationsPageInner() {
         const d = await res.json();
         setStatus({
           hubspot: d.hubspot?.connected ?? false,
-          salesforce: d.salesforce?.connected ?? false,
           slack: !!d.slackConnected,
           stripe: !!d.stripeConnected,
           crmType: d.type ?? null,
@@ -474,17 +472,13 @@ function IntegrationsPageInner() {
   function setErrorFor(key: string, msg: string) { setError(e => ({ ...e, [key]: msg })); }
 
   async function loadSyncInfo() {
-    const [hs, sf] = await Promise.all([
-      fetch('/api/integrations/hubspot/sync').then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch('/api/integrations/salesforce/sync').then(r => r.ok ? r.json() : null).catch(() => null),
-    ]);
+    const hs = await fetch('/api/integrations/hubspot/sync').then(r => r.ok ? r.json() : null).catch(() => null);
     setSyncInfo({
-      hubspot:    { lastSyncAt: hs?.lastSyncAt ?? null,    syncStatus: hs?.syncStatus ?? 'disconnected', lastError: hs?.lastError ?? null, reconnectRequired: hs?.reconnectRequired ?? false },
-      salesforce: { lastSyncAt: sf?.lastSyncAt ?? null, syncStatus: sf?.syncStatus ?? 'disconnected', lastError: sf?.lastError ?? null, reconnectRequired: sf?.reconnectRequired ?? false },
+      hubspot: { lastSyncAt: hs?.lastSyncAt ?? null, syncStatus: hs?.syncStatus ?? 'disconnected', lastError: hs?.lastError ?? null, reconnectRequired: hs?.reconnectRequired ?? false },
     });
   }
 
-  async function syncNow(crm: 'hubspot' | 'salesforce') {
+  async function syncNow(crm: 'hubspot') {
     setBusyFor(`sync_${crm}`, true);
     setErrorFor(crm, '');
     setSyncResult(r => ({ ...r, [crm]: null }));
@@ -519,21 +513,6 @@ function IntegrationsPageInner() {
     if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: s.crmType === 'hubspot' ? null : s.crmType }));
     else setErrorFor('hubspot', 'Failed to disconnect.');
     setBusyFor('hubspot', false);
-  }
-
-  // ── Salesforce ─────────────────────────────────────────────────────────────
-  function connectSalesforce() {
-    if (!user?.id) { setErrorFor('salesforce', 'Not signed in — please refresh and try again.'); return; }
-    window.location.href = `/api/integrations/salesforce/auth?uid=${encodeURIComponent(user.id)}`;
-  }
-
-  async function disconnectSalesforce() {
-    if (!confirm('Disconnect Salesforce? Data already synced will remain in ChurnGuard.')) return;
-    setBusyFor('salesforce', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'salesforce' }) });
-    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: s.crmType === 'salesforce' ? null : s.crmType }));
-    else setErrorFor('salesforce', 'Failed to disconnect.');
-    setBusyFor('salesforce', false);
   }
 
   // ── Slack ──────────────────────────────────────────────────────────────────
@@ -629,41 +608,6 @@ function IntegrationsPageInner() {
               )}
             </IntegrationCard>
 
-            <IntegrationCard
-              icon="☁️" name="Salesforce"
-              desc="Push churn risk scores to Salesforce and pull customer health data"
-              connected={status.salesforce} accentColor="#0070d2"
-              loading={busy.salesforce}
-              onConnect={connectSalesforce}
-              onDisconnect={disconnectSalesforce}
-            >
-              {syncInfo.salesforce?.reconnectRequired && (
-                <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '7px', fontSize: '13px', color: '#c2410c', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                  <span>⚠️ Your Salesforce authorization has expired.</span>
-                  <button onClick={connectSalesforce} style={{ padding: '6px 14px', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
-                    Reconnect
-                  </button>
-                </div>
-              )}
-              {!status.salesforce && (
-                <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '7px', fontSize: '12px', color: '#1e40af', marginBottom: '4px', lineHeight: '1.6' }}>
-                  <strong>Setup required in Salesforce:</strong> In your Connected App settings, add this callback URL:<br />
-                  <code style={{ background: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', display: 'inline-block', marginTop: '4px', wordBreak: 'break-all' }}>
-                    https://churnguardapp.com/api/integrations/salesforce/callback
-                  </code>
-                </div>
-              )}
-              {error.salesforce && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px', marginBottom: '10px' }}>{error.salesforce}</div>}
-              {status.salesforce && (
-                <CrmSyncPanel
-                  crm="salesforce"
-                  syncInfo={syncInfo.salesforce}
-                  syncResult={syncResult.salesforce ?? null}
-                  syncing={!!busy.sync_salesforce}
-                  onSync={() => syncNow('salesforce')}
-                />
-              )}
-            </IntegrationCard>
           </div>
         </Section>
 

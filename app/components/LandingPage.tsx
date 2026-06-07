@@ -67,8 +67,8 @@ const faqs = [
     a: 'We automatically move you up — no service interruption, no surprise bills.',
   },
   {
-    q: 'Does it work with HubSpot or Salesforce?',
-    a: 'Native bi-directional sync included. Risk scores push to your CRM every 6 hours, automatically.',
+    q: 'Does it work with HubSpot?',
+    a: 'Native bi-directional sync included. Risk scores push to HubSpot every 6 hours, automatically.',
   },
   {
     q: 'Do I need to send messages manually?',
@@ -510,7 +510,7 @@ export default function LandingPage() {
                 icon: '🔗',
                 title: 'CRM Sync',
                 bold: 'Sales and success teams always know who\'s at risk.',
-                body: 'Bi-directional HubSpot & Salesforce sync runs automatically every 6 hours.',
+                body: 'Bi-directional HubSpot sync runs automatically every 6 hours.',
               },
               {
                 icon: '🎯',

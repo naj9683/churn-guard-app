@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const body = await req.json().catch(() => ({}));
-    const type: string | undefined = body.type; // 'hubspot' | 'salesforce'
+    const type: string | undefined = body.type; // 'hubspot'
 
     await prisma.crmIntegration.updateMany({
       where: { userId: user.id, ...(type ? { type } : {}) },

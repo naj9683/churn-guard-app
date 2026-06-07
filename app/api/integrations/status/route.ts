@@ -14,8 +14,7 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({
-        hubspot:    { connected: false, syncStatus: null },
-        salesforce: { connected: false, syncStatus: null },
+        hubspot: { connected: false, syncStatus: null },
         connected: false, type: null,
         slackConnected: false, stripeConnected: false,
       });
@@ -26,16 +25,14 @@ export async function GET() {
     });
 
     const hs  = integrations.find(i => i.type === 'hubspot');
-    const sf  = integrations.find(i => i.type === 'salesforce');
     const str = integrations.find(i => i.type === 'stripe');
 
     return NextResponse.json({
-      hubspot:    { connected: hs?.enabled ?? false, syncStatus: hs?.syncStatus ?? null },
-      salesforce: { connected: sf?.enabled ?? false, syncStatus: sf?.syncStatus ?? null },
+      hubspot: { connected: hs?.enabled ?? false, syncStatus: hs?.syncStatus ?? null },
       // Legacy fields kept for backward compat
-      connected: (hs?.enabled || sf?.enabled) ?? false,
-      type: hs?.enabled ? 'hubspot' : sf?.enabled ? 'salesforce' : null,
-      syncStatus: (hs ?? sf)?.syncStatus ?? null,
+      connected:  hs?.enabled ?? false,
+      type:       hs?.enabled ? 'hubspot' : null,
+      syncStatus: hs?.syncStatus ?? null,
       slackConnected:  !!user.slackWebhookUrl,
       // stripeConnected = user has provided their OWN Stripe secret key for Revenue at Risk
       stripeConnected: !!(str?.enabled && str.accessToken),
@@ -43,8 +40,7 @@ export async function GET() {
   } catch (error) {
     console.error('Integration status error:', error);
     return NextResponse.json({
-      hubspot:    { connected: false, syncStatus: null },
-      salesforce: { connected: false, syncStatus: null },
+      hubspot: { connected: false, syncStatus: null },
       connected: false, type: null, syncStatus: null,
       slackConnected: false, stripeConnected: false,
     });

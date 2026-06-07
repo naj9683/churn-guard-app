@@ -243,7 +243,7 @@ export default function IntegrationsPage() {
   const [syncingCrm, setSyncingCrm] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<string | null>(null);
 
-  async function triggerCrmSync(type?: 'hubspot' | 'salesforce') {
+  async function triggerCrmSync(type?: 'hubspot') {
     setSyncingCrm(type ?? 'all');
     setSyncResult(null);
     try {
@@ -301,8 +301,7 @@ export default function IntegrationsPage() {
     : 'unconfigured';
 
   const hubspotIntegrations = data?.crm.integrations.filter(i => i.type === 'hubspot') ?? [];
-  const salesforceIntegrations = data?.crm.integrations.filter(i => i.type === 'salesforce') ?? [];
-  const crmConfigured = hubspotIntegrations.some(i => i.enabled) || salesforceIntegrations.some(i => i.enabled);
+  const crmConfigured = hubspotIntegrations.some(i => i.enabled);
   const crmStatus = data
     ? integrationStatus(data.crm.total24h, data.crm.failedCount, data.crm.logs[0]?.createdAt ?? null, crmConfigured)
     : 'unconfigured';
@@ -472,7 +471,7 @@ export default function IntegrationsPage() {
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
           {data.crm.integrations.map(ci => {
             const statusColor = ci.syncStatus === 'synced' ? '#22c55e' : ci.syncStatus === 'error' || ci.syncStatus === 'partial' ? '#ef4444' : '#6b7280';
-            const crmType = ci.type as 'hubspot' | 'salesforce';
+            const crmType = ci.type as 'hubspot';
             return (
               <div key={ci.userId + ci.type} style={{ flex: '1', minWidth: '220px', background: '#111827', border: '1px solid #1f2937', borderRadius: '10px', padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -525,7 +524,7 @@ export default function IntegrationsPage() {
         </div>
       ) : (
         <div style={{ padding: '16px', background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', fontSize: '12px', color: '#4b5563', marginBottom: '12px' }}>
-          No CRM integrations connected. Users can connect HubSpot or Salesforce from their Integrations page.
+          No CRM integrations connected. Users can connect HubSpot from their Integrations page.
         </div>
       )}
 

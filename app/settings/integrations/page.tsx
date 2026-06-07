@@ -6,7 +6,6 @@ import Layout from '@/app/components/Layout';
 
 type Status = {
   hubspot: boolean;
-  salesforce: boolean;
   slack: boolean;
   stripe: boolean;
   crmType: string | null;
@@ -226,7 +225,7 @@ function StripeInfoPanel({ onClose }: { onClose: () => void }) {
 
 export default function IntegrationsPage() {
   const { user } = useUser();
-  const [status, setStatus] = useState<Status>({ hubspot: false, salesforce: false, slack: false, stripe: false, crmType: null });
+  const [status, setStatus] = useState<Status>({ hubspot: false, slack: false, stripe: false, crmType: null });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string>>({});
@@ -252,7 +251,6 @@ export default function IntegrationsPage() {
         const d = await res.json();
         setStatus({
           hubspot: d.hubspot?.connected ?? false,
-          salesforce: d.salesforce?.connected ?? false,
           slack: !!d.slackConnected,
           stripe: !!d.stripeConnected,
           crmType: d.type ?? null,
@@ -295,21 +293,6 @@ export default function IntegrationsPage() {
     if (res.ok) setStatus(s => ({ ...s, hubspot: false, crmType: s.crmType === 'hubspot' ? null : s.crmType }));
     else setErrorFor('hubspot', 'Failed to disconnect.');
     setBusyFor('hubspot', false);
-  }
-
-  // ── Salesforce ─────────────────────────────────────────────────────────────
-  function connectSalesforce() {
-    if (!user?.id) { setErrorFor('salesforce', 'Not signed in — please refresh.'); return; }
-    window.location.href = `/api/integrations/salesforce/auth?uid=${encodeURIComponent(user.id)}`;
-  }
-
-  async function disconnectSalesforce() {
-    if (!confirm('Disconnect Salesforce? Data already synced will remain in ChurnGuard.')) return;
-    setBusyFor('salesforce', true);
-    const res = await fetch('/api/integrations/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'salesforce' }) });
-    if (res.ok) setStatus(s => ({ ...s, salesforce: false, crmType: s.crmType === 'salesforce' ? null : s.crmType }));
-    else setErrorFor('salesforce', 'Failed to disconnect.');
-    setBusyFor('salesforce', false);
   }
 
   // ── Slack ──────────────────────────────────────────────────────────────────
@@ -409,16 +392,6 @@ export default function IntegrationsPage() {
               {error.hubspot && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.hubspot}</div>}
             </IntegrationCard>
 
-            <IntegrationCard
-              icon="☁️" name="Salesforce"
-              desc="Push churn risk scores to Salesforce and pull customer health data"
-              connected={status.salesforce} accentColor="#0070d2"
-              loading={busy.salesforce}
-              onConnect={connectSalesforce}
-              onDisconnect={disconnectSalesforce}
-            >
-              {error.salesforce && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.salesforce}</div>}
-            </IntegrationCard>
           </div>
         </Section>
 

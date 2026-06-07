@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { syncHubSpot } from '@/lib/crm/hubspot';
-import { syncSalesforce } from '@/lib/crm/salesforce';
 
 const SIX_HOURS_MS   = 6  * 60 * 60 * 1000;
 
@@ -56,8 +55,6 @@ export async function GET(req: NextRequest) {
       let result;
       if (integration.type === 'hubspot') {
         result = await syncHubSpot(integration.userId, opts);
-      } else if (integration.type === 'salesforce') {
-        result = await syncSalesforce(integration.userId, opts);
       } else {
         continue;
       }

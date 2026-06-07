@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/adminAuth';
 import { prisma } from '@/lib/prisma';
 import { syncHubSpot } from '@/lib/crm/hubspot';
-import { syncSalesforce } from '@/lib/crm/salesforce';
 
 /** GET /api/admin/crm-sync — sync stats for all integrations */
 export async function GET() {
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest) {
   if ('error' in auth) return auth.error;
 
   const body = await req.json().catch(() => ({}));
-  const targetType = body.type as 'hubspot' | 'salesforce' | undefined;
+  const targetType = body.type as 'hubspot' | undefined;
 
   const integrations = await prisma.crmIntegration.findMany({
     where: {
@@ -49,8 +48,6 @@ export async function POST(req: NextRequest) {
       let result;
       if (integration.type === 'hubspot') {
         result = await syncHubSpot(integration.userId, { fullSync: true });
-      } else if (integration.type === 'salesforce') {
-        result = await syncSalesforce(integration.userId, { fullSync: true });
       } else continue;
 
       results.push({ userId: integration.userId, type: integration.type, status: 'ok', details: result });
