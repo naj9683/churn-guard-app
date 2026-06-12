@@ -14,7 +14,7 @@ export async function GET() {
   return NextResponse.json({
     keySet: key.length > 0,
     keyPrefix: key.length > 0 ? key.slice(0, 14) + '…' : null,
-    model: 'claude-3-haiku-20240307',
+    model: 'claude-3-5-sonnet-20241022',
   });
 }
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   // ── Call Anthropic (with one retry on 5xx) ───────────────────────────────────
   const requestBody = {
-    model: 'claude-3-haiku-20240307',
+    model: 'claude-3-5-sonnet-20241022',
     max_tokens: 500,
     system: SYSTEM_PROMPT,
     messages,
