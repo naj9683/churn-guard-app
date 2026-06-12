@@ -468,3 +468,29 @@ model SmsLog {
   @@index([createdAt])
   @@index([status])
 }
+
+model Booking {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  date      DateTime
+  timeSlot  String
+  notes     String?
+  status    String   @default("confirmed")
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([email])
+  @@index([status])
+}
+
+model ChatLead {
+  id        String   @id @default(cuid())
+  email     String
+  question  String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}

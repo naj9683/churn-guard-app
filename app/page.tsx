@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LandingPage from '@/app/components/LandingPage';
+import ChatWidget from '@/app/components/ChatWidget';
 
 export const metadata: Metadata = {
   title: 'ChurnGuard - AI Churn Prevention for SaaS',
@@ -84,6 +85,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <LandingPage />
+      <ChatWidget />
     </>
   );
 }
