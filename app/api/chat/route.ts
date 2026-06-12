@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 500,
         system: 'You are ChurnGuard AI support. Help SaaS founders reduce churn. Answer about pricing ($49/$149/$499), features (predictions, alerts, SMS, email, workflows, dunning, cancellation flows), setup (Stripe integration, 5 minutes), security (encryption, data privacy). Be concise. If you cannot answer, ask for their email.',
         messages: messages,
