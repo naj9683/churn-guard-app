@@ -52,8 +52,16 @@ export default function ChatWidget() {
       });
       const data = await res.json();
 
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, something went wrong.' }]);
-      if (data.suggestEmail) setSuggestEmail(true);
+      if (!res.ok || data.error) {
+        const msg = res.status === 503 || data.error === 'Service temporarily unavailable'
+          ? "The AI assistant is temporarily unavailable. You can book a call and we'll answer your questions personally."
+          : "Sorry, I had trouble connecting. Please try again.";
+        setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+        setSuggestEmail(true);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        if (data.suggestEmail) setSuggestEmail(true);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I had trouble connecting. Please try again.' }]);
     } finally {

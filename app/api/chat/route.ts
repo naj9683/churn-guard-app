@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const SYSTEM_PROMPT = `You are the ChurnGuard sales assistant — friendly, concise, and knowledgeable. ChurnGuard is an AI-powered churn prevention platform for SaaS companies.
 
 KEY FACTS:
@@ -46,6 +44,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // Verify API key is configured
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.error('[chat route] ANTHROPIC_API_KEY is not set');
+      return NextResponse.json({ error: 'Service temporarily unavailable', code: 'NO_API_KEY' }, { status: 503 });
+    }
+
     // Chat branch
     const { messages } = body as { messages: { role: 'user' | 'assistant'; content: string }[] };
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -54,6 +59,8 @@ export async function POST(req: NextRequest) {
 
     // Cap at 20 total messages (10 user + 10 assistant) to control costs
     const trimmed = messages.slice(-20);
+
+    const client = new Anthropic({ apiKey });
 
     const response = await client.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -73,8 +80,28 @@ export async function POST(req: NextRequest) {
       trimmed.filter(m => m.role === 'user').length >= 8;
 
     return NextResponse.json({ response: text, suggestEmail });
-  } catch (err) {
-    console.error('[chat route]', err);
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+  } catch (err: unknown) {
+    // Log full error details for debugging
+    const isAnthropicError = err instanceof Anthropic.APIError;
+    console.error('[chat route] error:', {
+      message: err instanceof Error ? err.message : String(err),
+      status: isAnthropicError ? err.status : undefined,
+      name: err instanceof Error ? err.name : undefined,
+      body: isAnthropicError ? err.error : undefined,
+    });
+
+    if (isAnthropicError) {
+      if (err.status === 401) {
+        return NextResponse.json({ error: 'Service temporarily unavailable', code: 'AUTH_ERROR' }, { status: 503 });
+      }
+      if (err.status === 429) {
+        return NextResponse.json({ error: 'Service temporarily unavailable', code: 'RATE_LIMIT' }, { status: 503 });
+      }
+      if (err.status === 529 || err.status === 503) {
+        return NextResponse.json({ error: 'Service temporarily unavailable', code: 'OVERLOADED' }, { status: 503 });
+      }
+    }
+
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 500 });
   }
 }
