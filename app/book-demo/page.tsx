@@ -3,9 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-// Set your Calendly link here or via NEXT_PUBLIC_CALENDLY_URL env var
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ?? 'https://calendly.com/najwasaadi1/30min';
+const CALENDLY_URL = 'https://calendly.com/najwasaadi1/30min';
 
 export default function BookDemoPage() {
   const scriptLoaded = useRef(false);
