@@ -152,7 +152,7 @@ export default function LandingPage() {
                 {label}
               </a>
             ))}
-            <Link href="/book" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">Book a Call</Link>
+            <Link href="/book-demo" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">Book a Call</Link>
           </div>
           <div className="hidden md:flex items-center gap-3">
             <Link href="/auth/login" className="text-sm px-4 py-2 rounded-lg font-medium transition-colors" style={{ color: 'rgba(255,255,255,0.6)' }}
@@ -175,7 +175,7 @@ export default function LandingPage() {
             {[['#features', 'Features'], ['#how-it-works', 'How it works'], ['#pricing', 'Pricing'], ['/blog', 'Blog']].map(([href, label]) => (
               <a key={href} href={href} className="text-slate-300 text-sm font-medium" onClick={() => setMobileOpen(false)}>{label}</a>
             ))}
-            <Link href="/book" className="text-cyan-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Book a Call</Link>
+            <Link href="/book-demo" className="text-cyan-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Book a Call</Link>
             <Link href="/auth/login" className="text-slate-300 text-sm">Login</Link>
             <Link href="/audit" onClick={() => setMobileOpen(false)} className="text-sm px-4 py-3.5 rounded-xl font-bold text-white text-center" style={{ background: 'linear-gradient(135deg,#06b6d4,#0ea5e9)' }}>
               Get Free Audit →
@@ -777,7 +777,7 @@ export default function LandingPage() {
               style={{ background: 'linear-gradient(135deg,#06b6d4,#0ea5e9)', boxShadow: '0 0 40px rgba(6,182,212,0.4)' }}>
               Get Free Audit →
             </Link>
-            <Link href="/book" className="px-10 py-4 rounded-xl font-semibold text-base border transition-all hover:border-slate-500"
+            <Link href="/book-demo" className="px-10 py-4 rounded-xl font-semibold text-base border transition-all hover:border-slate-500"
               style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }}>
               Book a Demo
             </Link>
