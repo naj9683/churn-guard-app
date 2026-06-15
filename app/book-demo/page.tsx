@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-const CALENDLY_URL = 'https://calendly.com/najwasaadi1/30min';
+const CALENDLY_URL = 'https://calendly.com/dispatchpro/30min';
 
 export default function BookDemoPage() {
   const scriptLoaded = useRef(false);
