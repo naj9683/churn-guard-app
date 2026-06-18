@@ -1,0 +1,48 @@
+{
+  "id": "com.churnguard.risk-monitor",
+  "version": "0.0.1",
+  "name": "ChurnGuard",
+  "icon": "./public/icon.png",
+  "permissions": [
+    {
+      "id": "customer_read",
+      "purpose": "Identify customers at risk of churning based on their profile and payment history"
+    },
+    {
+      "id": "subscription_read",
+      "purpose": "Detect past-due, cancelling, and at-risk subscriptions"
+    },
+    {
+      "id": "charge_read",
+      "purpose": "Calculate churn risk from failed and missing payment attempts"
+    },
+    {
+      "id": "invoice_read",
+      "purpose": "Track overdue invoices as early churn signals"
+    }
+  ],
+  "ui_extension": {
+    "views": [
+      {
+        "viewport": "stripe.dashboard.home.overview",
+        "component": "App"
+      },
+      {
+        "viewport": "stripe.dashboard.customer.detail",
+        "component": "CustomerDetailView"
+      }
+    ],
+    "content_security_policy": {
+      "connect-src": ["https://churnguardapp.com"],
+      "image-src": ["https://churnguardapp.com"],
+      "purpose": "ChurnGuard backend API for AI-powered churn risk scores and retention data"
+    }
+  },
+  "post_install_action": {
+    "type": "external",
+    "url": "https://churnguardapp.com/stripe-app/install"
+  },
+  "constants": {
+    "API_BASE": "https://churnguardapp.com/api/stripe-app"
+  }
+}
