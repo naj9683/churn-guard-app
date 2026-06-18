@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
+import OnboardingChecklist from '@/app/components/OnboardingChecklist';
 import { track, page, identify } from '@/lib/analytics';
 import { mpIdentify, mpRegister, MP } from '@/lib/mixpanel';
 
@@ -326,6 +327,8 @@ export default function Dashboard() {
         flex: 1,
         padding: '32px'
       }}>
+        <OnboardingChecklist />
+
         {/* Trial banner */}
         {trialDaysLeft !== null && (
           <div style={{
