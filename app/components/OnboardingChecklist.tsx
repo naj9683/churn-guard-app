@@ -41,12 +41,11 @@ const DISMISS_KEY = 'churnguard_checklist_dismissed';
 
 export default function OnboardingChecklist() {
   const [status, setStatus] = useState<ChecklistStatus | null>(null);
-  const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
+  const [dismissed, setDismissed] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem(DISMISS_KEY) === '1' : false
+  );
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
-    }
     fetch('/api/onboarding/checklist')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setStatus(data); });
