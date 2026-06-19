@@ -4,6 +4,25 @@
   "name": "ChurnGuard",
   "version": "0.0.1",
   "icon": "./public/icon.png",
+  "ui_extension": {
+    "views": [
+      {
+        "viewport": "stripe.dashboard.home.overview",
+        "component": "App"
+      },
+      {
+        "viewport": "stripe.dashboard.customer.detail",
+        "component": "CustomerDetailView"
+      }
+    ],
+    "content_security_policy": {
+      "connect-src": [
+        "https://churnguardapp.com/api/"
+      ],
+      "purpose": "ChurnGuard backend API for AI-powered churn risk scores and retention data"
+    }
+  },
+  "extensions": null,
   "permissions": [
     {
       "permission": "customer_read",
@@ -18,24 +37,6 @@
       "purpose": "Calculate churn risk from failed and missing payment attempts"
     }
   ],
-  "ui_extension": {
-    "views": [
-      {
-        "viewport": "stripe.dashboard.home.overview",
-        "component": "App"
-      },
-      {
-        "viewport": "stripe.dashboard.customer.detail",
-        "component": "CustomerDetailView"
-      }
-    ],
-    "content_security_policy": {
-      "connect-src": [
-        "https://churnguardapp.com/api/*"
-      ],
-      "purpose": "ChurnGuard backend API for AI-powered churn risk scores and retention data"
-    }
-  },
   "post_install_action": {
     "type": "external",
     "url": "https://churnguardapp.com/stripe-app/install"
