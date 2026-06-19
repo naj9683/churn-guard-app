@@ -15,10 +15,6 @@
     {
       "id": "charge_read",
       "purpose": "Calculate churn risk from failed and missing payment attempts"
-    },
-    {
-      "id": "invoice_read",
-      "purpose": "Track overdue invoices as early churn signals"
     }
   ],
   "ui_extension": {
@@ -33,8 +29,8 @@
       }
     ],
     "content_security_policy": {
-      "connect-src": ["https://churnguardapp.com"],
-      "image-src": ["https://churnguardapp.com"],
+      "connect-src": ["https://churnguardapp.com/"],
+      "image-src": ["https://churnguardapp.com/"],
       "purpose": "ChurnGuard backend API for AI-powered churn risk scores and retention data"
     }
   },
