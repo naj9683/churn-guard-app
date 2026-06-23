@@ -212,11 +212,21 @@ export default function App({ userContext, environment }: ExtensionContextValue)
             <Box css={{ font: 'bodyEmphasized' }}>Reading your Stripe data</Box>
           </Box>
           <Box css={{ font: 'body' }}>
-            No active subscriptions found. ChurnGuard will show risk scores here as soon
-            as subscriptions exist in this account — no extra setup needed.
+            No active subscriptions found. Risk scores will appear here automatically
+            once subscriptions exist in this account.
           </Box>
           <Button type="secondary" onPress={load}>Refresh</Button>
         </Box>
+        <Inline>
+          <Button type="primary" href={connectUrl} target="_blank">
+            Get ChurnGuard — Start Free Trial
+          </Button>
+        </Inline>
+        <Inline>
+          <Link href={`${APP_URL}/pricing?source=stripe_app`} external>
+            See all plans →
+          </Link>
+        </Inline>
       </Box>
     );
   }
