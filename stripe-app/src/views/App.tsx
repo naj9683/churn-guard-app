@@ -45,12 +45,17 @@ export default function App({ userContext, environment }: ExtensionContextValue)
   const [error, setError] = useState<string | null>(null);
   const [showingAll, setShowingAll] = useState(false);
   const [churnGuardLinked, setChurnGuardLinked] = useState(false);
-  const [connectUrl, setConnectUrl] = useState('');
 
   const accountId = userContext?.account?.id ?? '';
   const apiBase = (environment?.constants as Record<string, string> | undefined)?.API_BASE
     ?? `${APP_URL}/api/stripe-app`;
   const isTestMode = environment?.mode === 'test';
+
+  // Initialise connect URL immediately from accountId so the button is never empty.
+  // After load() we upgrade it with a short-lived OAuth state for backend verification.
+  const [connectUrl, setConnectUrl] = useState(
+    `${APP_URL}/signup?${new URLSearchParams({ stripe_account_id: accountId, source: 'stripe_app' })}`
+  );
 
   const atRisk = rows.filter(r => r.riskScore >= 40);
   const highRisk = rows.filter(r => r.riskScore >= 70);
@@ -61,34 +66,17 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     setLoading(true);
     setError(null);
 
-    // Build a secure ChurnGuard connect URL using Stripe's OAuth state mechanism.
-    // createOAuthState() produces a short-lived state + challengeId pair that the
-    // backend can verify originated from inside the Stripe Dashboard.
     try {
-      const { state, challenge } = await createOAuthState();
-      const p = new URLSearchParams({
-        stripe_account_id: accountId,
-        state,
-        challenge,
-        source: 'stripe_app',
-      });
-      setConnectUrl(`${APP_URL}/stripe-app/connect?${p}`);
-    } catch {
-      const p = new URLSearchParams({ stripe_account_id: accountId, source: 'stripe_app' });
-      setConnectUrl(`${APP_URL}/signup?${p}`);
-    }
-
-    try {
-      // Fetch Stripe data directly — STRIPE_API_KEY is the merchant's own key,
-      // granted automatically when they installed this app.
+      // STRIPE_API_KEY is the merchant's own restricted key — granted when they
+      // installed this app. No separate OAuth needed to read their Stripe data.
+      //
+      // NOTE: do NOT expand data.latest_invoice.payment_intent — that requires
+      // invoice_read permission which is not in the manifest and will cause a
+      // Stripe permission error that silently breaks the whole request.
       const [subscriptionsRes, chargesRes] = await Promise.all([
         stripe.subscriptions.list({
           limit: 100,
-          expand: [
-            'data.customer',
-            'data.latest_invoice.payment_intent',
-            'data.items.data.price',
-          ],
+          expand: ['data.customer', 'data.items.data.price'],
         }),
         stripe.charges.list({ limit: 100 }),
       ]);
@@ -135,25 +123,40 @@ export default function App({ userContext, environment }: ExtensionContextValue)
 
       built.sort((a, b) => b.riskScore - a.riskScore);
       setRows(built);
-
-      // Check whether this Stripe account has been linked to ChurnGuard.
-      // We actually read the response here (previously it was fire-and-forget).
-      try {
-        const sig = await fetchStripeSignature();
-        const res = await fetch(`${apiBase}/risk?account_id=${accountId}`, {
-          headers: { 'stripe-signature': sig },
-        });
-        if (res.ok) {
-          const data = (await res.json()) as { linked?: boolean };
-          setChurnGuardLinked(data.linked === true);
-        }
-      } catch {
-        // Backend unavailable — Stripe-native scores shown, linked stays false
-      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load Stripe data');
     } finally {
       setLoading(false);
+    }
+
+    // Run these after setLoading(false) so they never block the data display.
+
+    // Upgrade connect URL with a short-lived OAuth state for backend verification.
+    try {
+      const { state, challenge } = await createOAuthState();
+      const p = new URLSearchParams({
+        stripe_account_id: accountId,
+        state,
+        challenge,
+        source: 'stripe_app',
+      });
+      setConnectUrl(`${APP_URL}/stripe-app/connect?${p}`);
+    } catch {
+      // Keep the basic signup URL already set
+    }
+
+    // Check whether this Stripe account has been linked to ChurnGuard.
+    try {
+      const sig = await fetchStripeSignature();
+      const res = await fetch(`${apiBase}/risk?account_id=${accountId}`, {
+        headers: { 'stripe-signature': sig },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { linked?: boolean };
+        setChurnGuardLinked(data.linked === true);
+      }
+    } catch {
+      // Backend unavailable — Stripe-native scores shown, linked stays false
     }
   }, [accountId, apiBase]);
 
@@ -166,7 +169,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     return (
       <Box css={{ stack: 'y', gap: 'medium', padding: 'large', alignX: 'center' }}>
         <Spinner />
-        <Box css={{ font: 'body' }}>Loading your customer risk scores…</Box>
+        <Box css={{ font: 'body' }}>Loading customer risk scores…</Box>
       </Box>
     );
   }
@@ -177,7 +180,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
       <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
         <Banner
           type="caution"
-          title="Failed to load Stripe data"
+          title="Could not load Stripe data"
           description={error}
           onDismiss={() => setError(null)}
         />
@@ -186,8 +189,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     );
   }
 
-  // ── No subscriptions ───────────────────────────────────────────────────────
-  // Account IS connected (STRIPE_API_KEY worked), just no subscriptions yet.
+  // ── No subscriptions yet ───────────────────────────────────────────────────
   if (rows.length === 0) {
     return (
       <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
@@ -195,7 +197,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
           <Banner
             type="caution"
             title="Test mode"
-            description="Create test subscriptions in this Stripe account to see risk scores here."
+            description="Add test subscriptions in your Stripe account to see risk scores here."
           />
         )}
         <Box css={{
@@ -207,44 +209,19 @@ export default function App({ userContext, environment }: ExtensionContextValue)
         }}>
           <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
             <Badge type="positive">Live</Badge>
-            <Box css={{ font: 'bodyEmphasized' }}>Stripe account connected</Box>
+            <Box css={{ font: 'bodyEmphasized' }}>Reading your Stripe data</Box>
           </Box>
           <Box css={{ font: 'body' }}>
-            No active subscriptions found. Risk scores will appear here automatically
-            once subscriptions exist in this account.
+            No active subscriptions found. ChurnGuard will show risk scores here as soon
+            as subscriptions exist in this account — no extra setup needed.
           </Box>
+          <Button type="secondary" onPress={load}>Refresh</Button>
         </Box>
-        {!churnGuardLinked && (
-          <Box css={{
-            stack: 'y',
-            gap: 'small',
-            padding: 'medium',
-            backgroundColor: 'container',
-            borderRadius: 'medium',
-          }}>
-            <Box css={{ font: 'subheading' }}>Automate Retention with ChurnGuard</Box>
-            <Box css={{ font: 'body' }}>
-              When customers show churn signals — failed payments, scheduled cancellations,
-              engagement drops — ChurnGuard automatically sends targeted email and SMS
-              campaigns to bring them back.
-            </Box>
-            <Inline>
-              <Button type="primary" href={connectUrl} target="_blank">
-                Start Free Trial
-              </Button>
-            </Inline>
-            <Inline>
-              <Link href={`${APP_URL}/pricing?source=stripe_app`} external>
-                See all plans →
-              </Link>
-            </Inline>
-          </Box>
-        )}
       </Box>
     );
   }
 
-  // ── Main view — real customer risk data ────────────────────────────────────
+  // ── Main view — live customer risk scores ──────────────────────────────────
   return (
     <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
       {isTestMode && (
@@ -358,30 +335,24 @@ export default function App({ userContext, environment }: ExtensionContextValue)
 
       <Divider />
 
-      {/* ChurnGuard CTA — context-aware */}
+      {/* Footer: dashboard link if ChurnGuard linked, upgrade CTA if not */}
       {churnGuardLinked ? (
         <Inline>
           <Link href={`${APP_URL}/dashboard?source=stripe_app`} external>
-            View full ChurnGuard dashboard →
+            Open full ChurnGuard dashboard →
           </Link>
         </Inline>
       ) : (
-        <Box css={{ stack: 'y', gap: 'small' }}>
-          <Box css={{ font: 'body' }}>
+        <Box css={{ stack: 'y', gap: 'xsmall' }}>
+          <Box css={{ font: 'caption' }}>
             {highRisk.length > 0
-              ? `${highRisk.length} high-risk customer${highRisk.length !== 1 ? 's' : ''} need${highRisk.length === 1 ? 's' : ''} attention.`
-              : 'Keep your customers.'}{' '}
-            ChurnGuard automatically sends retention campaigns the moment risk signals appear.
+              ? `${highRisk.length} high-risk customer${highRisk.length !== 1 ? 's' : ''} — automate retention with ChurnGuard.`
+              : 'Automate retention campaigns when risk signals appear.'}
           </Box>
           <Inline>
             <Button type="primary" href={connectUrl} target="_blank">
               Start Free Trial
             </Button>
-          </Inline>
-          <Inline>
-            <Link href={`${APP_URL}/pricing?source=stripe_app`} external>
-              See all plans →
-            </Link>
           </Inline>
         </Box>
       )}
