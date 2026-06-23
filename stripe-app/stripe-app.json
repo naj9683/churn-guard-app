@@ -2,8 +2,22 @@
   "$schema": "https://stripe.com/stripe-app.schema.json",
   "id": "com.churnguard.risk-monitor",
   "name": "ChurnGuard",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "icon": "./public/icon.png",
+  "permissions": [
+    {
+      "permission": "customer_read",
+      "purpose": "Identify customers at risk of churning based on their profile and payment history"
+    },
+    {
+      "permission": "subscription_read",
+      "purpose": "Detect past-due, cancelling, and at-risk subscriptions"
+    },
+    {
+      "permission": "charge_read",
+      "purpose": "Calculate churn risk from failed and missing payment attempts"
+    }
+  ],
   "ui_extension": {
     "views": [
       {
@@ -22,26 +36,15 @@
       "purpose": "ChurnGuard backend API for AI-powered churn risk scores and retention data"
     }
   },
-  "extensions": null,
-  "permissions": [
-    {
-      "permission": "customer_read",
-      "purpose": "Identify customers at risk of churning based on their profile and payment history"
-    },
-    {
-      "permission": "subscription_read",
-      "purpose": "Detect past-due, cancelling, and at-risk subscriptions"
-    },
-    {
-      "permission": "charge_read",
-      "purpose": "Calculate churn risk from failed and missing payment attempts"
-    }
-  ],
   "post_install_action": {
     "type": "external",
     "url": "https://churnguardapp.com/stripe-app/install"
   },
   "constants": {
     "API_BASE": "https://churnguardapp.com/api/stripe-app"
-  }
+  },
+  "distribution_type": "public",
+  "support_email": "admin@churnguardapp.com",
+  "privacy_policy_url": "https://churnguardapp.com/privacy",
+  "terms_of_service_url": "https://churnguardapp.com/terms"
 }
