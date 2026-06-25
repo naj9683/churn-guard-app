@@ -12,10 +12,51 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ChurnGuard - Churn Prevention Platform",
-  description: "AI-powered churn prevention for SaaS",
-  other: {
-    'cache-control': 'no-store, no-cache, must-revalidate',
+  metadataBase: new URL('https://churnguardapp.com'),
+  title: {
+    default: 'ChurnGuard — Churn Prevention Software for SaaS',
+    template: '%s | ChurnGuard',
+  },
+  description:
+    'ChurnGuard monitors your Stripe customers for churn risk and automatically sends retention campaigns before they cancel. Reduce churn by up to 35%.',
+  keywords: [
+    'churn prevention',
+    'customer retention software',
+    'SaaS churn rate',
+    'reduce churn',
+    'failed payment recovery',
+    'churn prediction',
+    'retention automation',
+    'Stripe churn',
+  ],
+  openGraph: {
+    type: 'website',
+    siteName: 'ChurnGuard',
+    title: 'ChurnGuard — Churn Prevention Software for SaaS',
+    description:
+      'Monitor Stripe customers for churn risk. Automatically send retention campaigns before they cancel. Reduce churn by up to 35%.',
+    url: 'https://churnguardapp.com',
+    images: [
+      {
+        url: '/og-default.png',
+        width: 1200,
+        height: 630,
+        alt: 'ChurnGuard — Churn Prevention Software',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@churnguard',
+    title: 'ChurnGuard — Churn Prevention Software for SaaS',
+    description:
+      'Monitor Stripe customers for churn risk. Automatically send retention campaigns before they cancel.',
+    images: ['/og-default.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
 };
 
