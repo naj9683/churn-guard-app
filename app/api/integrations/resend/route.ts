@@ -45,8 +45,20 @@ export async function PUT(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { token, senderEmail } = body as { token?: string; senderEmail?: string };
 
-  if (!token?.trim() || !senderEmail?.trim()) {
-    return NextResponse.json({ error: 'token and senderEmail are required' }, { status: 400 });
+  if (!token?.trim() || token.trim().length < 10) {
+    return NextResponse.json({ error: 'token is required' }, { status: 400 });
+  }
+
+  // Validate the token against Postmark's /server endpoint before saving
+  const validateRes = await fetch('https://api.postmarkapp.com/server', {
+    headers: { 'X-Postmark-Server-Token': token.trim(), Accept: 'application/json' },
+  }).catch(() => null);
+
+  if (!validateRes || !validateRes.ok) {
+    return NextResponse.json(
+      { error: 'Invalid Postmark Server API Token — please check your token and try again' },
+      { status: 422 },
+    );
   }
 
   let encryptedToken: string;
@@ -61,7 +73,7 @@ export async function PUT(req: NextRequest) {
     where: { id: user.id },
     data: {
       postmarkApiKey: encryptedToken,
-      postmarkFromEmail: senderEmail.trim(),
+      ...(senderEmail?.trim() ? { postmarkFromEmail: senderEmail.trim() } : {}),
       postmarkFromName: 'ChurnGuard',
     },
   });

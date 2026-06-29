@@ -155,7 +155,7 @@ export default function LandingPage() {
             <Link href="/book-demo" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">Book a Call</Link>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/auth/login" className="text-sm px-4 py-2 rounded-lg font-medium transition-colors" style={{ color: 'rgba(255,255,255,0.6)' }}
+            <Link href="/login" className="text-sm px-4 py-2 rounded-lg font-medium transition-colors" style={{ color: 'rgba(255,255,255,0.6)' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
               onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}>
               Login
@@ -176,7 +176,7 @@ export default function LandingPage() {
               <a key={href} href={href} className="text-slate-300 text-sm font-medium" onClick={() => setMobileOpen(false)}>{label}</a>
             ))}
             <Link href="/book-demo" className="text-cyan-400 text-sm font-semibold" onClick={() => setMobileOpen(false)}>Book a Call</Link>
-            <Link href="/auth/login" className="text-slate-300 text-sm">Login</Link>
+            <Link href="/login" className="text-slate-300 text-sm">Login</Link>
             <Link href="/audit" onClick={() => setMobileOpen(false)} className="text-sm px-4 py-3.5 rounded-xl font-bold text-white text-center" style={{ background: 'linear-gradient(135deg,#06b6d4,#0ea5e9)' }}>
               Get Free Audit →
             </Link>

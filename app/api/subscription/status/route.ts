@@ -1,9 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getTrialInfo, paywallCookieValue, TRIAL_DAYS } from "@/lib/trial";
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
-const TRIAL_DAYS = 30;
+const PAYWALL_COOKIE = { path: '/', httpOnly: true, maxAge: 3600, sameSite: 'lax' as const };
 
 export async function GET() {
   try {
@@ -33,8 +34,7 @@ export async function GET() {
     });
 
     if (!user) {
-      // Prisma record not yet created (new signup — created lazily).
-      // Provision it now and grant full trial access.
+      // New signup — provision record and grant full trial access
       const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || undefined;
       try {
         await prisma.user.upsert({
@@ -47,24 +47,38 @@ export async function GET() {
           },
         });
       } catch {
-        // Race condition or constraint conflict — safe to ignore, access still granted below
+        // Race condition — safe to ignore
       }
-      return NextResponse.json({ hasAccess: true, onTrial: true, trialDaysLeft: TRIAL_DAYS });
+      const res = NextResponse.json({
+        hasAccess: true,
+        onTrial: true,
+        trialDaysLeft: TRIAL_DAYS,
+        graceDaysLeft: 0,
+        hasPaidPlan: false,
+        status: 'trial',
+        blocked: false,
+      });
+      res.cookies.set('cg_paywall', 'active', PAYWALL_COOKIE);
+      return res;
     }
 
     const hasPaidSubscription = user.subscriptions.length > 0;
+    const trialInfo = getTrialInfo(user.createdAt, hasPaidSubscription);
+    const cookieVal = paywallCookieValue(trialInfo);
 
-    // Trial check: within 30 days of account creation, no payment required
-    const ageMs = Date.now() - user.createdAt.getTime();
-    const ageDays = ageMs / 86_400_000;
-    const onTrial = !hasPaidSubscription && ageDays < TRIAL_DAYS;
-    const trialDaysLeft = onTrial ? Math.ceil(TRIAL_DAYS - ageDays) : 0;
-
-    const hasAccess = hasPaidSubscription || onTrial;
-
-    return NextResponse.json({ hasAccess, onTrial, trialDaysLeft });
+    const res = NextResponse.json({
+      hasAccess: true, // Existing users always have dashboard access — layout/middleware enforce paywall
+      onTrial: trialInfo.status === 'trial',
+      trialDaysLeft: trialInfo.trialDaysLeft,
+      graceDaysLeft: trialInfo.graceDaysLeft,
+      hasPaidPlan: hasPaidSubscription,
+      status: trialInfo.status,
+      blocked: trialInfo.blocked,
+    });
+    res.cookies.set('cg_paywall', cookieVal, PAYWALL_COOKIE);
+    return res;
   } catch (error) {
     console.error('Subscription status error:', error);
-    return NextResponse.json({ hasAccess: false }, { status: 500 });
+    return NextResponse.json({ hasAccess: true }, { status: 500 });
   }
 }

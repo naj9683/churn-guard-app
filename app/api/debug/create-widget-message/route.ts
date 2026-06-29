@@ -11,6 +11,11 @@ export async function GET() {
       return NextResponse.json({ error: "No user found" }, { status: 404 });
     }
 
+    const existing = await prisma.widgetMessage.count({ where: { userId: user.id } });
+    if (existing > 0) {
+      return NextResponse.json({ success: true, message: "Default message already exists", skipped: true });
+    }
+
     const message = await prisma.widgetMessage.create({
       data: {
         userId: user.id,
@@ -21,10 +26,10 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Widget message created!",
-      data: message 
+      data: message
     });
   } catch (error) {
     console.error("Error:", error);

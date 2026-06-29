@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [analysisMsg, setAnalysisMsg] = useState<string | null>(null);
   const [activeRules, setActiveRules] = useState<number | null>(null);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  const [graceDaysLeft, setGraceDaysLeft] = useState<number | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -124,8 +125,9 @@ export default function Dashboard() {
           router.push('/pricing');
           return;
         }
-        if (subData.onTrial && subData.trialDaysLeft != null) {
-          setTrialDaysLeft(subData.trialDaysLeft);
+        if (!subData.isAdmin && !subData.hasPaidPlan) {
+          setTrialDaysLeft(subData.trialDaysLeft ?? 0);
+          setGraceDaysLeft(subData.graceDaysLeft ?? 0);
         }
         // Admin email bypasses onboarding checks entirely
         if (subData.isAdmin) return;
@@ -329,36 +331,52 @@ export default function Dashboard() {
       }}>
         <OnboardingChecklist />
 
-        {/* Trial banner */}
-        {trialDaysLeft !== null && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            marginBottom: '24px',
-            background: trialDaysLeft <= 5 ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.07)',
-            border: `1px solid ${trialDaysLeft <= 5 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
-          }}>
-            <span style={{ fontSize: '14px', color: trialDaysLeft <= 5 ? '#ef4444' : '#10b981', fontWeight: '500' }}>
-              {trialDaysLeft <= 5
-                ? `⚠️ Your free trial ends in ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} — upgrade to keep your data`
-                : `🟢 Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`}
-            </span>
-            <Link href="/settings/billing" style={{
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#fff',
-              background: trialDaysLeft <= 5 ? '#ef4444' : '#10b981',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              textDecoration: 'none',
+        {/* Trial / free-plan countdown banner */}
+        {trialDaysLeft !== null && (() => {
+          const inGrace  = (graceDaysLeft ?? 0) > 0;
+          const urgent   = !inGrace && trialDaysLeft > 0 && trialDaysLeft <= 7;
+          const isWarn   = inGrace || urgent;
+          const bg       = isWarn ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.07)';
+          const border   = isWarn ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)';
+          const color    = isWarn ? '#ef4444' : '#10b981';
+          const btnBg    = isWarn ? '#ef4444' : '#10b981';
+          const gd       = graceDaysLeft ?? 0;
+          const label    = inGrace
+            ? `Grace period — ${gd} day${gd === 1 ? '' : 's'} left before access is blocked. Upgrade now to keep your data.`
+            : urgent
+              ? `Your free trial ends in ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} — upgrade to keep your data`
+              : `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`;
+          const icon = inGrace ? '⚠️' : urgent ? '⚠️' : '🟢';
+          return (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 20px',
+              borderRadius: '10px',
+              marginBottom: '24px',
+              background: bg,
+              border: `1px solid ${border}`,
             }}>
-              Upgrade →
-            </Link>
-          </div>
-        )}
+              <span style={{ fontSize: '14px', color, fontWeight: '500' }}>
+                {icon} {label}
+              </span>
+              <Link href="/upgrade" style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#fff',
+                background: btnBg,
+                padding: '6px 14px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                marginLeft: '16px',
+              }}>
+                Upgrade →
+              </Link>
+            </div>
+          );
+        })()}
 
         {/* Header */}
         <div style={{

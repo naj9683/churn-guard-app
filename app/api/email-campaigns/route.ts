@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { checkWriteAccess } from '@/lib/paywallGuard';
 
 export async function GET() {
   try {
@@ -26,6 +27,9 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const writeBlock = await checkWriteAccess(userId);
+    if (writeBlock) return writeBlock;
 
     const user = await prisma.user.findFirst({ where: { clerkId: userId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });

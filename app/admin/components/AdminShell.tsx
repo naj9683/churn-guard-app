@@ -11,6 +11,7 @@ const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
 const NAV = [
   { href: '/admin', label: 'Overview', icon: '🏠' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
   { href: '/admin/calc-audit', label: 'Calc Audit', icon: '🔍' },
   { href: '/admin/integrations', label: 'Integrations', icon: '🔗' },
   { href: '/admin/email-templates', label: 'Email Templates', icon: '✉️' },

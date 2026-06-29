@@ -2,7 +2,7 @@
   "$schema": "https://stripe.com/stripe-app.schema.json",
   "id": "com.churnguard.risk-monitor",
   "name": "ChurnGuard",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "icon": "./public/icon.png",
   "ui_extension": {
     "views": [
