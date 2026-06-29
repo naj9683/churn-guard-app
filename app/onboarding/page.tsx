@@ -111,9 +111,12 @@ export default function OnboardingPage() {
           <div style={{width: '32px', height: '32px', background: '#6366f1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🛡️</div>
           ChurnGuard
         </div>
-        <Link href="/dashboard" style={{color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem'}}>
+        <button
+          onClick={completeOnboarding}
+          style={{color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem'}}
+        >
           Skip for now →
-        </Link>
+        </button>
       </div>
 
       <div style={{maxWidth: '600px', margin: '0 auto', padding: '4rem 2rem'}}>
@@ -259,22 +262,37 @@ export default function OnboardingPage() {
           )}
 
           {currentStep === 3 && (
-            <button
-              onClick={addFirstCustomer}
-              disabled={loading}
-              style={{
-                padding: '1rem 2rem',
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? 'Loading...' : '+ Add First Customer'}
-            </button>
+            <>
+              <button
+                onClick={addFirstCustomer}
+                disabled={loading}
+                style={{
+                  padding: '1rem 2rem',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? 'Loading...' : '+ Add First Customer'}
+              </button>
+              <button
+                onClick={completeOnboarding}
+                style={{
+                  padding: '1rem',
+                  background: 'transparent',
+                  color: '#94a3b8',
+                  border: '1px solid #334155',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Skip for now →
+              </button>
+            </>
           )}
 
           {currentStep === 4 && (

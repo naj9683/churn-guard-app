@@ -30,7 +30,9 @@ export async function GET() {
     const stripe = !!user.stripeCustomerId;
     const slack = !!user.slackWebhookUrl;
     const firstCustomer = user.customers.length > 0;
-    const onboardingComplete = stripe && slack && firstCustomer;
+    // User record exists → they have completed signup and can access the dashboard.
+    // Individual flags (stripe/slack/firstCustomer) drive the checklist only.
+    const onboardingComplete = true;
 
     return NextResponse.json({ onboardingComplete, stripe, slack, firstCustomer });
   } catch (error) {

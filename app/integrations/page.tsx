@@ -122,21 +122,75 @@ function SlackModal({ onSave, onCancel, saving, error }: {
   );
 }
 
+// Postmark modal — Server API Token + optional sender email
+function PostmarkModal({ onSave, onCancel, saving, error }: {
+  onSave: (token: string, senderEmail: string) => void;
+  onCancel: () => void;
+  saving: boolean;
+  error: string;
+}) {
+  const [token, setToken] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '14px', padding: '28px', width: '500px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '600', color: '#111827' }}>Connect Postmark</h3>
+        <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+          Enter your Postmark Server API Token to enable transactional email delivery. Your token is validated and then encrypted before storage.
+        </p>
+
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+          Server API Token <span style={{ color: '#ef4444' }}>*</span>
+        </label>
+        <input
+          type="password"
+          value={token}
+          onChange={e => setToken(e.target.value)}
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '4px', fontFamily: 'monospace' }}
+          autoFocus
+        />
+        <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
+          Find this in your Postmark account → Servers → API Tokens tab.
+        </div>
+
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+          From Email Address <span style={{ color: '#9ca3af', fontWeight: '400' }}>(optional)</span>
+        </label>
+        <input
+          type="email"
+          value={senderEmail}
+          onChange={e => setSenderEmail(e.target.value)}
+          placeholder="hello@yourdomain.com"
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', boxSizing: 'border-box', marginBottom: '4px' }}
+        />
+        <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
+          Must be a verified sender signature in your Postmark account.
+        </div>
+
+        {error && <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error}</div>}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} style={{ padding: '9px 18px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(token, senderEmail)}
+            disabled={saving || !token.trim()}
+            style={{ padding: '9px 18px', background: saving || !token.trim() ? '#9ca3af' : '#ffbb00', color: saving || !token.trim() ? '#fff' : '#111827', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: saving || !token.trim() ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Connecting…' : 'Connect Postmark'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Stripe info panel — API key input + webhook setup
 function StripeInfoPanel({ onClose, onKeySaved }: { onClose: () => void; onKeySaved: () => void }) {
-  const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/webhooks/stripe`
-    : 'https://churnguardapp.com/api/webhooks/stripe';
-  const [copied, setCopied] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
-
-  function copy() {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   async function saveKey() {
     if (!apiKey.trim()) return;
@@ -162,12 +216,13 @@ function StripeInfoPanel({ onClose, onKeySaved }: { onClose: () => void; onKeySa
   return (
     <div style={{ marginTop: '14px', padding: '16px', background: '#f5f3ff', border: '1px solid #e0d9ff', borderRadius: '10px' }}>
 
-      {/* Section 1: API Key for Revenue at Risk */}
+      {/* API Key */}
       <div style={{ marginBottom: '18px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5', marginBottom: '4px' }}>Step 1 — Connect Stripe API key</div>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5', marginBottom: '4px' }}>Connect Stripe API key</div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-          Required for the dashboard "Revenue at Risk" card — shows the same number as your free audit.
-          Your key is stored securely and used only to read subscription data.
+          Required for the dashboard "Revenue at Risk" card. Your key is stored securely and used
+          only to read subscription data. ChurnGuard will automatically configure the required
+          webhook on your Stripe account — no manual setup needed.
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
@@ -193,27 +248,7 @@ function StripeInfoPanel({ onClose, onKeySaved }: { onClose: () => void; onKeySa
         )}
       </div>
 
-      {/* Section 2: Webhook for real-time events */}
-      <div style={{ paddingTop: '14px', borderTop: '1px solid #e0d9ff' }}>
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5', marginBottom: '4px' }}>Step 2 — Add webhook endpoint</div>
-        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
-          Required for real-time churn alerts (payment failures, cancellations).
-          Go to <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>Stripe → Webhooks</a> and add this URL:
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-          <code style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #e0d9ff', borderRadius: '6px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' }}>
-            {webhookUrl}
-          </code>
-          <button onClick={copy} style={{ padding: '8px 12px', background: copied ? '#dcfce7' : '#6366f1', color: copied ? '#15803d' : '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
-        <div style={{ fontSize: '12px', color: '#6b7280' }}>
-          Events: <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>customer.subscription.deleted</code> <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontSize: '11px' }}>invoice.payment_failed</code>
-        </div>
-      </div>
-
-      <button onClick={onClose} style={{ marginTop: '12px', fontSize: '12px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Dismiss</button>
+      <button onClick={onClose} style={{ marginTop: '4px', fontSize: '12px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Dismiss</button>
     </div>
   );
 }
@@ -367,6 +402,9 @@ function IntegrationsPageInner() {
   const [showSlackModal, setShowSlackModal] = useState(false);
   const [slackSaving, setSlackSaving] = useState(false);
   const [slackError, setSlackError] = useState('');
+  const [showPostmarkModal, setShowPostmarkModal] = useState(false);
+  const [postmarkSaving, setPostmarkSaving] = useState(false);
+  const [postmarkError, setPostmarkError] = useState('');
   const [showStripeInfo, setShowStripeInfo] = useState(false);
   const [syncResult, setSyncResult] = useState<Record<string, { pulled: number; pushed: number; created: number; updated: number; errors: string[]; lastSyncAt?: string } | null>>({});
   const [syncInfo, setSyncInfo] = useState<Record<string, { lastSyncAt: string | null; syncStatus: string; lastError: string | null; reconnectRequired?: boolean }>>({});
@@ -543,6 +581,36 @@ function IntegrationsPageInner() {
     setBusyFor('slack', false);
   }
 
+  // ── Postmark ───────────────────────────────────────────────────────────────
+  async function connectPostmark(token: string, senderEmail: string) {
+    setPostmarkSaving(true);
+    setPostmarkError('');
+    const res = await fetch('/api/integrations/resend', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, senderEmail }),
+    }).catch(() => null);
+    if (!res) { setPostmarkError('Network error — please try again.'); setPostmarkSaving(false); return; }
+    const d = await res.json();
+    if (res.ok) {
+      await loadResend();
+      setShowPostmarkModal(false);
+      setPostmarkError('');
+    } else {
+      setPostmarkError(d.error ?? 'Failed to save credentials.');
+    }
+    setPostmarkSaving(false);
+  }
+
+  async function disconnectPostmark() {
+    if (!confirm('Disconnect Postmark? Emails from playbooks and campaigns will stop being delivered.')) return;
+    setBusyFor('postmark', true);
+    const res = await fetch('/api/integrations/resend', { method: 'DELETE' });
+    if (res.ok) { setResendStatus(null); }
+    else setErrorFor('postmark', 'Failed to disconnect.');
+    setBusyFor('postmark', false);
+  }
+
   if (loading) return <Layout title="Integrations"><div style={{ color: '#9ca3af' }}>Loading…</div></Layout>;
 
   return (
@@ -564,6 +632,14 @@ function IntegrationsPageInner() {
             onCancel={() => { setShowSlackModal(false); setSlackError(''); }}
             saving={slackSaving}
             error={slackError}
+          />
+        )}
+        {showPostmarkModal && (
+          <PostmarkModal
+            onSave={connectPostmark}
+            onCancel={() => { setShowPostmarkModal(false); setPostmarkError(''); }}
+            saving={postmarkSaving}
+            error={postmarkError}
           />
         )}
 
@@ -764,7 +840,10 @@ function IntegrationsPageInner() {
             <IntegrationCard
               icon="📧" name="Postmark"
               desc="Transactional emails — retention sequences, playbook alerts, and campaign delivery"
-              connected={!!resendStatus?.configured} accentColor="#ffbb00" active={!!resendStatus?.configured}
+              connected={!!resendStatus?.configured} accentColor="#ffbb00"
+              loading={busy.postmark}
+              onConnect={() => setShowPostmarkModal(true)}
+              onDisconnect={disconnectPostmark}
             >
               <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 {resendStatus?.configured ? (
@@ -774,7 +853,15 @@ function IntegrationsPageInner() {
                         <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>
                           Sending from: <span style={{ color: '#6366f1' }}>{resendStatus.senderEmail ?? '—'}</span>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Token encrypted · stored per-account</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          Token encrypted · stored per-account
+                          <button
+                            onClick={() => { setPostmarkError(''); setShowPostmarkModal(true); }}
+                            style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', cursor: 'pointer', padding: '0', textDecoration: 'underline', fontFamily: 'inherit' }}
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
                       <button
                         onClick={sendTestEmail}
@@ -811,7 +898,7 @@ function IntegrationsPageInner() {
                   </>
                 ) : (
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Click <strong>Connect</strong> to add your Postmark Server API Token and sender email. Your credentials are encrypted and stored per-account.
+                    Click <strong style={{ color: '#111827' }}>Connect</strong> to add your Postmark Server API Token. Your token is validated and encrypted before storage.
                   </div>
                 )}
               </div>

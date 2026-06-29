@@ -66,6 +66,33 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Auto-register the ChurnGuard webhook endpoint on the merchant's Stripe account.
+  // This removes the need for users to manually configure webhooks in Stripe Dashboard.
+  // Best-effort: a failure here doesn't fail the key-save.
+  try {
+    const events = [
+      'customer.subscription.deleted',
+      'customer.subscription.updated',
+      'invoice.payment_failed',
+      'invoice.payment_succeeded',
+      'checkout.session.completed',
+    ];
+    const body = new URLSearchParams({ url: 'https://churnguardapp.com/api/webhooks/stripe' });
+    events.forEach((e, i) => body.append(`enabled_events[${i}]`, e));
+
+    await fetch('https://api.stripe.com/v1/webhook_endpoints', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    // Silently ignore duplicates (400) or permission errors — webhook may already exist.
+  } catch {
+    // Non-fatal
+  }
+
   return NextResponse.json({ connected: true, keyPrefix: apiKey.slice(0, 8) + '…' });
 }
 
