@@ -18,13 +18,37 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const BASE = 'https://churnguardapp.com';
+
 export default function BlogIndex() {
   const posts = getAllPosts();
   const featured = posts.find(p => p.featured);
   const rest = posts.filter(p => !p.featured);
 
+  const collectionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${BASE}/blog`,
+    name: 'ChurnGuard Blog — SaaS Churn Prevention Insights',
+    description:
+      'Data-backed strategies for reducing SaaS churn, recovering failed payments, and building retention systems that run on autopilot.',
+    url: `${BASE}/blog`,
+    isPartOf: { '@type': 'WebSite', '@id': `${BASE}/#website` },
+    about: { '@type': 'Thing', name: 'SaaS churn prevention' },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: posts.map((post, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `${BASE}/blog/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
       <style>{`
         .blog-card { transition: border-color 0.2s, transform 0.2s; }
         .blog-card:hover { border-color: #6366f1 !important; transform: translateY(-2px); }

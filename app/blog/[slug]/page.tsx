@@ -78,26 +78,69 @@ const STYLES = `
   }
 `;
 
+const BASE = 'https://churnguardapp.com';
+
 export default function BlogPost({ params }: { params: { slug: string } }) {
   const post = getPost(params.slug);
   if (!post) notFound();
 
-  const jsonLd = {
+  const postUrl = `${BASE}/blog/${post.slug}`;
+
+  const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
+    '@id': postUrl,
     headline: post.metaTitle || post.title,
     description: post.description,
-    author: { '@type': 'Person', name: post.author, jobTitle: post.authorRole },
+    author: {
+      '@type': 'Person',
+      name: post.author,
+      jobTitle: post.authorRole,
+    },
     datePublished: post.date,
     dateModified: post.date,
-    publisher: { '@type': 'Organization', name: 'ChurnGuard', url: 'https://churnguardapp.com' },
-    url: `https://churnguardapp.com/blog/${post.slug}`,
+    publisher: {
+      '@type': 'Organization',
+      name: 'ChurnGuard',
+      url: BASE,
+      '@id': `${BASE}/#organization`,
+    },
+    url: postUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl },
+    image: `${BASE}/og-default.png`,
+    isPartOf: { '@type': 'WebSite', '@id': `${BASE}/#website` },
     keywords: post.tags.join(', '),
+    articleSection: post.tags[0] ?? 'SaaS',
+    about: { '@type': 'Thing', name: post.tags[0] ?? 'SaaS churn prevention' },
   };
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${BASE}/blog` },
+      { '@type': 'ListItem', position: 3, name: post.title, item: postUrl },
+    ],
+  };
+
+  const faqSchema = post.faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: post.faqs.map(({ question, answer }) => ({
+          '@type': 'Question',
+          name: question,
+          acceptedAnswer: { '@type': 'Answer', text: answer },
+        })),
+      }
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <style>{STYLES}</style>
 
       {/* ── Header ── */}

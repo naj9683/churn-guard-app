@@ -24,9 +24,15 @@ export interface PostMeta {
   featured: boolean;
 }
 
+export interface PostFaq {
+  question: string;
+  answer: string;
+}
+
 export interface Post extends PostMeta {
   contentHtml: string;
   headings: PostHeading[];
+  faqs: PostFaq[];
 }
 
 // ── Frontmatter parser ────────────────────────────────────────────────────────
@@ -249,6 +255,42 @@ function extractHeadings(md: string): PostHeading[] {
     });
 }
 
+// ── Extract FAQ pairs from ## FAQ section ─────────────────────────────────────
+
+function extractFaqs(md: string): PostFaq[] {
+  const lines = md.split('\n');
+  const faqStart = lines.findIndex(l => /^## FAQ\s*$/.test(l.trim()));
+  if (faqStart === -1) return [];
+
+  const faqs: PostFaq[] = [];
+  let currentQuestion = '';
+  let currentAnswerLines: string[] = [];
+
+  const flush = () => {
+    if (!currentQuestion || currentAnswerLines.length === 0) return;
+    const answer = currentAnswerLines.join(' ')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .trim();
+    if (answer) faqs.push({ question: currentQuestion, answer });
+    currentQuestion = '';
+    currentAnswerLines = [];
+  };
+
+  for (let i = faqStart + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^## /.test(line)) break;
+    if (/^---+\s*$/.test(line.trim()) && currentAnswerLines.length > 0) break;
+    const qMatch = line.match(/^\*\*(.+?\?)\*\*\s*$/);
+    if (qMatch) { flush(); currentQuestion = qMatch[1]; continue; }
+    if (currentQuestion && line.trim()) currentAnswerLines.push(line.trim());
+  }
+  flush();
+  return faqs;
+}
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 function buildMeta(data: Record<string, unknown>, slug: string): PostMeta {
@@ -291,6 +333,7 @@ export function getPost(slug: string): Post | null {
     ...buildMeta(data, slug),
     contentHtml: markdownToHtml(content),
     headings:    extractHeadings(content),
+    faqs:        extractFaqs(content),
   };
 }
 

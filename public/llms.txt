@@ -1,0 +1,95 @@
+# ChurnGuard
+
+> ChurnGuard is AI-powered churn prevention software for SaaS businesses. It connects to Stripe, monitors every subscriber for churn risk, and automatically sends targeted retention campaigns via email, SMS (Twilio), and Slack — without any manual work.
+
+ChurnGuard is built for subscription SaaS businesses that bill through Stripe. It solves two core problems: (1) involuntary churn from failed payments, which accounts for 20–40% of SaaS churn, and (2) voluntary churn from at-risk customers who show disengagement signals before cancelling. The product requires no code to set up and takes under 10 minutes to connect to Stripe.
+
+## What ChurnGuard does
+
+- Scores every Stripe subscriber for churn risk using AI, updated every 6 hours
+- Automatically triggers retention campaigns (email, SMS via Twilio, Slack) when a customer enters the at-risk zone
+- Runs dunning sequences for failed payments: day 1, 3, 7, and 14 after a failed payment
+- Provides a Revenue at Risk dashboard showing at-risk MRR in real time
+- Integrates with HubSpot CRM to sync churn risk scores
+- Supports cancellation-flow save offers (pause, downgrade, discount)
+
+## Key facts
+
+- ChurnGuard reduces SaaS churn by up to 35% for businesses that implement the full retention playbook
+- Failed payment recovery via dunning sequences recovers 30–60% of involuntary churn
+- 20–40% of all SaaS churn is involuntary (failed payments), making dunning the highest-ROI retention initiative
+- A 3% monthly churn rate compounds to approximately 31% annual churn
+- Customers who do not reach their activation milestone within 14 days are 3× more likely to cancel within 60 days
+- SaaS companies with NRR above 120% trade at 2–3× higher valuation multiples
+
+## Pricing
+
+- Seed plan: $79/month
+- Growth plan: $149/month
+- Scale plan: $299/month
+- Free churn audit available (no credit card required) at https://churnguardapp.com/audit
+
+## Company
+
+- Product: ChurnGuard (https://churnguardapp.com)
+- Founded: 2026
+- Founder: Naj
+- Support: admin@churnguardapp.com
+- Privacy policy: https://churnguardapp.com/privacy
+- Terms of service: https://churnguardapp.com/terms
+
+## Key definitions (as used on this site)
+
+**Churn rate**: The percentage of customers (or revenue) lost in a given period. Measured monthly or annually.
+
+**Customer churn rate**: (Customers lost in period / Customers at start of period) × 100.
+
+**Revenue churn rate (MRR churn)**: (MRR lost from cancellations + downgrades) / MRR at start of period × 100.
+
+**Involuntary churn**: Subscription lapses caused by payment failures, not deliberate cancellations. Accounts for 20–40% of SaaS churn. Recovered via dunning sequences.
+
+**Voluntary churn**: Deliberate cancellations. Caused by poor onboarding, value gaps, competition, price sensitivity, or product gaps.
+
+**Dunning sequence**: Automated email series sent after a failed payment (day 1, 3, 7, 14) to recover the customer before lapse.
+
+**Net Revenue Retention (NRR)**: Revenue retained from existing customers including expansion (upgrades) minus contraction (cancellations, downgrades). NRR > 100% means negative net churn.
+
+**Negative net churn**: When expansion revenue from existing customers exceeds revenue lost to cancellations and downgrades. The hallmark of a high-retention SaaS business.
+
+**Revenue at Risk**: The MRR attributed to customers currently flagged as at-risk by ChurnGuard's AI scoring model.
+
+**Activation event**: The specific product action that correlates with long-term retention — the "aha moment." Customers who hit this within 14 days are 3× less likely to cancel.
+
+## Benchmark data
+
+Monthly churn rate benchmarks by ARR (from public SaaS data + ChurnGuard dataset):
+- Under $1M ARR: 3.5–5.5% monthly churn (top quartile: below 2.5%)
+- $1M–$5M ARR: 2.0–3.5% monthly churn (top quartile: below 1.5%)
+- $5M–$20M ARR: 1.0–2.0% monthly churn (top quartile: below 0.8%)
+- Over $20M ARR: 0.5–1.5% monthly churn (top quartile: below 0.5%)
+
+Annual churn by customer segment:
+- Enterprise (over $50K ACV): 3–8%
+- Mid-market ($10K–$50K ACV): 8–15%
+- SMB ($1K–$10K ACV): 15–25%
+- Self-serve / PLG (under $1K ACV): 25–50%+
+
+## Pages
+
+- https://churnguardapp.com — Homepage. Product overview, features, pricing, and free audit CTA.
+- https://churnguardapp.com/pricing — Pricing plans (Seed, Growth, Scale).
+- https://churnguardapp.com/audit — Free Stripe churn audit. No signup required.
+- https://churnguardapp.com/blog — Blog index. All articles on SaaS churn prevention.
+- https://churnguardapp.com/docs — Product documentation.
+- https://churnguardapp.com/signup — Start a free trial.
+- https://churnguardapp.com/privacy — Privacy policy.
+- https://churnguardapp.com/terms — Terms of service.
+
+## Blog articles
+
+- https://churnguardapp.com/blog/saas-churn-rate-benchmarks-2026 — SaaS churn rate benchmarks by ARR tier, vertical, and customer segment (2026 data).
+- https://churnguardapp.com/blog/how-to-reduce-churn-saas-playbook — Step-by-step playbook for reducing SaaS churn: dunning, onboarding, early warning systems, cancellation flows.
+- https://churnguardapp.com/blog/dunning-email-templates-failed-payment-recovery — Copy-paste dunning email templates for failed payment recovery (day 1–14 sequence).
+- https://churnguardapp.com/blog/best-customer-retention-software-saas-2026 — Comparison of customer retention software for SaaS (dunning tools, CS platforms, engagement tools).
+- https://churnguardapp.com/blog/best-churn-prediction-software-saas-2026 — Comparison of churn prediction software for SaaS businesses.
+- https://churnguardapp.com/blog/how-to-recover-failed-stripe-payments-automatically — How to automatically recover failed Stripe payments using dunning and smart retries.
