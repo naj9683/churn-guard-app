@@ -39,6 +39,11 @@ interface CustomerRow {
 
 const APP_URL = 'https://churnguardapp.com';
 
+// Truncate long strings so they don't overflow the narrow drawer
+function trunc(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+
 export default function App({ userContext, environment }: ExtensionContextValue) {
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,8 +56,8 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     ?? `${APP_URL}/api/stripe-app`;
   const isTestMode = environment?.mode === 'test';
 
-  // Initialise connect URL immediately from accountId so the button is never empty.
-  // After load() we upgrade it with a short-lived OAuth state for backend verification.
+  // Initialise connect URL immediately so the button is never empty.
+  // After load() we upgrade it with a short-lived OAuth state.
   const [connectUrl, setConnectUrl] = useState(
     `${APP_URL}/signup?${new URLSearchParams({ stripe_account_id: accountId, source: 'stripe_app' })}`
   );
@@ -62,17 +67,20 @@ export default function App({ userContext, environment }: ExtensionContextValue)
   const revenueAtRisk = atRisk.reduce((sum, r) => sum + r.mrr, 0);
   const displayRows = showingAll ? rows : rows.slice(0, 8);
 
+  // Format MRR compactly to avoid overflow: $1.2k instead of $1,234
+  function fmtMrr(n: number): string {
+    if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
+    return `$${n}`;
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // STRIPE_API_KEY is the merchant's own restricted key — granted when they
-      // installed this app. No separate OAuth needed to read their Stripe data.
-      //
-      // NOTE: do NOT expand data.latest_invoice.payment_intent — that requires
-      // invoice_read permission which is not in the manifest and will cause a
-      // Stripe permission error that silently breaks the whole request.
+      // STRIPE_API_KEY is the merchant's own restricted key — granted at install.
+      // Do NOT expand data.latest_invoice.payment_intent — requires invoice_read
+      // which is not in the manifest and causes a silent permission error.
       const [subscriptionsRes, chargesRes] = await Promise.all([
         stripe.subscriptions.list({
           limit: 100,
@@ -129,9 +137,8 @@ export default function App({ userContext, environment }: ExtensionContextValue)
       setLoading(false);
     }
 
-    // Run these after setLoading(false) so they never block the data display.
+    // Run after setLoading(false) so they never block the data display.
 
-    // Upgrade connect URL with a short-lived OAuth state for backend verification.
     try {
       const { state, challenge } = await createOAuthState();
       const p = new URLSearchParams({
@@ -142,10 +149,9 @@ export default function App({ userContext, environment }: ExtensionContextValue)
       });
       setConnectUrl(`${APP_URL}/stripe-app/connect?${p}`);
     } catch {
-      // Keep the basic signup URL already set
+      // Keep the basic signup URL
     }
 
-    // Check whether this Stripe account has been linked to ChurnGuard.
     try {
       const sig = await fetchStripeSignature();
       const res = await fetch(`${apiBase}/risk?account_id=${accountId}`, {
@@ -156,7 +162,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
         setChurnGuardLinked(data.linked === true);
       }
     } catch {
-      // Backend unavailable — Stripe-native scores shown, linked stays false
+      // Backend unavailable — native scores shown, linked stays false
     }
   }, [accountId, apiBase]);
 
@@ -197,7 +203,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
           <Banner
             type="caution"
             title="Test mode"
-            description="Add test subscriptions in your Stripe account to see risk scores here."
+            description="Add test subscriptions to see risk scores here."
           />
         )}
         <Box css={{
@@ -212,8 +218,8 @@ export default function App({ userContext, environment }: ExtensionContextValue)
             <Box css={{ font: 'bodyEmphasized' }}>Reading your Stripe data</Box>
           </Box>
           <Box css={{ font: 'body' }}>
-            No active subscriptions found. Risk scores will appear here automatically
-            once subscriptions exist in this account.
+            No active subscriptions found. Risk scores will appear here
+            automatically once subscriptions exist in this account.
           </Box>
           <Button type="secondary" onPress={load}>Refresh</Button>
         </Box>
@@ -231,7 +237,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     );
   }
 
-  // ── Main view — live customer risk scores ──────────────────────────────────
+  // ── Main view ──────────────────────────────────────────────────────────────
   return (
     <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
       {isTestMode && (
@@ -242,98 +248,93 @@ export default function App({ userContext, environment }: ExtensionContextValue)
         />
       )}
 
-      {/* Summary stats */}
-      <Box css={{ stack: 'x', gap: 'small' }}>
+      {/* Summary stats — three equal-width tiles */}
+      <Box css={{ stack: 'x', gap: 'xsmall' }}>
         <Box css={{
+          width: 'fill',
           stack: 'y',
-          gap: 'xsmall',
-          padding: 'medium',
+          gap: 'xxsmall',
+          padding: 'small',
           backgroundColor: 'container',
           borderRadius: 'medium',
-          width: '1/3',
         }}>
           <Box css={{ font: 'caption' }}>At Risk</Box>
           <Box css={{ font: 'title' }}>{atRisk.length}</Box>
           <Box css={{ font: 'caption' }}>score ≥ 40</Box>
         </Box>
         <Box css={{
+          width: 'fill',
           stack: 'y',
-          gap: 'xsmall',
-          padding: 'medium',
+          gap: 'xxsmall',
+          padding: 'small',
           backgroundColor: 'container',
           borderRadius: 'medium',
-          width: '1/3',
         }}>
           <Box css={{ font: 'caption' }}>High Risk</Box>
           <Box css={{ font: 'title' }}>{highRisk.length}</Box>
-          <Box css={{ font: 'caption' }}>need action now</Box>
+          <Box css={{ font: 'caption' }}>act now</Box>
         </Box>
         <Box css={{
+          width: 'fill',
           stack: 'y',
-          gap: 'xsmall',
-          padding: 'medium',
+          gap: 'xxsmall',
+          padding: 'small',
           backgroundColor: 'container',
           borderRadius: 'medium',
-          width: '1/3',
         }}>
-          <Box css={{ font: 'caption' }}>MRR at Risk</Box>
-          <Box css={{ font: 'title' }}>
-            ${revenueAtRisk.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-          </Box>
+          <Box css={{ font: 'caption' }}>MRR Risk</Box>
+          <Box css={{ font: 'title' }}>{fmtMrr(revenueAtRisk)}</Box>
           <Box css={{ font: 'caption' }}>monthly</Box>
         </Box>
       </Box>
 
       <Divider />
 
-      {/* Customer risk table */}
+      {/* Customer risk list — card layout, fits any drawer width */}
       <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
         <Box css={{ font: 'subheading' }}>Customer Risk Scores</Box>
         <Badge type="neutral">{rows.length}</Badge>
       </Box>
+
       <Box css={{ stack: 'y', gap: 'xsmall' }}>
-        <Box css={{ stack: 'x', gap: 'small', paddingX: 'small' }}>
-          <Box css={{ width: '1/3', font: 'caption' }}>Customer</Box>
-          <Box css={{ width: '1/6', font: 'caption' }}>Risk</Box>
-          <Box css={{ width: '1/6', font: 'caption' }}>Status</Box>
-          <Box css={{ width: '1/6', font: 'caption' }}>Last Payment</Box>
-          <Box css={{ width: '1/6', font: 'caption' }}>MRR</Box>
-        </Box>
         {displayRows.map(row => (
           <Box
             key={row.id}
             css={{
-              stack: 'x',
-              gap: 'small',
+              stack: 'y',
+              gap: 'xxsmall',
               padding: 'small',
               backgroundColor: 'container',
               borderRadius: 'medium',
-              alignY: 'center',
             }}
           >
-            <Box css={{ width: '1/3', stack: 'y', gap: 'xxsmall' }}>
-              <Box css={{ font: 'bodyEmphasized' }}>{row.name}</Box>
-              <Box css={{ font: 'caption' }}>{row.email}</Box>
-            </Box>
-            <Box css={{ width: '1/6' }}>
+            {/* Row 1: name + email on left, risk badge on right */}
+            <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
+              <Box css={{ stack: 'y', gap: 'xxsmall', width: 'fill' }}>
+                <Box css={{ font: 'bodyEmphasized' }}>{trunc(row.name, 24)}</Box>
+                <Box css={{ font: 'caption' }}>{trunc(row.email, 30)}</Box>
+              </Box>
               <Badge type={riskBadgeType(row.riskLevel)}>
                 {row.riskScore}{' '}
                 {row.riskLevel === 'high' ? 'High' : row.riskLevel === 'medium' ? 'Med' : 'Low'}
               </Badge>
             </Box>
-            <Box css={{ width: '1/6' }}>
+
+            {/* Row 2: status badge + MRR + last payment (all small) */}
+            <Box css={{ stack: 'x', gap: 'xsmall', alignY: 'center' }}>
               <Badge type={subscriptionBadgeType(row.subscriptionStatus, row.cancelAtPeriodEnd)}>
                 {subscriptionLabel(row.subscriptionStatus, row.cancelAtPeriodEnd)}
               </Badge>
-            </Box>
-            <Box css={{ width: '1/6', font: 'body' }}>
-              {row.daysSinceLastPayment !== null ? `${row.daysSinceLastPayment}d ago` : '—'}
-            </Box>
-            <Box css={{ width: '1/6', font: 'body' }}>
-              ${row.mrr.toLocaleString('en-US', { maximumFractionDigits: 0 })}/mo
+              <Box css={{ font: 'caption' }}>
+                {fmtMrr(row.mrr)}/mo
+                {row.daysSinceLastPayment !== null
+                  ? ` · ${row.daysSinceLastPayment}d ago`
+                  : ''}
+              </Box>
             </Box>
           </Box>
         ))}
+
         {rows.length > 8 && (
           <Box css={{ alignX: 'center', paddingY: 'small' }}>
             <Button type="secondary" onPress={() => setShowingAll(v => !v)}>
@@ -345,7 +346,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
 
       <Divider />
 
-      {/* Footer: dashboard link if ChurnGuard linked, upgrade CTA if not */}
+      {/* Footer CTA */}
       {churnGuardLinked ? (
         <Inline>
           <Link href={`${APP_URL}/dashboard?source=stripe_app`} external>
