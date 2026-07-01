@@ -22,9 +22,8 @@ export default function LoginPage() {
       const si = await signIn.create({ identifier: email });
 
       const factor = (si.supportedFirstFactors ?? []).find(
-        (f): f is { strategy: 'email_link'; emailAddressId: string } =>
-          f.strategy === 'email_link',
-      );
+        f => f.strategy === 'email_link',
+      ) as { strategy: 'email_link'; emailAddressId: string; safeIdentifier: string } | undefined;
 
       if (!factor) {
         setError(
