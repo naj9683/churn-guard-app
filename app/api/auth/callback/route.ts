@@ -19,7 +19,9 @@ export async function GET() {
   const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? '';
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'najwa.saadi1@hotmail.com';
   if (email.toLowerCase() === adminEmail.toLowerCase()) {
-    return NextResponse.redirect(new URL('/dashboard', BASE_URL));
+    const res = NextResponse.redirect(new URL('/dashboard', BASE_URL));
+    res.cookies.set('cg_paywall', 'active', PAYWALL_COOKIE);
+    return res;
   }
 
   // Existing user → check trial before deciding destination
