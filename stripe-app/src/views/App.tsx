@@ -39,6 +39,14 @@ interface CustomerRow {
 
 const APP_URL = 'https://churnguardapp.com';
 
+const DEMO_ROWS: CustomerRow[] = [
+  { id: 'demo-1', name: 'Emily Zhao',      email: 'emily@launchpad.dev',  riskScore: 92, riskLevel: 'high',   subscriptionStatus: 'past_due', cancelAtPeriodEnd: false, daysSinceLastPayment: 67, mrr: 299 },
+  { id: 'demo-2', name: 'Sarah Mitchell',  email: 'sarah@acme.io',        riskScore: 87, riskLevel: 'high',   subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 45, mrr: 199 },
+  { id: 'demo-3', name: 'Priya Nair',      email: 'priya@scalehq.com',    riskScore: 61, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: true,  daysSinceLastPayment: 28, mrr: 79  },
+  { id: 'demo-4', name: 'James Okafor',    email: 'james@buildco.com',    riskScore: 45, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 12, mrr: 99  },
+  { id: 'demo-5', name: 'Carlos Rivera',   email: 'carlos@growthops.io',  riskScore: 23, riskLevel: 'low',    subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 3,  mrr: 149 },
+];
+
 // Truncate long strings so they don't overflow the narrow drawer
 function trunc(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s;
@@ -62,10 +70,13 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     `${APP_URL}/signup?${new URLSearchParams({ stripe_account_id: accountId, source: 'stripe_app' })}`
   );
 
-  const atRisk = rows.filter(r => r.riskScore >= 40);
-  const highRisk = rows.filter(r => r.riskScore >= 70);
+  const isDemo = !loading && !error && rows.length === 0;
+  const sourceRows = isDemo ? DEMO_ROWS : rows;
+
+  const atRisk = sourceRows.filter(r => r.riskScore >= 40);
+  const highRisk = sourceRows.filter(r => r.riskScore >= 70);
   const revenueAtRisk = atRisk.reduce((sum, r) => sum + r.mrr, 0);
-  const displayRows = showingAll ? rows : rows.slice(0, 8);
+  const displayRows = showingAll ? sourceRows : sourceRows.slice(0, 8);
 
   // Format MRR compactly to avoid overflow: $1.2k instead of $1,234
   function fmtMrr(n: number): string {
@@ -195,52 +206,17 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     );
   }
 
-  // ── No subscriptions yet ───────────────────────────────────────────────────
-  if (rows.length === 0) {
-    return (
-      <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
-        {isTestMode && (
-          <Banner
-            type="caution"
-            title="Test mode"
-            description="Add test subscriptions to see risk scores here."
-          />
-        )}
-        <Box css={{
-          stack: 'y',
-          gap: 'small',
-          padding: 'medium',
-          backgroundColor: 'container',
-          borderRadius: 'medium',
-        }}>
-          <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
-            <Badge type="positive">Live</Badge>
-            <Box css={{ font: 'bodyEmphasized' }}>Reading your Stripe data</Box>
-          </Box>
-          <Box css={{ font: 'body' }}>
-            No active subscriptions found. Risk scores will appear here
-            automatically once subscriptions exist in this account.
-          </Box>
-          <Button type="secondary" onPress={load}>Refresh</Button>
-        </Box>
-        <Inline>
-          <Button type="primary" href={connectUrl} target="_blank">
-            Get ChurnGuard — Start Free Trial
-          </Button>
-        </Inline>
-        <Inline>
-          <Link href={`${APP_URL}/pricing?source=stripe_app`} external>
-            See all plans →
-          </Link>
-        </Inline>
-      </Box>
-    );
-  }
-
   // ── Main view ──────────────────────────────────────────────────────────────
   return (
     <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
-      {isTestMode && (
+      {isDemo && (
+        <Banner
+          type="caution"
+          title="No subscriptions found"
+          description="Showing sample data so you can explore the UI. Real risk scores appear automatically once subscriptions exist."
+        />
+      )}
+      {!isDemo && isTestMode && (
         <Banner
           type="caution"
           title="Test mode"
@@ -293,7 +269,10 @@ export default function App({ userContext, environment }: ExtensionContextValue)
       {/* Customer risk list — card layout, fits any drawer width */}
       <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
         <Box css={{ font: 'subheading' }}>Customer Risk Scores</Box>
-        <Badge type="neutral">{rows.length}</Badge>
+        {isDemo
+          ? <Badge type="warning">Demo data</Badge>
+          : <Badge type="neutral">{rows.length}</Badge>
+        }
       </Box>
 
       <Box css={{ stack: 'y', gap: 'xsmall' }}>
