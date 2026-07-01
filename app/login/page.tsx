@@ -23,9 +23,9 @@ export default function LoginPage() {
 
       const factor = (si.supportedFirstFactors ?? []).find(
         f => f.strategy === 'email_link',
-      ) as { strategy: 'email_link'; emailAddressId: string; safeIdentifier: string } | undefined;
+      );
 
-      if (!factor) {
+      if (!factor || factor.strategy !== 'email_link') {
         setError(
           'Magic link is not enabled for this account. ' +
           'Enable "Email link" in the Clerk dashboard → User & Authentication → Email, Phone, Username.',
