@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import Layout from '@/app/components/Layout';
 
 const TIMEZONES = ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Singapore', 'Asia/Dubai', 'Australia/Sydney'];
@@ -29,11 +30,24 @@ const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', b
 
 export default function GeneralSettingsPage() {
   const { user, isLoaded } = useUser();
+  const router = useRouter();
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [demoMode, setDemoModeState] = useState(false);
+
+  useEffect(() => {
+    setDemoModeState(localStorage.getItem('cg_demo_mode') === 'true');
+  }, []);
+
+  function toggleDemo() {
+    const next = !demoMode;
+    setDemoModeState(next);
+    localStorage.setItem('cg_demo_mode', next ? 'true' : 'false');
+    if (next) router.push('/dashboard');
+  }
 
   useEffect(() => {
     async function load() {
@@ -93,6 +107,37 @@ export default function GeneralSettingsPage() {
           <a href="https://accounts.clerk.dev" target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: '500', fontSize: '14px', textDecoration: 'none' }}>
             Manage Password →
           </a>
+        </Section>
+
+        <Section title="Demo Mode">
+          <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#6b7280', lineHeight: '1.6' }}>
+            Show fictional sample data (Acme Corp, Beta LLC, Gamma Inc…) for screenshots and sales demos.
+            A <strong>★ DEMO DATA</strong> badge appears on the dashboard. Your real data is never affected.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={toggleDemo}
+              style={{
+                padding: '10px 24px',
+                background: demoMode ? '#f59e0b' : '#6366f1',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: demoMode ? '0 4px 12px rgba(245,158,11,0.35)' : '0 4px 12px rgba(99,102,241,0.3)',
+              }}
+            >
+              {demoMode ? '★ Demo Mode is ON — Click to Turn Off' : '☆ Show Demo Data'}
+            </button>
+            {demoMode && (
+              <span style={{ fontSize: '13px', color: '#92400e', background: '#fef3c7', padding: '6px 12px', borderRadius: '6px', fontWeight: '500' }}>
+                Active — dashboard shows fake data
+              </span>
+            )}
+          </div>
         </Section>
 
         <Section title="Danger Zone">

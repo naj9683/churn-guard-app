@@ -11,6 +11,21 @@ import { mpIdentify, mpRegister, MP } from '@/lib/mixpanel';
 
 const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
+const DEMO_STATS = {
+  totalCustomers: 47,
+  atRisk: 8,
+  activePlaybooks: 3,
+  totalSaved: 12600,
+  engagementRiskMrr: 8400,
+  highRiskCustomers: [
+    { id: 'demo-1', name: 'Acme Corp',   email: 'admin@acmecorp.io',   riskScore: 92, mrr: 2400, riskReason: 'No login in 28 days, payment failed twice, usage dropped 70%' },
+    { id: 'demo-2', name: 'Beta LLC',    email: 'hello@betallc.io',    riskScore: 87, mrr: 1800, riskReason: 'Downgraded plan last week, support tickets spiked 4×' },
+    { id: 'demo-3', name: 'Test Co',     email: 'team@testco.io',      riskScore: 72, mrr: 1200, riskReason: 'Trial ending in 3 days, low feature adoption' },
+    { id: 'demo-4', name: 'Gamma Inc',   email: 'ops@gammainc.co',     riskScore: 79, mrr: 950,  riskReason: 'Feature usage dropped 60% in 14 days' },
+    { id: 'demo-5', name: 'Delta Co',    email: 'info@deltaco.com',    riskScore: 45, mrr: 600,  riskReason: 'Infrequent logins, account sharing detected' },
+  ],
+};
+
 // SVG Icon Components (No Emojis)
 const IconUsers = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -72,8 +87,18 @@ export default function Dashboard() {
   const [activeRules, setActiveRules] = useState<number | null>(null);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [graceDaysLeft, setGraceDaysLeft] = useState<number | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
+
+  // Sync demo mode with localStorage
+  useEffect(() => {
+    setDemoMode(localStorage.getItem('cg_demo_mode') === 'true');
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('cg_demo_mode', demoMode ? 'true' : 'false');
+    if (demoMode) generateDailyData([]);
+  }, [demoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (user) {
@@ -298,21 +323,23 @@ export default function Dashboard() {
 
   // Revenue at Risk: Stripe-based if key connected, engagement-based otherwise
   const stripeRisk = stripeSnapshot?.stripe?.revenueAtRisk ?? null;
-  const engagementRiskMrr = dashboardData?.engagementRiskMrr ?? 0;
-  const stripeConnected = dashboardData?.stripeConnected ?? false;
+  const engagementRiskMrr = demoMode ? DEMO_STATS.engagementRiskMrr : (dashboardData?.engagementRiskMrr ?? 0);
+  const stripeConnected = demoMode ? false : (dashboardData?.stripeConnected ?? false);
 
-  const revenueAtRiskValue = stripeRisk !== null
+  const revenueAtRiskValue = demoMode
+    ? `$${DEMO_STATS.engagementRiskMrr.toLocaleString()}`
+    : stripeRisk !== null
     ? `$${stripeRisk.toLocaleString()}`
     : stripeConnected && loadingStripe ? '…'
     : `$${engagementRiskMrr.toLocaleString()}`;
 
-  const revenueAtRiskChange = stripeRisk !== null ? 'Stripe data' : stripeConnected ? 'Loading…' : 'Engagement';
+  const revenueAtRiskChange = demoMode ? 'Demo data' : stripeRisk !== null ? 'Stripe data' : stripeConnected ? 'Loading…' : 'Engagement';
 
   const stats = [
-    { label: 'Total Customers', value: dashboardData?.totalCustomers || 0, color: '#6366f1', change: '+12%', Icon: IconUsers },
+    { label: 'Total Customers', value: demoMode ? DEMO_STATS.totalCustomers : (dashboardData?.totalCustomers || 0), color: '#6366f1', change: '+12%', Icon: IconUsers },
     { label: 'Revenue at Risk', value: revenueAtRiskValue, color: '#ef4444', change: revenueAtRiskChange, Icon: IconAlert, isRisk: true },
-    { label: 'Active Automations', value: activeRules ?? dashboardData?.activePlaybooks ?? 0, color: '#10b981', change: 'AI Active', Icon: IconPlaybook, href: '/dashboard/automation/rules' },
-    { label: 'MRR Saved', value: `$${dashboardData?.totalSaved || 0}`, color: '#3b82f6', change: '+23%', Icon: IconRevenue }
+    { label: 'Active Automations', value: demoMode ? DEMO_STATS.activePlaybooks : (activeRules ?? dashboardData?.activePlaybooks ?? 0), color: '#10b981', change: 'AI Active', Icon: IconPlaybook, href: '/dashboard/automation/rules' },
+    { label: 'MRR Saved', value: `$${demoMode ? DEMO_STATS.totalSaved.toLocaleString() : (dashboardData?.totalSaved || 0)}`, color: '#3b82f6', change: '+23%', Icon: IconRevenue }
   ];
 
   return (
@@ -330,6 +357,20 @@ export default function Dashboard() {
         padding: '32px'
       }}>
         <OnboardingChecklist />
+
+        {/* Demo mode watermark */}
+        {demoMode && (
+          <div style={{
+            position: 'fixed', top: '16px', right: '16px', zIndex: 9999,
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            color: '#fff', padding: '7px 16px', borderRadius: '20px',
+            fontSize: '12px', fontWeight: '700', letterSpacing: '0.8px',
+            boxShadow: '0 4px 14px rgba(245,158,11,0.45)',
+            pointerEvents: 'none',
+          }}>
+            ★ DEMO DATA
+          </div>
+        )}
 
         {/* Trial / free-plan countdown banner */}
         {trialDaysLeft !== null && (() => {
@@ -404,6 +445,23 @@ export default function Dashboard() {
             </p>
           </div>
           <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+            <button
+              onClick={() => setDemoMode(v => !v)}
+              style={{
+                padding: '10px 20px',
+                background: demoMode ? '#fef3c7' : '#fff',
+                color: demoMode ? '#92400e' : '#374151',
+                border: `1px solid ${demoMode ? '#fcd34d' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                fontWeight: '500',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              {demoMode ? '★ Demo Mode On' : '☆ Demo Mode'}
+            </button>
             <Link href="/customers" style={{
               padding: '10px 20px',
               background: '#fff',
@@ -829,7 +887,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {(dashboardData?.highRiskCustomers?.length ?? 0) === 0 ? (
+          {((demoMode ? DEMO_STATS.highRiskCustomers : dashboardData?.highRiskCustomers)?.length ?? 0) === 0 ? (
             <div style={{ textAlign: 'center', padding: '36px 24px' }}>
               <div style={{ width: '48px', height: '48px', background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '22px' }}>✓</div>
               <p style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '600', color: '#111827' }}>No high-risk customers found</p>
@@ -853,7 +911,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {dashboardData.highRiskCustomers.map((c: any) => (
+              {(demoMode ? DEMO_STATS.highRiskCustomers : (dashboardData?.highRiskCustomers ?? [])).map((c: any) => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: '8px' }}>
                   <div style={{
                     width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,

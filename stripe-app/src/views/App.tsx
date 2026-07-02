@@ -58,6 +58,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
   const [error, setError] = useState<string | null>(null);
   const [showingAll, setShowingAll] = useState(false);
   const [churnGuardLinked, setChurnGuardLinked] = useState(false);
+  const [forceDemoMode, setForceDemoMode] = useState(false);
 
   const accountId = userContext?.account?.id ?? '';
   const apiBase = (environment?.constants as Record<string, string> | undefined)?.API_BASE
@@ -70,7 +71,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
     `${APP_URL}/signup?${new URLSearchParams({ stripe_account_id: accountId, source: 'stripe_app' })}`
   );
 
-  const isDemo = !loading && !error && rows.length === 0;
+  const isDemo = !loading && !error && (rows.length === 0 || forceDemoMode);
   const sourceRows = isDemo ? DEMO_ROWS : rows;
 
   const atRisk = sourceRows.filter(r => r.riskScore >= 40);
@@ -273,6 +274,14 @@ export default function App({ userContext, environment }: ExtensionContextValue)
           ? <Badge type="warning">Demo data</Badge>
           : <Badge type="neutral">{rows.length}</Badge>
         }
+        <Box css={{ width: 'fill' }} />
+        <Button
+          type="secondary"
+          size="small"
+          onPress={() => setForceDemoMode(v => !v)}
+        >
+          {forceDemoMode ? 'Exit Demo' : 'Demo Mode'}
+        </Button>
       </Box>
 
       <Box css={{ stack: 'y', gap: 'xsmall' }}>
