@@ -99,11 +99,10 @@ export default function LandingPage() {
       {/* ── NAV ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(6,6,16,0.85)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <nav style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '17px', color: '#fff', letterSpacing: '-0.02em' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🛡️</div>
-            ChurnGuard
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo-purple.png" alt="ChurnGuard" height={32} style={{ height: '32px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
           </div>
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '32px' }}>
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '30px' }}>
             {[['#features', 'Features'], ['#how-it-works', 'How it works'], ['#pricing', 'Pricing'], ['/blog', 'Blog']].map(([href, label]) => (
               <a key={href} href={href} style={{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', fontWeight: '500', textDecoration: 'none', transition: 'color 0.15s' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
@@ -646,9 +645,8 @@ export default function LandingPage() {
         <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10" style={{ marginBottom: '48px' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '16px', color: '#fff', marginBottom: '12px', letterSpacing: '-0.02em' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>🛡️</div>
-                ChurnGuard
+              <div style={{ marginBottom: '12px' }}>
+                <img src="/logo-purple.png" alt="ChurnGuard" height={40} style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
               </div>
               <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.7, marginBottom: '16px' }}>AI-powered churn prevention for SaaS founders. Predict. Intervene. Retain.</p>
               <a href="mailto:admin@churnguardapp.com" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}

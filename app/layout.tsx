@@ -13,6 +13,10 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://churnguardapp.com'),
+  icons: {
+    icon: '/logo-purple.png',
+    apple: '/logo-purple.png',
+  },
   title: {
     default: 'ChurnGuard — Churn Prevention Software for SaaS',
     template: '%s | ChurnGuard',

@@ -73,34 +73,8 @@ export default function Sidebar() {
         padding: '20px 24px',
         borderBottom: '1px solid #e5e7eb'
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <span style={{color: '#fff', fontSize: '16px', fontWeight: '700'}}>C</span>
-          </div>
-          <div>
-            <div style={{
-              fontSize: '18px',
-              fontWeight: '700',
-              color: '#111827',
-              letterSpacing: '-0.5px'
-            }}>ChurnGuard</div>
-            <div style={{
-              fontSize: '11px',
-              color: '#6b7280'
-            }}>Protect Revenue</div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src="/logo-purple.png" alt="ChurnGuard" style={{ height: '28px', width: 'auto' }} />
         </div>
       </div>
 

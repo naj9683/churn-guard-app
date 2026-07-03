@@ -46,7 +46,7 @@ const organizationSchema = {
   '@id': `${BASE}/#organization`,
   name: 'ChurnGuard',
   url: BASE,
-  logo: `${BASE}/og-default.png`,
+  logo: `${BASE}/logo-purple.png`,
   description:
     'ChurnGuard is an AI-powered churn prevention platform for SaaS businesses. It monitors Stripe customers for churn risk and automatically sends targeted retention campaigns via email, SMS, and Slack — reducing churn by up to 35%.',
   foundingDate: '2026',
