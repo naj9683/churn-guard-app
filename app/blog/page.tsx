@@ -65,9 +65,8 @@ export default function BlogIndex() {
       {/* ── Header ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(51,65,85,0.6)' }}>
         <nav style={{ maxWidth: '1152px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '18px', color: '#f1f5f9', textDecoration: 'none' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛡️</div>
-            ChurnGuard
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="/logo-purple.png" alt="ChurnGuard" style={{ height: '28px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
           </Link>
           <div className="blog-header-links" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <Link href="/#features" className="blog-nav-link" style={{ color: '#94a3b8', fontSize: '14px', textDecoration: 'none' }}>Features</Link>
