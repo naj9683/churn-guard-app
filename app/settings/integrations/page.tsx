@@ -243,8 +243,11 @@ export default function IntegrationsPage() {
   const [aiEmailEnabled, setAiEmailEnabled] = useState(true);
   const [aiOpenaiConfigured, setAiOpenaiConfigured] = useState(false);
   const [aiToggling, setAiToggling] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [twilioConfigured, setTwilioConfigured] = useState(false);
+  const [smsToggling, setSmsToggling] = useState(false);
 
-  useEffect(() => { loadStatus(); loadResend(); loadAiEmail(); }, []);
+  useEffect(() => { loadStatus(); loadResend(); loadAiEmail(); loadSms(); }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -267,6 +270,26 @@ export default function IntegrationsPage() {
   async function loadResend() {
     const res = await fetch('/api/integrations/resend').catch(() => null);
     if (res?.ok) setResendStatus(await res.json());
+  }
+
+  async function loadSms() {
+    const res = await fetch('/api/settings/sms').catch(() => null);
+    if (res?.ok) {
+      const d = await res.json();
+      setSmsEnabled(d.smsEnabled ?? false);
+      setTwilioConfigured(d.twilioConfigured ?? false);
+    }
+  }
+
+  async function toggleSms(enabled: boolean) {
+    setSmsToggling(true);
+    const res = await fetch('/api/settings/sms', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ smsEnabled: enabled }),
+    });
+    if (res.ok) setSmsEnabled(enabled);
+    setSmsToggling(false);
   }
 
   async function loadAiEmail() {
@@ -504,6 +527,57 @@ export default function IntegrationsPage() {
               )}
               {error.postmark && <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.postmark}</div>}
             </IntegrationCard>
+
+
+            {/* SMS / Twilio toggle */}
+            <div style={{ border: `1px solid ${smsEnabled && twilioConfigured ? '#10b98140' : '#e5e7eb'}`, borderRadius: '10px', padding: '20px', background: smsEnabled && twilioConfigured ? '#10b98105' : '#fff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '48px', height: '48px', background: '#10b98115', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
+                    💬
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      SMS Alerts
+                      {smsEnabled && twilioConfigured && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Active</span>}
+                      {!twilioConfigured && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#fef3c7', color: '#92400e', borderRadius: '20px' }}>Twilio not configured</span>}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                      Send SMS to customer phone numbers for critical interventions (high-priority calls, payment failures)
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleSms(!smsEnabled)}
+                  disabled={smsToggling || !twilioConfigured}
+                  title={!twilioConfigured ? 'Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to enable SMS' : undefined}
+                  style={{
+                    position: 'relative', width: '44px', height: '24px', borderRadius: '12px', border: 'none',
+                    cursor: smsToggling || !twilioConfigured ? 'not-allowed' : 'pointer',
+                    background: smsEnabled && twilioConfigured ? '#10b981' : '#e5e7eb',
+                    transition: 'background 0.2s', flexShrink: 0, opacity: !twilioConfigured ? 0.5 : 1,
+                  }}
+                >
+                  <span style={{
+                    position: 'absolute', top: '3px', left: smsEnabled && twilioConfigured ? '23px' : '3px',
+                    width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+              </div>
+              {!twilioConfigured && (
+                <div style={{ marginTop: '14px', padding: '10px 14px', background: '#fef9c3', border: '1px solid #fef08a', borderRadius: '8px', fontSize: '13px', color: '#713f12' }}>
+                  Add <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>TWILIO_ACCOUNT_SID</code>,{' '}
+                  <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>TWILIO_AUTH_TOKEN</code>, and{' '}
+                  <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>TWILIO_PHONE_NUMBER</code> to your environment variables to enable SMS alerts.
+                </div>
+              )}
+              {smsEnabled && twilioConfigured && (
+                <div style={{ marginTop: '14px', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '13px', color: '#166534' }}>
+                  SMS alerts are active. Customers with a phone number on record will receive an SMS for high-priority and critical-call interventions. All attempts are logged to SmsLog.
+                </div>
+              )}
+            </div>
           </div>
         </Section>
 

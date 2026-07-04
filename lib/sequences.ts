@@ -12,7 +12,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
-import OpenAI from 'openai';
+import { generatePersonalizedEmail, type CustomerEmailContext } from '@/lib/ai-email-generator';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://churn-guard-app.vercel.app';
 
@@ -54,59 +54,6 @@ export async function sendSms(to: string, body: string): Promise<{ ok: boolean; 
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e.message ?? 'Network error' };
-  }
-}
-
-// ── OpenAI personalised email ──────────────────────────────────────────────
-
-async function generateRetentionEmail(
-  customer: { name: string | null; plan: string | null; mrr: number; lastLoginAt: Date | null; featuresUsed: unknown; riskReason: string | null }
-): Promise<{ subject: string; html: string }> {
-  const fallback = {
-    subject: `We've noticed a change in your activity`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-      <p>Hi ${customer.name ?? 'there'},</p>
-      <p>We noticed you haven't been as active lately. Our success team would love to help — just reply to this email.</p>
-      <p>Best,<br>The ChurnGuard Team</p>
-    </div>`,
-  };
-
-  if (!process.env.OPENAI_API_KEY) return fallback;
-
-  const daysSinceLogin = customer.lastLoginAt
-    ? Math.floor((Date.now() - customer.lastLoginAt.getTime()) / 86_400_000)
-    : null;
-  const features = Array.isArray(customer.featuresUsed)
-    ? (customer.featuresUsed as string[]).join(', ') || 'none recorded'
-    : 'none recorded';
-
-  const prompt = `You are a customer success manager at a B2B SaaS company called ChurnGuard.
-Write a personalised retention email for a customer at risk of churning.
-
-Customer:
-- Name: ${customer.name ?? 'there'}
-- Plan: ${customer.plan ?? 'unknown'}, MRR: $${customer.mrr}
-- Days since last login: ${daysSinceLogin ?? 'never logged in'}
-- Features used: ${features}
-- Risk reason: ${customer.riskReason ?? 'high churn probability detected'}
-
-Write exactly 3 short paragraphs: empathetic opening, concrete & specific help offer, soft CTA. No marketing fluff.
-Return ONLY valid JSON (no markdown): { "subject": "...", "html": "..." }
-The html must use basic inline styles and be wrapped in a max-width:600px div.`;
-
-  try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 700,
-    });
-    const raw = (completion.choices[0]?.message?.content ?? '')
-      .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
   }
 }
 
@@ -198,10 +145,21 @@ async function executeStep(
   if (enrollment.sequenceType === 'risk_retention') {
 
     if (step === 0) {
-      const { subject, html } = await generateRetentionEmail(customer);
-      const ok = await sendEmail({ to: customer.email, subject, html });
+      const daysSinceLogin = customer.lastLoginAt
+        ? Math.floor((Date.now() - customer.lastLoginAt.getTime()) / 86_400_000)
+        : undefined;
+      const ctx: CustomerEmailContext = {
+        name: customer.name ?? 'there',
+        email: customer.email,
+        plan: customer.plan,
+        mrr: customer.mrr,
+        riskScore: customer.riskScore,
+        daysSinceLogin,
+      };
+      const generated = await generatePersonalizedEmail(ctx, 'churnRisk', enrollment.userId);
+      const ok = await sendEmail({ to: customer.email, subject: generated.subject, html: generated.body });
       return ok
-        ? { status: 'success', message: 'Risk retention step 0: AI-personalised email sent' }
+        ? { status: 'success', message: `Risk retention step 0: AI email sent (source: ${generated.source})` }
         : { status: 'failed',  message: 'Risk retention step 0: email send failed' };
     }
 

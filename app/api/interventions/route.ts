@@ -104,7 +104,7 @@ function toEmailType(interventionType: string): string {
 }
 
 async function executeIntervention(
-  intervention: { id: string; interventionType: string; mrrAtRisk: number; userId: string; riskScoreAtStart?: number; daysSinceLogin?: number | null; plan?: string | null },
+  intervention: { id: string; interventionType: string; mrrAtRisk: number; userId: string; customerId: string; riskScoreAtStart?: number; daysSinceLogin?: number | null; plan?: string | null },
   customer: { email: string; name: string | null; mrr: number; phone: string | null }
 ): Promise<ExecutionLog> {
   const now = new Date().toISOString();
@@ -157,33 +157,42 @@ async function executeIntervention(
     log.timeline.push({ event: 'Email failed', timestamp: now, detail: `Failed to send to ${customer.email}` });
   }
 
-  // 2. SMS — critical types only
+  // Fetch user once for SMS + Slack
+  const user = await prisma.user.findFirst({
+    where: { id: intervention.userId },
+    select: { slackWebhookUrl: true, smsEnabled: true },
+  });
+
+  // 2. SMS — critical types only, when smsEnabled
   const criticalTypes = ['high_priority_call', 'critical_call_required', 'discount_offer'];
   if (criticalTypes.includes(intervention.interventionType)) {
-    if (customer.phone) {
+    if (!user?.smsEnabled) {
+      log.channels.sms = { status: 'skipped', sentAt: now, reason: 'SMS alerts disabled — enable in Settings → Integrations' };
+      log.timeline.push({ event: 'SMS skipped', timestamp: now, detail: 'SMS alerts disabled in settings' });
+      prisma.smsLog.create({ data: { userId: intervention.userId, customerId: intervention.customerId, to: customer.phone ?? '', body: '', status: 'skipped', errorMessage: 'SMS disabled' } }).catch(() => {});
+    } else if (!customer.phone) {
+      log.channels.sms = { status: 'skipped', sentAt: now, reason: 'No phone number on customer record' };
+      log.timeline.push({ event: 'SMS skipped', timestamp: now, detail: 'No phone number on customer record' });
+      prisma.smsLog.create({ data: { userId: intervention.userId, customerId: intervention.customerId, to: '', body: '', status: 'skipped', errorMessage: 'No phone number' } }).catch(() => {});
+    } else {
       const smsBody = `ChurnGuard: Hi ${customer.name ?? 'there'}, we sent you an important email. Reply or visit ${APP_URL} for support.`;
       const smsResult = await sendSms(customer.phone, smsBody);
       if (smsResult.ok) {
         log.channels.sms = { status: 'sent', to: customer.phone, body: smsBody, sentAt: now };
         log.timeline.push({ event: 'SMS sent', timestamp: now, detail: `Message sent to ${customer.phone}` });
+        prisma.smsLog.create({ data: { userId: intervention.userId, customerId: intervention.customerId, to: customer.phone, body: smsBody, status: 'sent' } }).catch(() => {});
       } else {
         log.channels.sms = { status: 'failed', to: customer.phone, body: smsBody, sentAt: now, reason: smsResult.error };
         log.timeline.push({ event: 'SMS failed', timestamp: now, detail: smsResult.error ?? 'Twilio error' });
+        prisma.smsLog.create({ data: { userId: intervention.userId, customerId: intervention.customerId, to: customer.phone, body: smsBody, status: 'failed', errorMessage: smsResult.error } }).catch(() => {});
       }
-    } else {
-      log.channels.sms = { status: 'skipped', sentAt: now, reason: 'No phone number on customer record' };
-      log.timeline.push({ event: 'SMS skipped', timestamp: now, detail: 'No phone number on customer record' });
     }
   }
 
   // 3. Slack — high-priority types only
   const slackTypes = ['high_priority_call', 'critical_call_required'];
   if (slackTypes.includes(intervention.interventionType)) {
-    const user = await prisma.user.findFirst({
-      where: { id: intervention.userId },
-      select: { slackWebhookUrl: true },
-    });
-    if (user?.slackWebhookUrl) {
+    if (user?.slackWebhookUrl) {  // uses the user fetched above
       const slackMsg = {
         username: 'ChurnGuard',
         icon_emoji: ':rotating_light:',
