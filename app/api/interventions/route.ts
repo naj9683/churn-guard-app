@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
 import { sendSms } from '@/lib/sequences';
+import { generatePersonalizedEmail, type CustomerEmailContext } from '@/lib/ai-email-generator';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://churnguardapp.com';
 
@@ -89,12 +90,51 @@ export interface ExecutionLog {
   resolvedBy?: string;
 }
 
+// Maps intervention types to AI email generator types
+function toEmailType(interventionType: string): string {
+  switch (interventionType) {
+    case 'discount_offer':      return 'winBack';
+    case 'success_call':        return 'checkIn';
+    case 'email_campaign':      return 'churnRisk';
+    case 'high_priority_call':
+    case 'critical_call_required': return 'churnRisk';
+    case 'manual_outreach':
+    default:                    return 'checkIn';
+  }
+}
+
 async function executeIntervention(
-  intervention: { id: string; interventionType: string; mrrAtRisk: number; userId: string },
+  intervention: { id: string; interventionType: string; mrrAtRisk: number; userId: string; riskScoreAtStart?: number; daysSinceLogin?: number | null; plan?: string | null },
   customer: { email: string; name: string | null; mrr: number; phone: string | null }
 ): Promise<ExecutionLog> {
   const now = new Date().toISOString();
-  const { subject, html } = buildEmail(intervention.interventionType, customer);
+
+  // Try AI-generated email first; fall back to hardcoded template on failure
+  const emailType = toEmailType(intervention.interventionType);
+  const customerCtx: CustomerEmailContext = {
+    name: customer.name ?? 'there',
+    email: customer.email,
+    mrr: customer.mrr,
+    plan: intervention.plan ?? undefined,
+    riskScore: intervention.riskScoreAtStart ?? 50,
+    daysSinceLogin: intervention.daysSinceLogin ?? undefined,
+  };
+
+  let subject: string;
+  let html: string;
+  let emailSource: 'ai' | 'fallback' | 'hardcoded';
+
+  const aiResult = await generatePersonalizedEmail(customerCtx, emailType, intervention.userId).catch(() => null);
+  if (aiResult) {
+    subject = aiResult.subject;
+    html = aiResult.body;
+    emailSource = aiResult.source;
+  } else {
+    const fallback = buildEmail(intervention.interventionType, customer);
+    subject = fallback.subject;
+    html = fallback.html;
+    emailSource = 'hardcoded';
+  }
 
   const log: ExecutionLog = {
     executedAt: now,
@@ -108,7 +148,7 @@ async function executeIntervention(
   };
 
   // 1. Send email — pass userId so tenant's own Postmark key is used
-  const emailResult = await sendEmail(customer.email, subject, html, intervention.userId);
+  const emailResult = await sendEmail(customer.email, subject, html, intervention.userId, emailSource);
   if (emailResult.success) {
     log.channels.email = { status: 'sent', to: customer.email, subject, sentAt: now };
     log.timeline.push({ event: 'Email sent', timestamp: now, detail: `"${subject}" → ${customer.email}` });

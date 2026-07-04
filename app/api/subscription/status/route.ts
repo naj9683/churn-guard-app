@@ -17,9 +17,11 @@ export async function GET() {
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
 
-    // Admin email bypass — always grant full access
+    // Admin email bypass — always grant full access and reset any stale blocked cookie
     if (email === ADMIN_EMAIL) {
-      return NextResponse.json({ hasAccess: true, isAdmin: true });
+      const res = NextResponse.json({ hasAccess: true, isAdmin: true });
+      res.cookies.set('cg_paywall', 'active', PAYWALL_COOKIE);
+      return res;
     }
 
     // Check for active subscription in DB

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import Link from 'next/link';
 
@@ -52,8 +53,17 @@ const PLANS = [
 ];
 
 export default function UpgradePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  // Admin bypass: if this account has permanent access, redirect to dashboard immediately
+  useEffect(() => {
+    fetch('/api/subscription/status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.isAdmin) router.replace('/dashboard'); })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUpgrade(tier: string) {
     setLoading(tier);

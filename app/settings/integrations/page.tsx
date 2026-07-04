@@ -240,8 +240,11 @@ export default function IntegrationsPage() {
   const [postmarkSaving, setPostmarkSaving] = useState(false);
   const [postmarkError, setPostmarkError] = useState('');
   const [postmarkDisconnecting, setPostmarkDisconnecting] = useState(false);
+  const [aiEmailEnabled, setAiEmailEnabled] = useState(true);
+  const [aiOpenaiConfigured, setAiOpenaiConfigured] = useState(false);
+  const [aiToggling, setAiToggling] = useState(false);
 
-  useEffect(() => { loadStatus(); loadResend(); }, []);
+  useEffect(() => { loadStatus(); loadResend(); loadAiEmail(); }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -264,6 +267,26 @@ export default function IntegrationsPage() {
   async function loadResend() {
     const res = await fetch('/api/integrations/resend').catch(() => null);
     if (res?.ok) setResendStatus(await res.json());
+  }
+
+  async function loadAiEmail() {
+    const res = await fetch('/api/settings/ai-email').catch(() => null);
+    if (res?.ok) {
+      const d = await res.json();
+      setAiEmailEnabled(d.aiEmailEnabled ?? true);
+      setAiOpenaiConfigured(d.openaiConfigured ?? false);
+    }
+  }
+
+  async function toggleAiEmail(enabled: boolean) {
+    setAiToggling(true);
+    const res = await fetch('/api/settings/ai-email', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aiEmailEnabled: enabled }),
+    });
+    if (res.ok) setAiEmailEnabled(enabled);
+    setAiToggling(false);
   }
 
   async function sendTestEmail() {
@@ -481,6 +504,54 @@ export default function IntegrationsPage() {
               )}
               {error.postmark && <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.postmark}</div>}
             </IntegrationCard>
+          </div>
+        </Section>
+
+        {/* AI Email */}
+        <Section title="AI Email Personalization" subtitle="Use GPT-4o-mini to generate retention emails tailored to each customer">
+          <div style={{ border: `1px solid ${aiEmailEnabled ? '#6366f140' : '#e5e7eb'}`, borderRadius: '10px', padding: '20px', background: aiEmailEnabled ? '#6366f105' : '#fff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', background: '#6366f115', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
+                  ✨
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    AI-Powered Emails
+                    {aiEmailEnabled && aiOpenaiConfigured && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#dcfce7', color: '#15803d', borderRadius: '20px' }}>Active</span>}
+                    {!aiOpenaiConfigured && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#fef3c7', color: '#92400e', borderRadius: '20px' }}>No API key</span>}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                    Generate personalized retention emails for each customer using GPT-4o-mini (max 100/day)
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleAiEmail(!aiEmailEnabled)}
+                disabled={aiToggling || !aiOpenaiConfigured}
+                title={!aiOpenaiConfigured ? 'Set OPENAI_API_KEY in your environment to enable AI emails' : undefined}
+                style={{
+                  position: 'relative', width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: aiToggling || !aiOpenaiConfigured ? 'not-allowed' : 'pointer',
+                  background: aiEmailEnabled && aiOpenaiConfigured ? '#6366f1' : '#e5e7eb', transition: 'background 0.2s', flexShrink: 0, opacity: !aiOpenaiConfigured ? 0.5 : 1,
+                }}
+              >
+                <span style={{
+                  position: 'absolute', top: '3px', left: aiEmailEnabled && aiOpenaiConfigured ? '23px' : '3px',
+                  width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }} />
+              </button>
+            </div>
+            {!aiOpenaiConfigured && (
+              <div style={{ marginTop: '14px', padding: '10px 14px', background: '#fef9c3', border: '1px solid #fef08a', borderRadius: '8px', fontSize: '13px', color: '#713f12' }}>
+                Add <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>OPENAI_API_KEY</code> to your environment variables to enable AI email generation.
+              </div>
+            )}
+            {aiEmailEnabled && aiOpenaiConfigured && (
+              <div style={{ marginTop: '14px', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '13px', color: '#166534' }}>
+                ChurnGuard will generate personalized subject lines and email bodies for onboarding, re-engagement, and payment recovery emails. Falls back to standard templates if generation fails.
+              </div>
+            )}
           </div>
         </Section>
 

@@ -32,6 +32,7 @@ model User {
   timezone           String?          @default("UTC")
   trialEmailStep     Int              @default(0)
   nextTrialEmailAt   DateTime?
+  aiEmailEnabled     Boolean          @default(true)
   automationRules    AutomationRule[]
   customers          Customer[]
   emailCampaigns     EmailCampaign[]
@@ -447,11 +448,13 @@ model EmailLog {
   status       String
   messageId    String?
   errorMessage String?
+  emailSource  String?
   createdAt    DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
   @@index([status])
+  @@index([emailSource])
 }
 
 model SmsLog {

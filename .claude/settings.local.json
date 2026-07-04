@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/najwa/churn-guard/churn-guard-app/app -name *audit* -o -name *logs*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

@@ -1,12 +1,18 @@
 import { prisma } from '@/lib/prisma';
-
 import { decrypt } from '@/lib/encrypt';
+import { generatePersonalizedEmail, type CustomerEmailContext } from '@/lib/ai-email-generator';
 
 // Postmark HTTP API
 // - When userId is provided: uses ONLY the tenant's stored (encrypted) credentials.
 //   If none are configured, the send is skipped (not silently failed).
 // - When no userId: uses global POSTMARK_API_KEY env var (platform admin emails only).
-export async function sendEmail(to: string, subject: string, html: string, userId?: string) {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  userId?: string,
+  emailSource?: 'ai' | 'fallback' | 'hardcoded'
+) {
   let apiKey: string | null = null;
   let fromName = 'ChurnGuard';
   let fromEmail = 'admin@churnguardapp.com';
@@ -19,7 +25,7 @@ export async function sendEmail(to: string, subject: string, html: string, userI
 
     if (!userCfg?.postmarkApiKey) {
       console.warn(`[sendEmail] Tenant ${userId} has no Postmark token — email not sent`);
-      prisma.emailLog.create({ data: { userId, to, subject, status: 'skipped', errorMessage: 'Postmark not connected' } }).catch(() => {});
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'skipped', errorMessage: 'Postmark not connected', emailSource } }).catch(() => {});
       return { success: false, errorMessage: 'Postmark not connected for this account' };
     }
 
@@ -35,7 +41,7 @@ export async function sendEmail(to: string, subject: string, html: string, userI
 
   if (!apiKey) {
     console.log('📧 EMAIL WOULD BE SENT (no API key):', to, subject);
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now() } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now(), emailSource } }).catch(() => {});
     return { success: true, data: { id: 'mock-email-id' } };
   }
 
@@ -57,16 +63,16 @@ export async function sendEmail(to: string, subject: string, html: string, userI
     if (!res.ok || data.ErrorCode !== 0) {
       const errMsg: string = data.Message ?? `HTTP ${res.status}`;
       console.error('Postmark error:', errMsg);
-      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource } }).catch(() => {});
       return { success: false, errorMessage: errMsg };
     }
 
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.MessageID } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.MessageID, emailSource } }).catch(() => {});
     return { success: true, data };
   } catch (err: any) {
     const errMsg: string = err?.message ?? String(err);
     console.error('Email send failed:', errMsg);
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource } }).catch(() => {});
     return { success: false, errorMessage: errMsg };
   }
 }
@@ -129,6 +135,25 @@ export const emailTemplates = {
     `
   })
 };
+
+const PLACEHOLDER_RE = /\[(Your Name|Company Name|Your Company|Name)\]/gi;
+
+// AI-powered personalized email send — calls GPT-4o-mini, falls back to hardcoded template
+export async function sendPersonalizedEmail(
+  customer: CustomerEmailContext,
+  emailType: string,
+  userId: string,
+  extra?: Record<string, unknown>
+): Promise<{ success: boolean; errorMessage?: string; source: 'ai' | 'fallback' }> {
+  const generated = await generatePersonalizedEmail(customer, emailType, userId, extra);
+
+  // Belt-and-suspenders: strip any leftover bracket placeholders the model may have emitted
+  const cleanSubject = generated.subject.replace(PLACEHOLDER_RE, 'ChurnGuard Team');
+  const cleanBody    = generated.body.replace(PLACEHOLDER_RE, 'ChurnGuard Team');
+
+  const result = await sendEmail(customer.email, cleanSubject, cleanBody, userId, generated.source);
+  return { ...result, source: generated.source };
+}
 
 // Slack webhook integration — unchanged
 export async function sendSlackAlert(channel: string, message: string, details?: any) {

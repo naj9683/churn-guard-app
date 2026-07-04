@@ -12,7 +12,7 @@
     "admin:recalc-dry": "node scripts/recalc-scores.mjs --dry-run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.104.1",
+    "@anthropic-ai/sdk": "^0.104.2",
     "@clerk/nextjs": "^6.39.0",
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^2.4.0",

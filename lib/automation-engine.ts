@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { sendSms } from '@/lib/sequences';
 import { enrollInSequence } from '@/lib/sequences';
+import { sendPersonalizedEmail } from '@/lib/email/resend';
+import { type CustomerEmailContext } from '@/lib/ai-email-generator';
 
 // How long to wait before re-firing the same rule for the same customer
 const COOLDOWN_HOURS: Record<string, number> = {
@@ -95,10 +97,56 @@ function evaluateConditionGroup(customer: any, group: ConditionGroup): boolean {
 
 // ── Action executors ────────────────────────────────────────────────────────
 
+// Maps automation trigger types to AI email generator types
+function triggerToEmailType(triggerType: string): string {
+  switch (triggerType) {
+    case 'payment_failed':
+    case 'payment_status':    return 'paymentSaver';
+    case 'days_since_login':
+    case 'no_activity':       return 'silentQuitter';
+    case 'feature_abandonment':
+    case 'feature_not_used':  return 'checkIn';
+    case 'trial_ending':      return 'onboardingRescue';
+    case 'risk_threshold':
+    case 'multi_condition':
+    case 'mrr_value':
+    case 'high_risk_alert':   return 'churnRisk';
+    default:                  return 'churnRisk';
+  }
+}
+
 async function execSendEmail(
-  customer: { email: string; name: string | null },
-  actionConfig: Record<string, unknown>
+  customer: { email: string; name: string | null; id?: string; mrr?: number; riskScore?: number; plan?: string | null; lastLoginAt?: Date | null },
+  actionConfig: Record<string, unknown>,
+  userId?: string,
+  triggerType?: string
 ): Promise<ActionResult> {
+  // Try AI-personalized email first when we have a userId
+  if (userId) {
+    try {
+      const daysSinceLogin = customer.lastLoginAt
+        ? Math.floor((Date.now() - new Date(customer.lastLoginAt).getTime()) / 86_400_000)
+        : undefined;
+      const customerCtx: CustomerEmailContext = {
+        name: customer.name ?? 'there',
+        email: customer.email,
+        mrr: customer.mrr,
+        plan: customer.plan,
+        riskScore: customer.riskScore,
+        daysSinceLogin,
+      };
+      const emailType = triggerToEmailType(triggerType ?? '');
+      const aiResult = await sendPersonalizedEmail(customerCtx, emailType, userId);
+      if (aiResult.success) {
+        return { status: 'success', message: `Email sent to ${customer.email} (source: ${aiResult.source})` };
+      }
+      // If Postmark not configured, fall through to legacy path
+    } catch {
+      // Fall through to legacy path on any error — zero regression
+    }
+  }
+
+  // Legacy path: use hardcoded template from actionConfig or emailTemplates
   const template = actionConfig.template as keyof typeof emailTemplates | undefined;
   let subject = actionConfig.subject as string | undefined;
   let html    = actionConfig.html as string | undefined;
@@ -484,7 +532,7 @@ export async function runAutomationEngine(opts: EngineOptions = {}): Promise<Eng
       try {
         switch (rule.actionType) {
           case 'send_email':
-            actionResult = await execSendEmail(customer, actionConfig);
+            actionResult = await execSendEmail(customer, actionConfig, rule.userId, rule.triggerType);
             break;
           case 'send_slack':
             actionResult = await execSendSlack(customer, actionConfig, rule.user.slackWebhookUrl);
