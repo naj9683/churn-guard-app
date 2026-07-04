@@ -44,6 +44,7 @@ export default function Sidebar() {
 
   const settingsItems = [
     { href: '/settings', label: 'Settings', icon: Icons.settings },
+    { href: '/settings/email-templates', label: 'Email Templates', icon: Icons.email },
     { href: '/team', label: 'Team', icon: Icons.team },
     { href: '/export', label: 'Export', icon: Icons.export },
   ];

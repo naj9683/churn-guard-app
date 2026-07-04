@@ -78,22 +78,26 @@ export async function PATCH(req: NextRequest) {
 
   const defaults = TRIAL_DEFAULTS[key as TrialKey];
 
-  const template = await prisma.emailTemplate.upsert({
-    where: { key },
-    update: {
-      subject:  subject  ?? undefined,
-      bodyHtml: bodyHtml ?? undefined,
-      name:     name     ?? undefined,
-      isActive: isActive ?? undefined,
-    },
-    create: {
-      key,
-      name:     name     ?? defaults.name,
-      subject:  subject  ?? defaults.subject,
-      bodyHtml: bodyHtml ?? defaults.bodyHtml,
-      isActive: isActive ?? true,
-    },
-  });
+  const existing = await prisma.emailTemplate.findFirst({ where: { key } });
+  const template = existing
+    ? await prisma.emailTemplate.update({
+        where: { id: existing.id },
+        data: {
+          subject:  subject  ?? undefined,
+          bodyHtml: bodyHtml ?? undefined,
+          name:     name     ?? undefined,
+          isActive: isActive ?? undefined,
+        },
+      })
+    : await prisma.emailTemplate.create({
+        data: {
+          key,
+          name:     name     ?? defaults.name,
+          subject:  subject  ?? defaults.subject,
+          bodyHtml: bodyHtml ?? defaults.bodyHtml,
+          isActive: isActive ?? true,
+        },
+      });
 
   return NextResponse.json({ template });
 }
@@ -121,13 +125,11 @@ export async function POST(req: NextRequest) {
 
   // Seed all templates to DB
   if (body.action === 'seed') {
-    const ops = TRIAL_KEYS.map(key =>
-      prisma.emailTemplate.upsert({
-        where: { key },
-        update: {},
-        create: { key, ...TRIAL_DEFAULTS[key as TrialKey] },
-      })
-    );
+    const ops = TRIAL_KEYS.map(async (key) => {
+      const ex = await prisma.emailTemplate.findFirst({ where: { key } });
+      if (ex) return ex;
+      return prisma.emailTemplate.create({ data: { key, ...TRIAL_DEFAULTS[key as TrialKey] } });
+    });
     await Promise.all(ops);
     return NextResponse.json({ ok: true, seeded: TRIAL_KEYS.length });
   }
@@ -138,7 +140,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'key and testEmail required' }, { status: 400 });
   }
 
-  const dbTpl   = await prisma.emailTemplate.findUnique({ where: { key } });
+  const dbTpl   = await prisma.emailTemplate.findFirst({ where: { key } });
   const defaults = TRIAL_DEFAULTS[key as TrialKey];
   const subject  = dbTpl?.subject  ?? defaults.subject;
   const bodyHtml = dbTpl?.bodyHtml ?? defaults.bodyHtml;

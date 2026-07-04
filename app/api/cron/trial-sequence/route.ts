@@ -13,7 +13,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://churnguardapp.com';
 
 // Load DB template override or fall back to code default
 async function getTemplate(key: TrialKey) {
-  const dbTpl = await prisma.emailTemplate.findUnique({ where: { key } });
+  const dbTpl = await prisma.emailTemplate.findFirst({ where: { key } });
   const defaults = TRIAL_DEFAULTS[key];
   return {
     subject: dbTpl?.subject ?? defaults.subject,
