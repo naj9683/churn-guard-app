@@ -2,51 +2,14 @@ import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encrypt';
 import { generatePersonalizedEmail, type CustomerEmailContext } from '@/lib/ai-email-generator';
 
-// Postmark HTTP API
-// - When userId is provided: uses ONLY the tenant's stored (encrypted) credentials.
-//   If none are configured, the send is skipped (not silently failed).
-// - When no userId: uses global POSTMARK_API_KEY env var (platform admin emails only).
-export async function sendEmail(
-  to: string,
-  subject: string,
-  html: string,
-  userId?: string,
-  emailSource?: 'ai' | 'fallback' | 'hardcoded'
-) {
-  let apiKey: string | null = null;
-  let fromName = 'ChurnGuard';
-  let fromEmail = 'admin@churnguardapp.com';
+// ── Provider helpers ──────────────────────────────────────────────────────────
 
-  if (userId) {
-    const userCfg = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { postmarkApiKey: true, postmarkFromEmail: true, postmarkFromName: true },
-    }).catch(() => null);
-
-    if (!userCfg?.postmarkApiKey) {
-      console.warn(`[sendEmail] Tenant ${userId} has no Postmark token — email not sent`);
-      prisma.emailLog.create({ data: { userId, to, subject, status: 'skipped', errorMessage: 'Postmark not connected', emailSource } }).catch(() => {});
-      return { success: false, errorMessage: 'Postmark not connected for this account' };
-    }
-
-    apiKey = decrypt(userCfg.postmarkApiKey);
-    if (userCfg.postmarkFromEmail) fromEmail = userCfg.postmarkFromEmail;
-    if (userCfg.postmarkFromName) fromName = userCfg.postmarkFromName;
-  } else {
-    // Platform admin emails (no tenant context)
-    apiKey = process.env.POSTMARK_API_KEY ?? null;
-    fromName = process.env.POSTMARK_FROM_NAME ?? 'ChurnGuard';
-    fromEmail = process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
-  }
-
-  if (!apiKey) {
-    console.log('📧 EMAIL WOULD BE SENT (no API key):', to, subject);
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now(), emailSource } }).catch(() => {});
-    return { success: true, data: { id: 'mock-email-id' } };
-  }
-
+async function sendViaPostmark(
+  to: string, subject: string, html: string,
+  apiKey: string, fromName: string, fromEmail: string,
+  userId: string | undefined, emailSource: string | undefined,
+): Promise<{ success: boolean; data?: any; errorMessage?: string }> {
   const from = `${fromName} <${fromEmail}>`;
-
   try {
     const res = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
@@ -57,24 +20,109 @@ export async function sendEmail(
       },
       body: JSON.stringify({ From: from, To: to, Subject: subject, HtmlBody: html }),
     });
-
     const data = await res.json();
-
     if (!res.ok || data.ErrorCode !== 0) {
       const errMsg: string = data.Message ?? `HTTP ${res.status}`;
-      console.error('Postmark error:', errMsg);
-      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource } }).catch(() => {});
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource, sendProvider: 'postmark' } }).catch(() => {});
       return { success: false, errorMessage: errMsg };
     }
-
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.MessageID, emailSource } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.MessageID, emailSource, sendProvider: 'postmark' } }).catch(() => {});
     return { success: true, data };
   } catch (err: any) {
     const errMsg: string = err?.message ?? String(err);
-    console.error('Email send failed:', errMsg);
-    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource } }).catch(() => {});
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource, sendProvider: 'postmark' } }).catch(() => {});
     return { success: false, errorMessage: errMsg };
   }
+}
+
+async function sendViaResend(
+  to: string, subject: string, html: string,
+  apiKey: string,
+  userId: string | undefined, emailSource: string | undefined,
+): Promise<{ success: boolean; data?: any; errorMessage?: string }> {
+  const fromName  = process.env.RESEND_FROM_NAME  ?? 'ChurnGuard';
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'admin@churnguardapp.com';
+  const from = `${fromName} <${fromEmail}>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to, subject, html }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const errMsg: string = data.message ?? data.name ?? `HTTP ${res.status}`;
+      prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource, sendProvider: 'resend' } }).catch(() => {});
+      return { success: false, errorMessage: errMsg };
+    }
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'sent', messageId: data.id, emailSource, sendProvider: 'resend' } }).catch(() => {});
+    return { success: true, data };
+  } catch (err: any) {
+    const errMsg: string = err?.message ?? String(err);
+    prisma.emailLog.create({ data: { userId, to, subject, status: 'failed', errorMessage: errMsg, emailSource, sendProvider: 'resend' } }).catch(() => {});
+    return { success: false, errorMessage: errMsg };
+  }
+}
+
+// ── sendEmail ─────────────────────────────────────────────────────────────────
+//
+// Fallback chain (evaluated in order, first available wins):
+//   1. Tenant Postmark  — userId provided + postmarkApiKey in DB
+//   2. Platform Resend  — RESEND_API_KEY env var
+//   3. Platform Postmark — POSTMARK_API_KEY env var
+//   4. Mock             — no provider configured
+//
+// sendProvider in EmailLog tells you which path was taken.
+
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  userId?: string,
+  emailSource?: 'ai' | 'fallback' | 'hardcoded'
+): Promise<{ success: boolean; data?: any; errorMessage?: string }> {
+
+  // ── Step 1: Tenant Postmark (requires userId + stored key) ────────────────
+  if (userId) {
+    const userCfg = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { postmarkApiKey: true, postmarkFromEmail: true, postmarkFromName: true },
+    }).catch(() => null);
+
+    if (userCfg?.postmarkApiKey) {
+      const apiKey   = decrypt(userCfg.postmarkApiKey);
+      const fromName  = userCfg.postmarkFromName  ?? process.env.POSTMARK_FROM_NAME  ?? 'ChurnGuard';
+      const fromEmail = userCfg.postmarkFromEmail ?? process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
+      console.log(`[sendEmail] Tenant Postmark → ${to}`);
+      return sendViaPostmark(to, subject, html, apiKey, fromName, fromEmail, userId, emailSource);
+    }
+    // No tenant Postmark key — fall through to platform providers
+    console.log(`[sendEmail] Tenant ${userId} has no Postmark key — falling back to platform provider`);
+  }
+
+  // ── Step 2: Platform Resend ───────────────────────────────────────────────
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    console.log(`[sendEmail] Platform Resend → ${to}`);
+    return sendViaResend(to, subject, html, resendKey, userId, emailSource);
+  }
+
+  // ── Step 3: Platform Postmark ─────────────────────────────────────────────
+  const postmarkKey = process.env.POSTMARK_API_KEY;
+  if (postmarkKey) {
+    const fromName  = process.env.POSTMARK_FROM_NAME  ?? 'ChurnGuard';
+    const fromEmail = process.env.POSTMARK_FROM_EMAIL ?? 'admin@churnguardapp.com';
+    console.log(`[sendEmail] Platform Postmark → ${to}`);
+    return sendViaPostmark(to, subject, html, postmarkKey, fromName, fromEmail, userId, emailSource);
+  }
+
+  // ── Step 4: Mock (no provider configured) ────────────────────────────────
+  console.log('📧 EMAIL WOULD BE SENT (no provider configured):', to, subject);
+  prisma.emailLog.create({ data: { userId, to, subject, status: 'mock', messageId: 'mock-' + Date.now(), emailSource, sendProvider: 'postmark' } }).catch(() => {});
+  return { success: true, data: { id: 'mock-email-id' } };
 }
 
 export const emailTemplates = {
@@ -138,7 +186,7 @@ export const emailTemplates = {
 
 const PLACEHOLDER_RE = /\[(Your Name|Company Name|Your Company|Name)\]/gi;
 
-// AI-powered personalized email send — calls GPT-4o-mini, falls back to hardcoded template
+// AI-powered personalized email send — calls Claude, falls back to hardcoded template
 export async function sendPersonalizedEmail(
   customer: CustomerEmailContext,
   emailType: string,
@@ -147,7 +195,7 @@ export async function sendPersonalizedEmail(
 ): Promise<{ success: boolean; errorMessage?: string; source: 'ai' | 'fallback' }> {
   const generated = await generatePersonalizedEmail(customer, emailType, userId, extra);
 
-  // Belt-and-suspenders: strip any leftover bracket placeholders the model may have emitted
+  // Strip any leftover bracket placeholders the model may have emitted
   const cleanSubject = generated.subject.replace(PLACEHOLDER_RE, 'ChurnGuard Team');
   const cleanBody    = generated.body.replace(PLACEHOLDER_RE, 'ChurnGuard Team');
 

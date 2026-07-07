@@ -456,12 +456,14 @@ model EmailLog {
   messageId    String?
   errorMessage String?
   emailSource  String?
+  sendProvider String?  // 'postmark' | 'resend'
   createdAt    DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
   @@index([status])
   @@index([emailSource])
+  @@index([sendProvider])
 }
 
 model SmsLog {
