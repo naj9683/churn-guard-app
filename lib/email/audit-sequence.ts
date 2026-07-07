@@ -127,7 +127,7 @@ export function email2(lead: AuditLeadData): { subject: string; html: string } {
   `;
 
   return {
-    subject: `How [a founder like you] stopped losing $4K/month to churn`,
+    subject: `How one founder stopped losing $4K/month to churn`,
     html: shell(content, lead.id),
   };
 }
