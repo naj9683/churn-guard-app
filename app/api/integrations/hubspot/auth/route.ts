@@ -19,7 +19,8 @@ export async function GET(req: Request) {
     }
 
     const state = encodeURIComponent(userId.trim());
-    const scopes = 'crm.objects.companies.read crm.objects.companies.write crm.objects.contacts.read crm.objects.contacts.write crm.schemas.contacts.read crm.schemas.contacts.write oauth';
+    // content + files = CMS publishing (blog posts, pages, File Manager)
+    const scopes = 'crm.objects.companies.read crm.objects.companies.write crm.objects.contacts.read crm.objects.contacts.write crm.schemas.contacts.read crm.schemas.contacts.write content files oauth';
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${HUBSPOT_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&state=${state}&prompt=consent`;
 
     console.log('HubSpot auth: redirecting to HubSpot OAuth for user', userId.slice(0, 8) + '...');

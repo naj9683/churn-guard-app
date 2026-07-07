@@ -246,8 +246,14 @@ export default function IntegrationsPage() {
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [twilioConfigured, setTwilioConfigured] = useState(false);
   const [smsToggling, setSmsToggling] = useState(false);
+  const [hubspotSyncInfo, setHubspotSyncInfo] = useState<{
+    connected: boolean; syncStatus: string; lastSyncAt: string | null; lastError: string | null;
+    reconnectRequired: boolean;
+    logs: Array<{ id: string; direction: string; entityType: string; entityId: string; status: string; message: string | null; createdAt: string }>;
+  } | null>(null);
+  const [hubspotSyncing, setHubspotSyncing] = useState(false);
 
-  useEffect(() => { loadStatus(); loadResend(); loadAiEmail(); loadSms(); }, []);
+  useEffect(() => { loadStatus(); loadResend(); loadAiEmail(); loadSms(); loadHubSpotSyncInfo(); }, []);
 
   async function loadStatus() {
     setLoading(true);
@@ -290,6 +296,21 @@ export default function IntegrationsPage() {
     });
     if (res.ok) setSmsEnabled(enabled);
     setSmsToggling(false);
+  }
+
+  async function loadHubSpotSyncInfo() {
+    const res = await fetch('/api/integrations/hubspot/sync').catch(() => null);
+    if (res?.ok) setHubspotSyncInfo(await res.json());
+  }
+
+  async function runHubSpotSync() {
+    setHubspotSyncing(true);
+    setErrorFor('hubspot', '');
+    const res = await fetch('/api/integrations/hubspot/sync', { method: 'POST' });
+    const d = await res.json();
+    if (!res.ok) setErrorFor('hubspot', d.error ?? 'Sync failed');
+    await loadHubSpotSyncInfo();
+    setHubspotSyncing(false);
   }
 
   async function loadAiEmail() {
@@ -436,6 +457,86 @@ export default function IntegrationsPage() {
               onDisconnect={disconnectHubSpot}
             >
               {error.hubspot && <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', borderRadius: '7px', fontSize: '13px' }}>{error.hubspot}</div>}
+              {status.hubspot && hubspotSyncInfo && (
+                <div style={{ marginTop: '12px', padding: '14px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '20px',
+                          background: hubspotSyncInfo.syncStatus === 'synced' ? '#dcfce7' : hubspotSyncInfo.syncStatus === 'partial' ? '#fef9c3' : hubspotSyncInfo.syncStatus === 'error' ? '#fef2f2' : '#f3f4f6',
+                          color: hubspotSyncInfo.syncStatus === 'synced' ? '#15803d' : hubspotSyncInfo.syncStatus === 'partial' ? '#92400e' : hubspotSyncInfo.syncStatus === 'error' ? '#ef4444' : '#6b7280',
+                        }}>
+                          {hubspotSyncInfo.syncStatus === 'synced' ? 'Synced' : hubspotSyncInfo.syncStatus === 'partial' ? 'Partial' : hubspotSyncInfo.syncStatus === 'error' ? 'Error' : hubspotSyncInfo.syncStatus === 'connected' ? 'Connected' : 'Disconnected'}
+                        </span>
+                        {hubspotSyncInfo.lastSyncAt && (
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                            Last sync: {new Date(hubspotSyncInfo.lastSyncAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                        {!hubspotSyncInfo.lastSyncAt && (
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>Never synced</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={runHubSpotSync}
+                      disabled={hubspotSyncing || hubspotSyncInfo.reconnectRequired}
+                      style={{ padding: '7px 16px', background: hubspotSyncing ? '#e5e7eb' : '#ff7a59', color: hubspotSyncing ? '#9ca3af' : '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '600', cursor: hubspotSyncing || hubspotSyncInfo.reconnectRequired ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+                    >
+                      {hubspotSyncing ? 'Syncing…' : 'Sync Now'}
+                    </button>
+                  </div>
+                  {hubspotSyncInfo.reconnectRequired && (
+                    <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '13px', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                      <span>Authorization expired — reconnect HubSpot to resume sync.</span>
+                      <button onClick={connectHubSpot} style={{ padding: '5px 12px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}>Reconnect</button>
+                    </div>
+                  )}
+                  {hubspotSyncInfo.lastError && !hubspotSyncInfo.reconnectRequired && (
+                    <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fef9c3', border: '1px solid #fef08a', borderRadius: '6px', fontSize: '12px', color: '#713f12' }}>
+                      {hubspotSyncInfo.lastError}
+                    </div>
+                  )}
+                  {hubspotSyncInfo.logs.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Recent Sync Activity</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {hubspotSyncInfo.logs.slice(0, 5).map(log => (
+                          <div key={log.id} style={{ fontSize: '12px', padding: '5px 8px', background: log.status === 'error' ? '#fef9f9' : '#fff', border: `1px solid ${log.status === 'error' ? '#fecaca' : '#e5e7eb'}`, borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '52px', fontWeight: '600', flexShrink: 0, color: log.direction === 'inbound' ? '#6366f1' : '#f59e0b' }}>{log.direction === 'inbound' ? '← Pull' : '→ Push'}</span>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{log.message ?? log.entityId}</span>
+                            <span style={{ fontWeight: '600', flexShrink: 0, color: log.status === 'error' ? '#ef4444' : '#10b981' }}>{log.status === 'error' ? '✗' : '✓'}</span>
+                            <span style={{ color: '#9ca3af', flexShrink: 0 }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {hubspotSyncInfo.logs.length === 0 && !hubspotSyncInfo.reconnectRequired && (
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>No sync activity yet — click Sync Now to pull your HubSpot contacts.</div>
+                  )}
+
+                  {/* CMS scope re-authorization */}
+                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>CMS Publishing (blog posts)</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>
+                        Requires <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '11px', fontFamily: 'monospace' }}>content</code> and <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '11px', fontFamily: 'monospace' }}>files</code> scopes.
+                        If your token predates these scopes, reconnect to add them.
+                      </div>
+                    </div>
+                    <button
+                      onClick={connectHubSpot}
+                      style={{ padding: '6px 14px', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#9ca3af'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
+                    >
+                      Reconnect HubSpot →
+                    </button>
+                  </div>
+                </div>
+              )}
             </IntegrationCard>
 
           </div>
@@ -582,7 +683,7 @@ export default function IntegrationsPage() {
         </Section>
 
         {/* AI Email */}
-        <Section title="AI Email Personalization" subtitle="Use GPT-4o-mini to generate retention emails tailored to each customer">
+        <Section title="AI Email Personalization" subtitle="Use Claude Haiku to generate retention emails tailored to each customer">
           <div style={{ border: `1px solid ${aiEmailEnabled ? '#6366f140' : '#e5e7eb'}`, borderRadius: '10px', padding: '20px', background: aiEmailEnabled ? '#6366f105' : '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -596,14 +697,14 @@ export default function IntegrationsPage() {
                     {!aiOpenaiConfigured && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 7px', background: '#fef3c7', color: '#92400e', borderRadius: '20px' }}>No API key</span>}
                   </div>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                    Generate personalized retention emails for each customer using GPT-4o-mini (max 100/day)
+                    Generate personalized retention emails for each customer using Claude Haiku (max 100/day)
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => toggleAiEmail(!aiEmailEnabled)}
                 disabled={aiToggling || !aiOpenaiConfigured}
-                title={!aiOpenaiConfigured ? 'Set OPENAI_API_KEY in your environment to enable AI emails' : undefined}
+                title={!aiOpenaiConfigured ? 'Set ANTHROPIC_API_KEY in your environment to enable AI emails' : undefined}
                 style={{
                   position: 'relative', width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: aiToggling || !aiOpenaiConfigured ? 'not-allowed' : 'pointer',
                   background: aiEmailEnabled && aiOpenaiConfigured ? '#6366f1' : '#e5e7eb', transition: 'background 0.2s', flexShrink: 0, opacity: !aiOpenaiConfigured ? 0.5 : 1,
@@ -618,7 +719,7 @@ export default function IntegrationsPage() {
             </div>
             {!aiOpenaiConfigured && (
               <div style={{ marginTop: '14px', padding: '10px 14px', background: '#fef9c3', border: '1px solid #fef08a', borderRadius: '8px', fontSize: '13px', color: '#713f12' }}>
-                Add <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>OPENAI_API_KEY</code> to your environment variables to enable AI email generation.
+                Add <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>ANTHROPIC_API_KEY</code> to your environment variables to enable AI email generation.
               </div>
             )}
             {aiEmailEnabled && aiOpenaiConfigured && (

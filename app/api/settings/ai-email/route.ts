@@ -12,7 +12,7 @@ export async function GET() {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const openaiConfigured = !!process.env.OPENAI_API_KEY;
+    const openaiConfigured = !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
     return NextResponse.json({ aiEmailEnabled: user.aiEmailEnabled, openaiConfigured });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

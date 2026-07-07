@@ -64,12 +64,12 @@ function LogoTicker() {
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 const FAQS = [
-  { q: 'How long does setup take?', a: 'Connect Stripe in 5 minutes. First risk analysis runs automatically within 6 hours.' },
+  { q: 'How long does setup take?', a: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.' },
   { q: 'Is our customer data secure?', a: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned.' },
   { q: 'What if I exceed my MRR band?', a: 'We move you up automatically — no service interruption, no surprise bills.' },
-  { q: 'Does it work with HubSpot?', a: 'Native bi-directional sync. Risk scores push to HubSpot every 6 hours, automatically.' },
-  { q: 'Do I need to send messages manually?', a: 'No. AI writes and sends every message via Email, SMS, and Slack. You just review results.' },
-  { q: 'How do I get started?', a: 'Pick a plan below. Setup takes 5 minutes. Cancel anytime.' },
+  { q: 'Does it work with HubSpot?', a: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.' },
+  { q: 'Do I need to send messages manually?', a: 'No. Automated playbooks send every message via Email, SMS, and Slack. Retention emails are personalized using Claude AI. You review results.' },
+  { q: 'Do I need Stripe to use ChurnGuard?', a: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.' },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -156,41 +156,55 @@ export default function LandingPage() {
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.1)', color: '#c4b5fd', fontSize: '12px', fontWeight: '700', marginBottom: '32px', letterSpacing: '0.02em' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} className="animate-pulse" />
-                  AI-powered churn prevention · 2026
+                  Customer retention platform · 2026
                 </div>
               </motion.div>
 
               <motion.h1
-                style={{ fontWeight: 800, color: '#fff', lineHeight: 1.04, marginBottom: '24px', letterSpacing: '-0.04em', fontSize: 'clamp(3rem,5.5vw,5rem)' }}
+                style={{ fontWeight: 800, color: '#fff', lineHeight: 1.08, marginBottom: '24px', letterSpacing: '-0.04em', fontSize: 'clamp(2.4rem,4.5vw,4.2rem)' }}
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, delay: 0.1 }}
               >
-                Stop churn{' '}
+                Stop churn before it happens —{' '}
                 <span style={{ background: 'linear-gradient(135deg,#a78bfa,#7c3aed,#6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  before it
-                </span>
-                <br />
+                  without hiring
+                </span>{' '}
                 <span style={{ background: 'linear-gradient(135deg,#6366f1,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  costs you
+                  a CS team.
                 </span>
               </motion.h1>
 
-              <motion.p style={{ fontSize: '18px', lineHeight: 1.7, color: 'rgba(255,255,255,0.45)', marginBottom: '40px', maxWidth: '460px' }}
+              <motion.p style={{ fontSize: '18px', lineHeight: 1.7, color: 'rgba(255,255,255,0.45)', marginBottom: '20px', maxWidth: '480px' }}
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-                ChurnGuard monitors every customer signal, predicts cancellations weeks in advance, and fires personalized retention messages via Email, SMS, and Slack — automatically.
+                ChurnGuard&apos;s AI predicts which customers will cancel and automatically triggers retention campaigns across email, SMS, Slack, and in-app. From $79/mo.
               </motion.p>
 
-              <motion.div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '40px' }}
+              <motion.ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.25 }}>
+                {[
+                  'Predicts churn risk from real product + billing signals',
+                  '4 retention channels, zero manual work',
+                  'Set up in 15 minutes with Stripe',
+                ].map(bullet => (
+                  <li key={bullet} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: 'rgba(255,255,255,0.65)' }}>
+                    <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    {bullet}
+                  </li>
+                ))}
+              </motion.ul>
+
+              <motion.div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', marginBottom: '40px' }}
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
                 <Link href="/audit" style={{ padding: '14px 32px', borderRadius: '12px', fontWeight: '700', color: '#fff', fontSize: '15px', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', boxShadow: '0 0 50px rgba(124,58,237,0.45)', display: 'inline-block' }}
                   onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
                   onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}>
-                  Get Free Audit →
+                  Run your free churn audit →
                 </Link>
-                <button onClick={() => setShowDemo(true)} style={{ padding: '14px 32px', borderRadius: '12px', fontWeight: '600', fontSize: '15px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.65)', cursor: 'pointer', fontFamily: 'inherit' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}>
-                  View Demo ▶
-                </button>
+                <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
+                  or{' '}
+                  <Link href="/signup" style={{ color: '#a78bfa', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                    start a 30-day free trial
+                  </Link>
+                </p>
               </motion.div>
 
               <motion.div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
@@ -357,11 +371,11 @@ export default function LandingPage() {
               <FadeIn direction="right" delay={0.1}>
                 <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', bottom: '-20px', right: '-20px', width: '140px', height: '140px', background: 'radial-gradient(ellipse, rgba(6,182,212,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                  <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)', color: '#67e8f9', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>AI Automation</div>
-                  <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>AI fires the right message</h3>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Personalized emails by AI. SMS via Twilio. Slack alerts to your CSM.</p>
+                  <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)', color: '#67e8f9', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Automated Retention</div>
+                  <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Right message, right moment</h3>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Personalized emails via Claude AI. SMS via Twilio. Slack alerts to your CSM — all automatic.</p>
                   <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(6,182,212,0.15)', background: 'rgba(6,182,212,0.05)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#67e8f9', marginBottom: '6px' }}>AI Email · Sent 2 min ago</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#67e8f9', marginBottom: '6px' }}>Retention Email · Sent 2 min ago</div>
                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, fontStyle: 'italic' }}>"Hi Sarah, we noticed you haven't used ChurnGuard's reports in 2 weeks…"</p>
                   </div>
                 </div>
@@ -372,7 +386,7 @@ export default function LandingPage() {
                   <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)', color: '#fcd34d', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Integrations</div>
                   <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '12px' }}>Connects in minutes</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {[{ name: 'Stripe', color: '#818cf8' }, { name: 'HubSpot', color: '#fb923c' }, { name: 'Twilio', color: '#06b6d4' }, { name: 'Slack', color: '#a78bfa' }, { name: 'Postmark', color: '#fcd34d' }, { name: 'Segment', color: '#4ade80' }].map(int => (
+                    {[{ name: 'Stripe', color: '#818cf8' }, { name: 'HubSpot', color: '#fb923c' }, { name: 'Twilio', color: '#06b6d4' }, { name: 'Slack', color: '#a78bfa' }, { name: 'Postmark', color: '#fcd34d' }, { name: 'Widget.js', color: '#4ade80' }].map(int => (
                       <div key={int.name} style={{ padding: '9px 6px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
                         <div style={{ fontSize: '12px', fontWeight: '600', color: int.color }}>{int.name}</div>
                       </div>
@@ -384,7 +398,7 @@ export default function LandingPage() {
           </div>
 
           {/* Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
             <FadeIn direction="up" delay={0.1} className="lg:col-span-5">
               <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(ellipse, rgba(248,113,113,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -419,6 +433,51 @@ export default function LandingPage() {
               </div>
             </FadeIn>
           </div>
+
+          {/* Row 3 — Widget.js + HubSpot Sync */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <FadeIn direction="up" delay={0.1}>
+              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(ellipse, rgba(74,222,128,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.22)', color: '#86efac', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Embeddable Widget</div>
+                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Track engagement from inside your app</h3>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Drop one script tag into your app. ChurnGuard captures page views, feature usage, and session activity — no backend changes needed.</p>
+                <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(74,222,128,0.15)', background: 'rgba(74,222,128,0.04)', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#86efac', marginBottom: '8px' }}>widget.js · One-line install</div>
+                  <code style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, display: 'block' }}>
+                    {'<script src="churnguardapp.com/widget.js"'}<br />
+                    {'  data-key="YOUR_KEY"></script>'}
+                  </code>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' }}>
+                  {['Page views', 'Feature usage', 'Login activity', 'Session depth'].map(tag => (
+                    <span key={tag} style={{ fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '999px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#86efac' }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={0.18}>
+              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', bottom: '-30px', right: '-30px', width: '160px', height: '160px', background: 'radial-gradient(ellipse, rgba(251,146,60,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.22)', color: '#fdba74', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>HubSpot Sync</div>
+                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Two-way CRM sync, out of the box</h3>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Connect HubSpot and ChurnGuard pulls your contacts, scores them for churn risk, and pushes risk scores back as HubSpot contact properties — automatically every 6 hours.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { dir: '← Pull', label: 'HubSpot contacts → ChurnGuard customers', color: '#818cf8' },
+                    { dir: '→ Push', label: 'Risk scores → HubSpot contact properties', color: '#fdba74' },
+                    { dir: '⚡ Live', label: 'Webhook updates on contact changes', color: '#86efac' },
+                  ].map(row => (
+                    <div key={row.dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: row.color, minWidth: '44px' }}>{row.dir}</span>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{row.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -435,9 +494,9 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ position: 'relative' }}>
             <div className="hidden md:block" style={{ position: 'absolute', top: '48px', left: '33%', right: '33%', height: '1px', background: 'linear-gradient(90deg,rgba(124,58,237,0.5),rgba(99,102,241,0.5))' }} />
             {[
-              { n: '01', icon: '⚡', accent: '#7c3aed', accentBg: 'rgba(124,58,237,0.12)', title: 'Connect Stripe', body: 'Link your billing account in 5 minutes. ChurnGuard immediately reads payment and subscription signals.' },
-              { n: '02', icon: '🧠', accent: '#6366f1', accentBg: 'rgba(99,102,241,0.12)', title: 'AI detects risk', body: 'Every 6 hours the engine scores every customer using behavioral, billing, and engagement data.' },
-              { n: '03', icon: '✉️', accent: '#06b6d4', accentBg: 'rgba(6,182,212,0.12)', title: 'Auto-retention fires', body: 'Personalized email, SMS, or Slack message goes out automatically — zero manual work required.' },
+              { n: '01', icon: '⚡', accent: '#7c3aed', accentBg: 'rgba(124,58,237,0.12)', title: 'Connect Your Data', body: 'Install the widget for engagement tracking, connect Stripe for billing data, or sync from HubSpot. ChurnGuard pulls customer signals from wherever they live.' },
+              { n: '02', icon: '📊', accent: '#6366f1', accentBg: 'rgba(99,102,241,0.12)', title: 'Behavioral Risk Scoring', body: 'Every 6 hours, the engine scores every customer on real signals: payment failures, login drops, feature abandonment, and support tickets. Transparent math — not a black box.' },
+              { n: '03', icon: '✉️', accent: '#06b6d4', accentBg: 'rgba(6,182,212,0.12)', title: 'Automated Retention Fires', body: 'When a customer hits a risk threshold, personalized email, SMS, or Slack message goes out automatically — zero manual work required.' },
             ].map((s, i) => (
               <FadeIn key={s.n} delay={i * 0.12}>
                 <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}
@@ -624,19 +683,22 @@ export default function LandingPage() {
             <span style={{ background: 'linear-gradient(135deg,#a78bfa,#7c3aed,#6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>churn?</span>
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, marginBottom: '40px' }}>
-            Run a free audit on your Stripe account. See your at-risk MRR in 2 minutes — no signup required.
+            Get your free churn risk audit. See your at-risk MRR in 2 minutes — no signup required.
           </p>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
             <Link href="/audit" style={{ padding: '16px 40px', borderRadius: '14px', fontWeight: '700', color: '#fff', fontSize: '16px', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', boxShadow: '0 0 60px rgba(124,58,237,0.45)', display: 'inline-block' }}
               onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
               onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}>
-              Get Free Audit →
+              Run your free churn audit →
             </Link>
-            <Link href="/book-demo" style={{ padding: '16px 40px', borderRadius: '14px', fontWeight: '600', fontSize: '16px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', textDecoration: 'none', display: 'inline-block' }}>
-              Book a Demo
-            </Link>
+            <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
+              or{' '}
+              <Link href="/signup" style={{ color: '#a78bfa', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                start a 30-day free trial
+              </Link>
+              {' '}· No credit card required
+            </p>
           </div>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.2)', marginTop: '24px' }}>Cancel anytime · No contracts · No setup fees</p>
         </FadeIn>
       </section>
 
@@ -648,7 +710,7 @@ export default function LandingPage() {
               <div style={{ marginBottom: '12px' }}>
                 <img src="/logo-purple.png" alt="ChurnGuard" height={40} style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
               </div>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.7, marginBottom: '16px' }}>AI-powered churn prevention for SaaS founders. Predict. Intervene. Retain.</p>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.7, marginBottom: '16px' }}>Customer retention platform for SaaS founders. Monitor. Score. Retain.</p>
               <a href="mailto:admin@churnguardapp.com" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
                 admin@churnguardapp.com
@@ -673,12 +735,11 @@ export default function LandingPage() {
               ))}
             </div>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: '16px' }}>Stay updated</div>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginBottom: '16px', lineHeight: 1.6 }}>Churn reduction tips for SaaS founders. No spam.</p>
-              <form onSubmit={e => { e.preventDefault(); setEmail(''); }} style={{ display: 'flex', gap: '8px' }}>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={{ flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontFamily: 'inherit' }} />
-                <button type="submit" style={{ padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#fff', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>→</button>
-              </form>
+              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: '16px' }}>Free audit</div>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginBottom: '16px', lineHeight: 1.6 }}>See which customers are at risk and how much MRR is on the line — in 2 minutes, no signup.</p>
+              <Link href="/audit" style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)' }}>
+                Run your free audit →
+              </Link>
             </div>
           </div>
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>

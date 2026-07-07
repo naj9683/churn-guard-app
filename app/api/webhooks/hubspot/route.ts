@@ -29,8 +29,13 @@ interface HubSpotWebhookEvent {
 
 function verifySignature(secret: string, rawBody: string, signature: string | null): boolean {
   if (!signature) return false;
-  const expected = crypto.createHmac('sha256', secret).update(secret + rawBody).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  // HubSpot v1: sha256(client_secret + request_body)
+  const expected = crypto.createHash('sha256').update(secret + rawBody).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {

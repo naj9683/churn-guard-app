@@ -305,6 +305,13 @@ export async function syncHubSpot(
             data: { name, crmId: contact.id, updatedAt: new Date(), ...(lastLoginAt ? { lastLoginAt } : {}) },
           });
           result.updated++;
+          await prisma.crmSyncLog.create({
+            data: {
+              userId: internalUserId, crmType: 'hubspot', direction: 'inbound',
+              entityType: 'contact', entityId: contact.id, status: 'success',
+              message: `Updated customer from HubSpot contact: ${email}`,
+            },
+          });
         } else {
           await prisma.customer.create({
             data: {
