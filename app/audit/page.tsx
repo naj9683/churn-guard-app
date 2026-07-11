@@ -236,16 +236,16 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            Free · No credit card · Results in 10 seconds
+            Free · No credit card · About 10 minutes
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
-            Find Out Exactly<br />
+            Free Churn Audit —<br />
             <span style={{ background: 'linear-gradient(135deg,#f97316,#ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              How Much You're Losing
+              Know What You're Losing
             </span>
           </h1>
           <p className="text-slate-400 text-lg">
-            Enter your details to see your free churn risk audit — monthly churn rate, revenue at risk, and customers about to cancel.
+            Upload a CSV or connect Stripe (read-only). We'll email you your churn rate vs. benchmark and revenue at risk.
           </p>
         </div>
 
@@ -299,7 +299,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
 
         {/* Social proof */}
         <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
-          {['Used by 200+ SaaS founders', 'Results in under 10 seconds', 'Stripe key never stored'].map(t => (
+          {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -700,9 +700,9 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
             className="inline-block px-8 py-4 rounded-xl font-bold text-white text-base hover:opacity-90 hover:scale-105 transition-all"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 32px rgba(99,102,241,0.4)' }}
           >
-            Activate ChurnGuard — Stop This Loss →
+            Start Your 30-Day Free Trial →
           </Link>
-          <p className="text-slate-400 text-xs mt-4">Setup in 5 minutes · Cancel anytime · First results in hours</p>
+          <p className="text-slate-400 text-xs mt-4">No credit card · Setup in 5 minutes · Cancel anytime</p>
         </div>
 
       </div>
@@ -831,7 +831,7 @@ function AuditPageInner() {
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            Free · No credit card · Results in 10 seconds
+            Free churn audit · No credit card · Takes about 10 minutes
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
             Find Out Exactly<br />
@@ -840,7 +840,7 @@ function AuditPageInner() {
             </span>
           </h1>
           <p className="text-slate-400 text-lg">
-            Connect Stripe or upload a CSV. Get your monthly churn rate, revenue at risk, and a list of customers about to cancel — in seconds.
+            Upload a CSV or connect Stripe (read-only). We'll email you your churn rate vs. benchmark and revenue at risk.
           </p>
         </div>
 
@@ -941,13 +941,13 @@ function AuditPageInner() {
             Show Me My Churn Numbers →
           </button>
           <p className="text-slate-400 text-xs text-center mt-4">
-            Free · No account needed · Results in 10 seconds
+            Free · Results emailed to you · Stripe key never stored
           </p>
         </form>
 
         {/* Social proof */}
         <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
-          {['Used by 200+ SaaS founders', 'Results in under 10 seconds', 'Stripe key never stored'].map(t => (
+          {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
