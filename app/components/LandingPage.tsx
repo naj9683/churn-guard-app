@@ -410,7 +410,7 @@ export default function LandingPage() {
 
           {/* Desktop links */}
           <div className="hidden md:flex" style={{ alignItems: 'center', gap: '28px' }}>
-            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/login', 'Login']].map(([href, label]) => (
+            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/audit', 'Free audit'], ['/login', 'Login']].map(([href, label]) => (
               <a key={href} href={href} className="cg-nav-link"
                 style={{ fontSize: '14px', color: MUTED, textDecoration: 'none', transition: 'color 150ms' }}>
                 {label}
@@ -441,7 +441,7 @@ export default function LandingPage() {
         {/* Mobile drawer */}
         {mobileOpen && (
           <div className="md:hidden" style={{ borderTop: `1px solid ${BORDER}`, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '14px', background: WHITE }}>
-            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/login', 'Login']].map(([href, label]) => (
+            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/audit', 'Free audit'], ['/login', 'Login']].map(([href, label]) => (
               <a key={href} href={href} style={{ fontSize: '14px', color: MUTED, textDecoration: 'none' }}
                 onClick={() => setMobileOpen(false)}>{label}</a>
             ))}
@@ -477,17 +477,17 @@ export default function LandingPage() {
             <Link href="/signup" style={btnPrimary}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-              Connect Stripe — free
+              Start free
             </Link>
             <a href="/audit" className="cg-outline-btn" style={btnOutline}>
               Run your free churn audit →
             </a>
-            <Link href="/book-demo" className="cg-outline-btn" style={btnOutline}>
-              Watch 90-second demo
-            </Link>
+            <a href="/book-demo" className="cg-outline-btn" style={btnOutline}>
+              Book a churn demo
+            </a>
           </div>
           <p style={{ fontSize: '13px', color: FAINT }}>
-            Read-only access · no credit card · disconnect any time
+            No credit card · set up in 15 minutes · cancel any time
           </p>
           <p style={{ fontSize: '13px', color: FAINT, marginTop: '4px' }}>
             See your at-risk MRR in 2 minutes — no signup required.
