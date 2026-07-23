@@ -479,12 +479,18 @@ export default function LandingPage() {
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
               Connect Stripe — free
             </Link>
+            <a href="/audit" className="cg-outline-btn" style={btnOutline}>
+              Run your free churn audit →
+            </a>
             <Link href="/book-demo" className="cg-outline-btn" style={btnOutline}>
               Watch 90-second demo
             </Link>
           </div>
           <p style={{ fontSize: '13px', color: FAINT }}>
             Read-only access · no credit card · disconnect any time
+          </p>
+          <p style={{ fontSize: '13px', color: FAINT, marginTop: '4px' }}>
+            See your at-risk MRR in 2 minutes — no signup required.
           </p>
         </div>
       </section>
@@ -750,11 +756,16 @@ export default function LandingPage() {
           <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
             ChurnGuard launched this year. Rather than pad the page with logos we don't have, the first 25 accounts get lifetime pricing, a direct line to me, and real influence over what gets built.
           </p>
-          <Link href="/signup" style={btnPrimary}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-            Claim a spot
-          </Link>
+          <div className="cg-cta-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            <Link href="/signup" style={btnPrimary}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+              Claim a spot
+            </Link>
+            <a href="/audit" className="cg-outline-btn" style={btnOutline}>
+              Run your free churn audit →
+            </a>
+          </div>
         </div>
       </section>
 
