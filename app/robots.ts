@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard/', '/api/', '/admin/', '/signout'],
+        disallow: ['/dashboard/', '/api/', '/admin/', '/signout', '/widget-demo/', '/widget-install/', '/widget-messages/', '/widget-test/'],
       },
     ],
     sitemap: 'https://churnguardapp.com/sitemap.xml',

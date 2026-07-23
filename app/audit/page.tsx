@@ -3,6 +3,11 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import {
+  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, BORDER_MED,
+  TEXT, MUTED, FAINT, WHITE, PAGE_BG,
+  SUCCESS, DANGER, DANGER_BG, DANGER_BORD, WARN_BG, WARN_BORD,
+} from '@/app/lib/design-tokens';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +58,7 @@ function AnalyzingScreen({ dataSource }: { dataSource: InputMethod }) {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-6 text-center"
-      style={{ background: '#0a0a12' }}
+      style={{ background: PAGE_BG }}
     >
       <div className="mb-10">
         <div
@@ -62,10 +67,10 @@ function AnalyzingScreen({ dataSource }: { dataSource: InputMethod }) {
         >
           🛡️
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold mb-2" style={{ color: TEXT }}>
           Analyzing your {dataSource === 'stripe' ? 'Stripe account' : 'customer data'}
         </h2>
-        <p className="text-slate-400 text-sm">This takes about 10 seconds…</p>
+        <p className="text-sm" style={{ color: MUTED }}>This takes about 10 seconds…</p>
       </div>
 
       <div className="w-full max-w-sm space-y-3">
@@ -77,27 +82,26 @@ function AnalyzingScreen({ dataSource }: { dataSource: InputMethod }) {
           >
             <div className="w-5 h-5 shrink-0 flex items-center justify-center">
               {i < currentStep ? (
-                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} style={{ color: SUCCESS }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               ) : i === currentStep ? (
-                <div className="w-3 h-3 rounded-full bg-indigo-400" style={{ animation: 'cgPulse 1s infinite' }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: ACCENT, animation: 'cgPulse 1s infinite' }} />
               ) : (
-                <div className="w-2 h-2 rounded-full bg-slate-700" />
+                <div className="w-2 h-2 rounded-full" style={{ background: BORDER_MED }} />
               )}
             </div>
-            <span className={
-              i < currentStep ? 'text-slate-400 line-through' :
-              i === currentStep ? 'text-white' :
-              'text-slate-600'
-            }>
+            <span style={{
+              color: i < currentStep ? FAINT : i === currentStep ? TEXT : FAINT,
+              textDecoration: i < currentStep ? 'line-through' : 'none',
+            }}>
               {step}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="mt-10 w-full max-w-sm h-1.5 rounded-full bg-slate-800 overflow-hidden">
+      <div className="mt-10 w-full max-w-sm h-1.5 rounded-full overflow-hidden" style={{ background: BORDER }}>
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{
@@ -121,11 +125,11 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
     <div className="w-full">
       <div className="relative h-5 rounded-full overflow-visible mb-2" style={{ background: 'linear-gradient(90deg,#22c55e,#f59e0b 50%,#ef4444)' }}>
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-slate-900 shadow-lg transition-all duration-1000"
-          style={{ left: `calc(${position}% - 8px)` }}
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 shadow-lg transition-all duration-1000"
+          style={{ left: `calc(${position}% - 8px)`, background: WHITE, borderColor: '#374151' }}
         />
       </div>
-      <div className="flex justify-between text-xs text-slate-500">
+      <div className="flex justify-between text-xs" style={{ color: MUTED }}>
         <span>0% — Elite</span>
         <span>2% — Avg</span>
         <span>5% — Danger</span>
@@ -202,29 +206,29 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: '#0a0a12' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: PAGE_BG }}>
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} style={{ color: WHITE }}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-white font-semibold text-lg">Loading your audit tool…</p>
+        <p className="font-semibold text-lg" style={{ color: TEXT }}>Loading your audit tool…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: PAGE_BG }}>
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 border-b border-slate-800/60 px-5 h-14 flex items-center justify-between"
-        style={{ background: 'rgba(10,10,18,0.92)', backdropFilter: 'blur(16px)' }}
+        className="sticky top-0 z-50 px-5 h-14 flex items-center justify-between"
+        style={{ background: WHITE, borderBottom: `1px solid ${BORDER_MED}` }}
       >
-        <Link href="/" className="flex items-center gap-2 font-bold text-white text-base">
+        <Link href="/" className="flex items-center gap-2 font-bold text-base" style={{ color: TEXT, textDecoration: 'none' }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛡️</div>
           ChurnGuard
         </Link>
-        <Link href="/#pricing" className="text-sm text-slate-400 hover:text-white transition-colors">
+        <Link href="/#pricing" className="text-sm" style={{ color: MUTED, textDecoration: 'none' }}>
           View Plans →
         </Link>
       </header>
@@ -232,37 +236,40 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         {/* Hero */}
         <div className="text-center max-w-xl mb-10">
-          <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-700/40 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+          <div
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full mb-5"
+            style={{ background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT }}
+          >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             Free · No credit card · About 10 minutes
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight" style={{ color: TEXT }}>
             Free Churn Audit —<br />
             <span style={{ background: 'linear-gradient(135deg,#f97316,#ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Know What You're Losing
+              Know What You&apos;re Losing
             </span>
           </h1>
-          <p className="text-slate-400 text-lg">
-            Upload a CSV or connect Stripe (read-only). We'll email you your churn rate vs. benchmark and revenue at risk.
+          <p className="text-lg" style={{ color: MUTED }}>
+            Upload a CSV or connect Stripe (read-only). We&apos;ll email you your churn rate vs. benchmark and revenue at risk.
           </p>
         </div>
 
         {/* HubSpot form card */}
         <div
           className="w-full max-w-md rounded-2xl border p-8"
-          style={{ background: '#111827', borderColor: '#1f2937' }}
+          style={{ background: WHITE, borderColor: BORDER_MED }}
         >
           <div className="flex justify-center mb-5">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
               🛡️
             </div>
           </div>
-          <h2 className="text-white text-lg font-bold text-center mb-1">
+          <h2 className="text-lg font-bold text-center mb-1" style={{ color: TEXT }}>
             Enter your details to see your free churn risk audit
           </h2>
-          <p className="text-slate-500 text-sm text-center mb-6">
+          <p className="text-sm text-center mb-6" style={{ color: FAINT }}>
             First Name · Last Name · Email · Company
           </p>
 
@@ -279,18 +286,19 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           {/* Fallback skip link — shown after 12 s if form never loads */}
           {showFallback && (
             <div className="mt-5 text-center">
-              <p className="text-slate-600 text-xs mb-1">Form not loading? (Ad blocker?)</p>
+              <p className="text-xs mb-1" style={{ color: FAINT }}>Form not loading? (Ad blocker?)</p>
               <button
                 onClick={() => onDoneRef.current('')}
-                className="text-indigo-400 text-xs hover:underline"
+                className="text-xs hover:underline"
+                style={{ color: ACCENT, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Skip and go to the calculator →
               </button>
             </div>
           )}
 
-          <p className="text-slate-400 text-xs text-center mt-5 flex items-center justify-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <p className="text-xs text-center mt-5 flex items-center justify-center gap-1.5" style={{ color: MUTED }}>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} style={{ color: SUCCESS }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             No spam — we take your privacy seriously.
@@ -298,10 +306,10 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         </div>
 
         {/* Social proof */}
-        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
+        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs" style={{ color: MUTED }}>
           {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
-              <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" style={{ color: SUCCESS }}>
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {t}
@@ -522,23 +530,26 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
     "You're beating most SaaS companies — let's keep it that way";
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#0a0a12' }}>
+    <div className="min-h-screen pb-20" style={{ background: PAGE_BG }}>
       {/* Page header */}
       <div
         className="py-12 px-6 text-center border-b"
-        style={{ background: 'linear-gradient(180deg,#1a0505 0%,#0a0a12 100%)', borderColor: '#3f1a1a' }}
+        style={{ background: DANGER_BG, borderColor: DANGER_BORD }}
       >
-        <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-800/40 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+        <div
+          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-4"
+          style={{ background: 'rgba(220,38,38,0.1)', border: `1px solid ${DANGER_BORD}`, color: DANGER }}
+        >
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
           Your Churn Audit Is Ready
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 leading-tight" style={{ color: TEXT }}>
           The Brutal Truth About Your Churn
         </h1>
-        <p className="text-slate-400 text-sm">
-          Report sent to <span className="text-slate-300">{email}</span>
+        <p className="text-sm" style={{ color: MUTED }}>
+          Report sent to <span style={{ color: TEXT }}>{email}</span>
         </p>
       </div>
 
@@ -549,61 +560,61 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
           <div
             className="rounded-2xl p-5 text-center border"
             style={{
-              background: churnBad ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)',
-              borderColor: churnBad ? '#7f1d1d' : '#14532d',
+              background: churnBad ? DANGER_BG : '#ecfdf5',
+              borderColor: churnBad ? DANGER_BORD : 'rgba(5,150,105,0.2)',
             }}
           >
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">Monthly Churn</p>
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: MUTED }}>Monthly Churn</p>
             <p className="text-5xl font-extrabold mb-1" style={{ color: churnColor }}>
               {results.monthlyChurnRate.toFixed(1)}%
             </p>
-            <p className="text-xs text-slate-500">per month</p>
+            <p className="text-xs" style={{ color: FAINT }}>per month</p>
           </div>
 
-          <div className="rounded-2xl p-5 text-center border" style={{ background: 'rgba(245,158,11,0.07)', borderColor: '#78350f' }}>
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">Revenue at Risk</p>
-            <p className="text-4xl font-extrabold text-amber-400 mb-1">
+          <div className="rounded-2xl p-5 text-center border" style={{ background: WARN_BG, borderColor: WARN_BORD }}>
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: MUTED }}>Revenue at Risk</p>
+            <p className="text-4xl font-extrabold mb-1" style={{ color: '#f59e0b' }}>
               ${results.revenueAtRisk.toLocaleString()}
             </p>
-            <p className="text-xs text-slate-500">MRR in danger now</p>
+            <p className="text-xs" style={{ color: FAINT }}>MRR in danger now</p>
           </div>
 
-          <div className="rounded-2xl p-5 text-center border" style={{ background: 'rgba(239,68,68,0.07)', borderColor: '#7f1d1d' }}>
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">Annual Revenue Loss</p>
-            <p className="text-4xl font-extrabold text-red-400 mb-1">
+          <div className="rounded-2xl p-5 text-center border" style={{ background: DANGER_BG, borderColor: DANGER_BORD }}>
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: MUTED }}>Annual Revenue Loss</p>
+            <p className="text-4xl font-extrabold mb-1" style={{ color: DANGER }}>
               ${results.annualizedLoss.toLocaleString()}
             </p>
-            <p className="text-xs text-slate-500">if nothing changes</p>
+            <p className="text-xs" style={{ color: FAINT }}>if nothing changes</p>
           </div>
         </div>
 
         {/* Benchmark */}
-        <div className="rounded-2xl p-5 border" style={{ background: '#111827', borderColor: '#1f2937' }}>
+        <div className="rounded-2xl p-5 border" style={{ background: WHITE, borderColor: BORDER }}>
           <div className="flex items-start justify-between mb-4 gap-4">
             <div>
-              <h3 className="text-white font-semibold text-sm mb-0.5">Industry Benchmark</h3>
-              <p className="text-slate-400 text-xs">{benchmarkMsg}</p>
+              <h3 className="font-semibold text-sm mb-0.5" style={{ color: TEXT }}>Industry Benchmark</h3>
+              <p className="text-xs" style={{ color: MUTED }}>{benchmarkMsg}</p>
             </div>
             <span
               className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full"
               style={{
-                background: bottomPct > 75 ? 'rgba(239,68,68,0.15)' : bottomPct > 50 ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)',
-                color:      bottomPct > 75 ? '#ef4444' : bottomPct > 50 ? '#f59e0b' : '#22c55e',
+                background: bottomPct > 75 ? DANGER_BG : bottomPct > 50 ? WARN_BG : '#ecfdf5',
+                color:      bottomPct > 75 ? DANGER    : bottomPct > 50 ? '#f59e0b' : SUCCESS,
               }}
             >
               Bottom {bottomPct}%
             </span>
           </div>
           <BenchmarkBar churnRate={results.monthlyChurnRate} />
-          <div className="flex gap-6 mt-5 pt-4 border-t border-slate-800 text-center">
+          <div className="flex gap-6 mt-5 pt-4 border-t text-center" style={{ borderColor: BORDER }}>
             {[
               { label: 'Active', value: results.activeCount },
               { label: 'Churned (30d)', value: results.canceledCount },
               { label: 'Past Due', value: results.pastDueCount },
             ].map(s => (
               <div key={s.label} className="flex-1">
-                <p className="text-xl font-bold text-white">{s.value}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                <p className="text-xl font-bold" style={{ color: TEXT }}>{s.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: FAINT }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -611,12 +622,12 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
 
         {/* At-risk customers */}
         {results.atRiskCustomers.length > 0 && (
-          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#1f2937' }}>
-            <div className="px-5 py-4 border-b" style={{ background: '#111827', borderColor: '#1f2937' }}>
-              <h3 className="text-white font-semibold text-sm">Your Highest-Risk Customers</h3>
-              <p className="text-slate-500 text-xs mt-0.5">Act on these within 48 hours or they're gone</p>
+          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: BORDER }}>
+            <div className="px-5 py-4 border-b" style={{ background: PAGE_BG, borderColor: BORDER }}>
+              <h3 className="font-semibold text-sm" style={{ color: TEXT }}>Your Highest-Risk Customers</h3>
+              <p className="text-xs mt-0.5" style={{ color: FAINT }}>Act on these within 48 hours or they&apos;re gone</p>
             </div>
-            <div style={{ background: '#0d111b' }}>
+            <div style={{ background: WHITE }}>
               {results.atRiskCustomers.map((c, i) => {
                 const isHigh = c.urgency === 'high';
                 return (
@@ -624,21 +635,21 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
                     key={i}
                     className="flex items-center gap-4 px-5 py-4 border-b last:border-0"
                     style={{
-                      borderColor: '#1a2035',
-                      background: isHigh ? 'rgba(239,68,68,0.04)' : 'rgba(245,158,11,0.04)',
+                      borderColor: BORDER,
+                      background: isHigh ? 'rgba(220,38,38,0.04)' : 'rgba(217,119,6,0.04)',
                     }}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{c.reason}</p>
+                      <p className="text-sm font-medium truncate" style={{ color: TEXT }}>{c.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: FAINT }}>{c.reason}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-white text-sm font-semibold">${c.mrr.toLocaleString()}/mo</p>
+                      <p className="text-sm font-semibold" style={{ color: TEXT }}>${c.mrr.toLocaleString()}/mo</p>
                       <span
                         className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{
-                          background: isHigh ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                          color:      isHigh ? '#ef4444' : '#f59e0b',
+                          background: isHigh ? DANGER_BG : WARN_BG,
+                          color:      isHigh ? DANGER    : '#f59e0b',
                         }}
                       >
                         {isHigh ? 'Payment Failed' : 'At Risk'}
@@ -661,7 +672,7 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
             }}
             disabled={downloading}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', boxShadow: '0 0 20px rgba(99,102,241,0.35)' }}
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: WHITE, boxShadow: '0 0 20px rgba(99,102,241,0.25)' }}
           >
             {downloading ? (
               <>
@@ -685,24 +696,24 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
         {/* CTA */}
         <div
           className="rounded-2xl p-8 text-center border"
-          style={{ background: 'linear-gradient(145deg,#1a1040,#0f172a)', borderColor: 'rgba(99,102,241,0.3)' }}
+          style={{ background: ACCENT_BG, borderColor: ACCENT_BORDER }}
         >
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">What happens next</p>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 leading-snug">
+          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: ACCENT }}>What happens next</p>
+          <h3 className="text-xl sm:text-2xl font-bold mb-3 leading-snug" style={{ color: TEXT }}>
             ChurnGuard can stop<br />
-            <span className="text-amber-400">${results.revenueAtRisk.toLocaleString()}/mo</span> from walking out the door
+            <span style={{ color: '#f59e0b' }}>${results.revenueAtRisk.toLocaleString()}/mo</span> from walking out the door
           </h3>
-          <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
+          <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: MUTED }}>
             Automated interventions fire the moment a customer shows risk signals — before they cancel, not after.
           </p>
           <Link
             href="/#pricing"
-            className="inline-block px-8 py-4 rounded-xl font-bold text-white text-base hover:opacity-90 hover:scale-105 transition-all"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 32px rgba(99,102,241,0.4)' }}
+            className="inline-block px-8 py-4 rounded-xl font-bold text-base hover:opacity-90 transition-all"
+            style={{ background: ACCENT, color: WHITE }}
           >
             Start Your 30-Day Free Trial →
           </Link>
-          <p className="text-slate-400 text-xs mt-4">No credit card · Setup in 5 minutes · Cancel anytime</p>
+          <p className="text-xs mt-4" style={{ color: FAINT }}>No credit card · Setup in 5 minutes · Cancel anytime</p>
         </div>
 
       </div>
@@ -806,20 +817,20 @@ function AuditPageInner() {
   if (step === 'results' && results) return <ResultsScreen results={results} email={hsEmail} />;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a12' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: PAGE_BG }}>
       {/* Nav */}
       <header
-        className="sticky top-0 z-50 border-b border-slate-800/60 px-5 h-14 flex items-center justify-between"
-        style={{ background: 'rgba(10,10,18,0.92)', backdropFilter: 'blur(16px)' }}
+        className="sticky top-0 z-50 px-5 h-14 flex items-center justify-between"
+        style={{ background: WHITE, borderBottom: `1px solid ${BORDER_MED}` }}
       >
-        <Link href="/" className="flex items-center gap-2 font-bold text-white text-base">
+        <Link href="/" className="flex items-center gap-2 font-bold text-base" style={{ color: TEXT, textDecoration: 'none' }}>
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
           >🛡️</div>
           ChurnGuard
         </Link>
-        <Link href="/#pricing" className="text-sm text-slate-400 hover:text-white transition-colors">
+        <Link href="/#pricing" className="text-sm" style={{ color: MUTED, textDecoration: 'none' }}>
           View Plans →
         </Link>
       </header>
@@ -827,20 +838,23 @@ function AuditPageInner() {
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         {/* Hero */}
         <div className="text-center max-w-xl mb-10">
-          <div className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-800/40 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+          <div
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full mb-5"
+            style={{ background: DANGER_BG, border: `1px solid ${DANGER_BORD}`, color: DANGER }}
+          >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             Free churn audit · No credit card · Takes about 10 minutes
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight" style={{ color: TEXT }}>
             Find Out Exactly<br />
             <span style={{ background: 'linear-gradient(135deg,#f97316,#ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              How Much You're Losing
+              How Much You&apos;re Losing
             </span>
           </h1>
-          <p className="text-slate-400 text-lg">
-            Upload a CSV or connect Stripe (read-only). We'll email you your churn rate vs. benchmark and revenue at risk.
+          <p className="text-lg" style={{ color: MUTED }}>
+            Upload a CSV or connect Stripe (read-only). We&apos;ll email you your churn rate vs. benchmark and revenue at risk.
           </p>
         </div>
 
@@ -849,20 +863,24 @@ function AuditPageInner() {
           id="calculator-section"
           onSubmit={handleSubmit}
           className="w-full max-w-md rounded-2xl border p-7"
-          style={{ background: '#111827', borderColor: '#1f2937' }}
+          style={{ background: WHITE, borderColor: BORDER_MED }}
         >
           {/* Method toggle */}
           <div className="mb-5">
-            <label className="block text-slate-300 text-sm font-medium mb-2">Data source</label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-900 border border-slate-800">
+            <label className="block text-sm font-medium mb-2" style={{ color: TEXT }}>Data source</label>
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl border" style={{ background: PAGE_BG, borderColor: BORDER }}>
               {(['stripe', 'csv'] as const).map(method => (
                 <button
                   key={method}
                   type="button"
                   onClick={() => setInputMethod(method)}
-                  className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    inputMethod === method ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className="py-2.5 rounded-lg text-sm font-semibold transition-all"
+                  style={{
+                    background: inputMethod === method ? ACCENT : 'transparent',
+                    color:      inputMethod === method ? WHITE  : MUTED,
+                    border:     'none',
+                    cursor:     'pointer',
+                  }}
                 >
                   {method === 'stripe' ? '⚡ Stripe Key' : '📄 CSV Upload'}
                 </button>
@@ -873,19 +891,20 @@ function AuditPageInner() {
           {/* Stripe input */}
           {inputMethod === 'stripe' && (
             <div className="mb-5">
-              <label className="block text-slate-300 text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: TEXT }}>
                 Stripe Secret Key
-                <span className="text-slate-500 font-normal ml-1">(read-only is fine)</span>
+                <span className="font-normal ml-1" style={{ color: FAINT }}>(read-only is fine)</span>
               </label>
               <input
                 type="password"
                 value={stripeKey}
                 onChange={e => setStripeKey(e.target.value)}
                 placeholder="sk_live_... or sk_test_..."
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                className="cg-audit-input w-full rounded-xl px-4 py-3 text-sm font-mono focus:outline-none transition-colors"
+                style={{ background: PAGE_BG, border: `1px solid ${BORDER_MED}`, color: TEXT }}
               />
-              <p className="text-slate-500 text-xs mt-2 flex items-start gap-1.5">
-                <svg className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <p className="text-xs mt-2 flex items-start gap-1.5" style={{ color: FAINT }}>
+                <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} style={{ color: SUCCESS }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 Used server-side for this analysis only. Never stored.
@@ -896,25 +915,25 @@ function AuditPageInner() {
           {/* CSV upload */}
           {inputMethod === 'csv' && (
             <div className="mb-5">
-              <label className="block text-slate-300 text-sm font-medium mb-2">Customer CSV file</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: TEXT }}>Customer CSV file</label>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full border-2 border-dashed rounded-xl p-6 text-center transition-colors hover:border-indigo-500"
-                style={{ borderColor: csvFile ? '#4f46e5' : '#374151', background: csvFile ? 'rgba(99,102,241,0.05)' : 'transparent' }}
+                className="w-full border-2 border-dashed rounded-xl p-6 text-center transition-colors"
+                style={{ borderColor: csvFile ? ACCENT : BORDER_MED, background: csvFile ? ACCENT_BG : 'transparent' }}
               >
                 {csvFile ? (
                   <div>
-                    <p className="text-indigo-400 font-medium text-sm">{csvFile.name}</p>
-                    <p className="text-slate-500 text-xs mt-1">Click to change file</p>
+                    <p className="font-medium text-sm" style={{ color: ACCENT }}>{csvFile.name}</p>
+                    <p className="text-xs mt-1" style={{ color: FAINT }}>Click to change file</p>
                   </div>
                 ) : (
                   <div>
-                    <svg className="w-7 h-7 text-slate-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <svg className="w-7 h-7 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} style={{ color: FAINT }}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p className="text-slate-400 text-sm">Drop CSV or click to browse</p>
-                    <p className="text-slate-400 text-xs mt-1">Columns: email, mrr, status, days_inactive</p>
+                    <p className="text-sm" style={{ color: MUTED }}>Drop CSV or click to browse</p>
+                    <p className="text-xs mt-1" style={{ color: FAINT }}>Columns: email, mrr, status, days_inactive</p>
                   </div>
                 )}
               </button>
@@ -924,7 +943,7 @@ function AuditPageInner() {
 
           {/* Error */}
           {error && (
-            <div className="mb-4 flex items-start gap-2 bg-red-950/50 border border-red-800/50 text-red-400 text-sm rounded-xl px-4 py-3">
+            <div className="mb-4 flex items-start gap-2 text-sm rounded-xl px-4 py-3" style={{ background: DANGER_BG, border: `1px solid ${DANGER_BORD}`, color: DANGER }}>
               <svg className="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
@@ -935,27 +954,32 @@ function AuditPageInner() {
           {/* Submit */}
           <button
             type="submit"
-            className="w-full py-4 rounded-xl font-bold text-white text-base hover:opacity-90 hover:scale-[1.02] transition-all"
-            style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 0 24px rgba(239,68,68,0.3)' }}
+            className="w-full py-4 rounded-xl font-bold text-base hover:opacity-90 hover:scale-[1.02] transition-all"
+            style={{ background: DANGER, color: WHITE, border: 'none', cursor: 'pointer' }}
           >
             Show Me My Churn Numbers →
           </button>
-          <p className="text-slate-400 text-xs text-center mt-4">
+          <p className="text-xs text-center mt-4" style={{ color: FAINT }}>
             Free · Results emailed to you · Stripe key never stored
           </p>
         </form>
 
         {/* Social proof */}
-        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-slate-400">
+        <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs" style={{ color: MUTED }}>
           {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
-              <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" style={{ color: SUCCESS }}>
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {t}
             </span>
           ))}
         </div>
+
+        <style>{`
+          .cg-audit-input::placeholder { color: ${FAINT}; }
+          .cg-audit-input:focus { border-color: ${ACCENT} !important; }
+        `}</style>
       </main>
     </div>
   );
@@ -963,7 +987,7 @@ function AuditPageInner() {
 
 export default function FreeAuditPage() {
   return (
-    <Suspense fallback={<div style={{ background: '#0a0a12', minHeight: '100vh' }} />}>
+    <Suspense fallback={<div style={{ background: PAGE_BG, minHeight: '100vh' }} />}>
       <AuditPageInner />
     </Suspense>
   );

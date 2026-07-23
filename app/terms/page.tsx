@@ -1,21 +1,23 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import PublicShell from '@/app/components/ui/PublicShell';
+import { BORDER, TEXT, MUTED, FAINT, ACCENT } from '@/app/lib/design-tokens';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Terms of Service — ChurnGuard',
   description: 'Terms and conditions for using the ChurnGuard platform.',
+  alternates: { canonical: 'https://churnguardapp.com/terms' },
 };
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <div className="max-w-3xl mx-auto px-6 py-16">
+    <PublicShell activeHref="/terms">
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 24px 96px' }}>
 
-        {/* Header */}
-        <div className="mb-10">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← churnguardapp.com</Link>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900">Terms of Service</h1>
-          <p className="mt-2 text-sm text-gray-500">Last updated: June 2026</p>
-        </div>
+        <h1 style={{ fontSize: '2rem', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+          Terms of Service
+        </h1>
+        <p style={{ fontSize: '13px', color: FAINT, marginBottom: '48px' }}>Last updated: June 2026</p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-gray-700">
 
@@ -60,7 +62,7 @@ export default function TermsPage() {
               ChurnGuard offers a free 30-day trial with no credit card required. After the
               trial, continued use requires a paid subscription. Pricing is based on your
               monthly recurring revenue (MRR) as described on our{' '}
-              <Link href="/pricing" className="text-indigo-600 hover:underline">pricing page</Link>.
+              <Link href="/pricing" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>pricing page</Link>.
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>
@@ -87,7 +89,7 @@ export default function TermsPage() {
             <p>
               We offer a <strong>7-day money-back guarantee</strong> on your first paid month.
               If you are unsatisfied for any reason, contact{' '}
-              <a href="mailto:admin@churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 admin@churnguardapp.com
               </a>{' '}
               within 7 days of your first charge and we will issue a full refund. No refunds
@@ -189,10 +191,10 @@ export default function TermsPage() {
             <p>
               Questions about these Terms?<br />
               ChurnGuard<br />
-              <a href="mailto:admin@churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 admin@churnguardapp.com
               </a><br />
-              <a href="https://churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="https://churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 churnguardapp.com
               </a>
             </p>
@@ -200,12 +202,12 @@ export default function TermsPage() {
 
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200 flex gap-6 text-sm text-gray-500">
-          <Link href="/privacy" className="hover:text-gray-900">Privacy Policy</Link>
-          <Link href="/" className="hover:text-gray-900">Back to ChurnGuard</Link>
+        <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${BORDER}`, display: 'flex', gap: '24px', fontSize: '13px', color: FAINT }}>
+          <Link href="/privacy" style={{ color: MUTED, textDecoration: 'none' }}>Privacy Policy</Link>
+          <Link href="/" style={{ color: MUTED, textDecoration: 'none' }}>Back to ChurnGuard</Link>
         </div>
 
       </div>
-    </main>
+    </PublicShell>
   );
 }

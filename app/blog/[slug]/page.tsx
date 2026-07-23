@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPost, getAllSlugs, formatDate } from '@/lib/blog';
+import PublicShell from '@/app/components/ui/PublicShell';
+import {
+  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, BORDER_MED,
+  TEXT, MUTED, FAINT, WHITE, PAGE_BG, btnPrimary, btnOutline,
+} from '@/app/lib/design-tokens';
 
 export async function generateStaticParams() {
   return getAllSlugs().map(slug => ({ slug }));
@@ -40,31 +45,31 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 const STYLES = `
-  .prose { color: #cbd5e1; font-size: 17px; line-height: 1.8; }
-  .prose h2 { color: #f1f5f9; font-size: 24px; font-weight: 700; margin: 2.5em 0 0.75em; letter-spacing: -0.02em; border-bottom: 1px solid #1e293b; padding-bottom: 0.5em; scroll-margin-top: 80px; }
-  .prose h3 { color: #e2e8f0; font-size: 19px; font-weight: 700; margin: 2em 0 0.6em; letter-spacing: -0.01em; scroll-margin-top: 80px; }
+  .prose { color: ${MUTED}; font-size: 17px; line-height: 1.8; }
+  .prose h2 { color: ${TEXT}; font-size: 22px; font-weight: 600; margin: 2.5em 0 0.75em; letter-spacing: -0.02em; border-bottom: 1px solid ${BORDER}; padding-bottom: 0.5em; scroll-margin-top: 80px; }
+  .prose h3 { color: ${TEXT}; font-size: 18px; font-weight: 600; margin: 2em 0 0.6em; letter-spacing: -0.01em; scroll-margin-top: 80px; }
   .prose p { margin: 0 0 1.4em; }
-  .prose strong { color: #f1f5f9; font-weight: 700; }
-  .prose em { color: #c4b5fd; font-style: italic; }
+  .prose strong { color: ${TEXT}; font-weight: 600; }
+  .prose em { color: ${ACCENT}; font-style: italic; }
   .prose ul { margin: 0 0 1.4em; padding-left: 1.5em; }
   .prose ol { margin: 0 0 1.4em; padding-left: 1.5em; }
   .prose li { margin: 0 0 0.5em; }
-  .prose a { color: #818cf8; text-decoration: underline; text-underline-offset: 3px; }
-  .prose a:hover { color: #a5b4fc; }
-  .prose blockquote { border-left: 3px solid #6366f1; padding: 4px 0 4px 20px; margin: 0 0 1.4em; color: #94a3b8; font-style: italic; }
-  .prose code { background: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #c4b5fd; font-family: monospace; }
-  .prose pre { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; overflow-x: auto; margin: 0 0 1.4em; }
-  .prose pre code { background: none; padding: 0; color: #e2e8f0; }
-  .prose hr { border: none; border-top: 1px solid #1e293b; margin: 2.5em 0; }
-  .prose .table-wrap { overflow-x: auto; margin: 0 0 1.4em; border-radius: 10px; border: 1px solid #334155; }
+  .prose a { color: ${ACCENT}; text-decoration: underline; text-underline-offset: 3px; }
+  .prose a:hover { opacity: 0.75; }
+  .prose blockquote { border-left: 3px solid ${ACCENT}; padding: 4px 0 4px 20px; margin: 0 0 1.4em; color: ${MUTED}; font-style: italic; }
+  .prose code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: ${ACCENT}; font-family: monospace; }
+  .prose pre { background: #1e1e2e; border: 1px solid ${BORDER}; border-radius: 10px; padding: 20px; overflow-x: auto; margin: 0 0 1.4em; }
+  .prose pre code { background: none; padding: 0; color: #cdd6f4; }
+  .prose hr { border: none; border-top: 1px solid ${BORDER}; margin: 2.5em 0; }
+  .prose .table-wrap { overflow-x: auto; margin: 0 0 1.4em; border-radius: 10px; border: 1px solid ${BORDER}; }
   .prose table { width: 100%; border-collapse: collapse; }
-  .prose th { background: #1e293b; color: #e2e8f0; font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: 1px solid #334155; }
-  .prose td { padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.5); }
+  .prose th { background: ${PAGE_BG}; color: ${TEXT}; font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 1px solid ${BORDER}; }
+  .prose td { padding: 10px 14px; border-bottom: 1px solid ${BORDER}; color: ${MUTED}; }
   .prose tr:last-child td { border-bottom: none; }
-  .prose tr:nth-child(even) td { background: rgba(30,41,59,0.4); }
+  .prose tr:nth-child(even) td { background: ${PAGE_BG}; }
   .prose img { max-width: 100%; border-radius: 8px; margin: 0 0 1.4em; display: block; }
-  .toc-link { display: block; padding: 6px 10px; border-radius: 6px; color: #64748b; font-size: 13px; text-decoration: none; line-height: 1.4; border-left: 2px solid transparent; }
-  .toc-link:hover { color: #818cf8; background: rgba(99,102,241,0.06); border-left-color: #6366f1; }
+  .toc-link { display: block; padding: 6px 10px; border-radius: 6px; color: ${FAINT}; font-size: 13px; text-decoration: none; line-height: 1.4; border-left: 2px solid transparent; }
+  .toc-link:hover { color: ${ACCENT}; background: ${ACCENT_BG}; border-left-color: ${ACCENT}; }
   .post-layout { display: grid; grid-template-columns: 1fr 260px; gap: 56px; align-items: start; max-width: 1100px; margin: 0 auto; padding: 56px 24px 80px; }
   .toc-sidebar { position: sticky; top: 80px; }
   .toc-mobile { display: none; }
@@ -137,26 +142,11 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
     : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f1f5f9', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+    <PublicShell activeHref="/blog">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <style>{STYLES}</style>
-
-      {/* ── Header ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(51,65,85,0.6)' }}>
-        <nav style={{ maxWidth: '1152px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img src="/logo-purple.png" alt="ChurnGuard" style={{ height: '28px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <Link href="/blog" style={{ color: '#94a3b8', fontSize: '14px', textDecoration: 'none' }}>← Blog</Link>
-            <Link href="/audit" style={{ padding: '8px 18px', borderRadius: '8px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '13px', fontWeight: '700', textDecoration: 'none' }}>
-              Free Audit →
-            </Link>
-          </div>
-        </nav>
-      </header>
 
       {/* ── Main layout ── */}
       <div className="post-layout">
@@ -166,41 +156,41 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
           {/* Tags */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
             {post.tags.map(tag => (
-              <span key={tag} style={{ padding: '3px 10px', borderRadius: '10px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', fontSize: '12px', fontWeight: '600', color: '#818cf8' }}>
+              <span key={tag} style={{ padding: '3px 10px', borderRadius: '999px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, fontSize: '12px', fontWeight: 500, color: ACCENT }}>
                 {tag}
               </span>
             ))}
           </div>
 
           {/* Title */}
-          <h1 style={{ fontSize: 'clamp(26px,4vw,42px)', fontWeight: '800', lineHeight: '1.15', letterSpacing: '-0.03em', margin: '0 0 20px', color: '#f1f5f9' }}>
+          <h1 style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)', fontWeight: 500, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 20px', color: TEXT }}>
             {post.title}
           </h1>
 
           {/* Description */}
-          <p style={{ fontSize: '18px', color: '#94a3b8', lineHeight: '1.6', margin: '0 0 32px' }}>
+          <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.6, margin: '0 0 32px' }}>
             {post.description}
           </p>
 
           {/* Byline */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', marginBottom: '40px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '16px', color: '#fff', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '10px', marginBottom: '40px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px', color: '#fff', flexShrink: 0 }}>
               {post.author.charAt(0)}
             </div>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#f1f5f9' }}>{post.author}</div>
-              {post.authorRole && <div style={{ fontSize: '12px', color: '#64748b' }}>{post.authorRole}</div>}
+              <div style={{ fontSize: '14px', fontWeight: 500, color: TEXT }}>{post.author}</div>
+              {post.authorRole && <div style={{ fontSize: '12px', color: FAINT }}>{post.authorRole}</div>}
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-              <div style={{ fontSize: '13px', color: '#64748b' }}>{formatDate(post.date)}</div>
-              <div style={{ fontSize: '13px', color: '#64748b' }}>{post.readTime}</div>
+              <div style={{ fontSize: '13px', color: FAINT }}>{formatDate(post.date)}</div>
+              <div style={{ fontSize: '13px', color: FAINT }}>{post.readTime}</div>
             </div>
           </div>
 
           {/* Mobile ToC */}
           {post.headings.length > 0 && (
-            <div className="toc-mobile" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', marginBottom: '40px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            <div className="toc-mobile" style={{ background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '20px', marginBottom: '40px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
                 In This Article
               </div>
               {post.headings.map(h => (
@@ -214,44 +204,39 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
 
           {/* Author bio */}
           {post.authorBio && (
-            <div style={{ marginTop: '64px', padding: '28px', background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '20px', color: '#fff', flexShrink: 0 }}>
+            <div style={{ marginTop: '64px', padding: '28px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '20px', color: '#fff', flexShrink: 0 }}>
                 {post.author.charAt(0)}
               </div>
               <div>
-                <div style={{ fontSize: '15px', fontWeight: '700', color: '#f1f5f9', marginBottom: '2px' }}>{post.author}</div>
-                {post.authorRole && <div style={{ fontSize: '13px', color: '#818cf8', marginBottom: '10px' }}>{post.authorRole}</div>}
-                <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.6', margin: 0 }}>{post.authorBio}</p>
+                <div style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '2px' }}>{post.author}</div>
+                {post.authorRole && <div style={{ fontSize: '13px', color: ACCENT, marginBottom: '10px' }}>{post.authorRole}</div>}
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.6, margin: 0 }}>{post.authorBio}</p>
               </div>
             </div>
           )}
 
           {/* CTA */}
-          <div style={{ marginTop: '56px', padding: '40px', background: 'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05))', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '20px' }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '32px', flexShrink: 0 }}>🛡️</div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#f1f5f9', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
-                  See your Revenue at Risk — free
-                </h3>
-                <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6', margin: '0 0 20px' }}>
-                  Connect your Stripe account and get a full churn audit in 2 minutes. No signup, no credit card. ChurnGuard shows you exactly which customers are about to cancel and how much MRR is at stake.
-                </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link href="/audit" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: '700', fontSize: '15px', textDecoration: 'none' }}>
-                    Run Free Churn Audit →
-                  </Link>
-                  <Link href="/#pricing" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: '10px', border: '1px solid #334155', color: '#94a3b8', fontWeight: '600', fontSize: '15px', textDecoration: 'none' }}>
-                    View Pricing
-                  </Link>
-                </div>
-              </div>
+          <div style={{ marginTop: '56px', padding: '32px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '12px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 500, color: TEXT, margin: '0 0 8px', letterSpacing: '-0.01em' }}>
+              See your Revenue at Risk — free
+            </h3>
+            <p style={{ color: MUTED, fontSize: '14px', lineHeight: 1.6, margin: '0 0 20px' }}>
+              Connect your Stripe account and get a full churn audit in 2 minutes. No signup, no credit card. ChurnGuard shows you exactly which customers are about to cancel and how much MRR is at stake.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <Link href="/audit" style={btnPrimary}>
+                Run Free Churn Audit →
+              </Link>
+              <Link href="/#pricing" style={btnOutline}>
+                View Pricing
+              </Link>
             </div>
           </div>
 
           {/* Back to blog */}
-          <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #1e293b' }}>
-            <Link href="/blog" style={{ color: '#818cf8', fontSize: '14px', fontWeight: '600', textDecoration: 'none' }}>
+          <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: `1px solid ${BORDER}` }}>
+            <Link href="/blog" style={{ color: ACCENT, fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}>
               ← Back to all posts
             </Link>
           </div>
@@ -260,29 +245,24 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         {/* ── ToC sidebar ── */}
         {post.headings.length > 0 && (
           <aside className="toc-sidebar">
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
                 In This Article
               </div>
               {post.headings.map(h => (
                 <a key={h.id} href={`#${h.id}`} className="toc-link">{h.text}</a>
               ))}
             </div>
-            <div style={{ marginTop: '20px', padding: '20px', background: 'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05))', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#f1f5f9', marginBottom: '6px' }}>See your churn risk</div>
-              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.5', margin: '0 0 14px' }}>Free Stripe audit — no signup needed</p>
-              <Link href="/audit" style={{ display: 'block', padding: '10px', borderRadius: '8px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontWeight: '700', fontSize: '13px', textDecoration: 'none' }}>
+            <div style={{ marginTop: '16px', padding: '20px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>See your churn risk</div>
+              <p style={{ fontSize: '12px', color: MUTED, lineHeight: 1.5, margin: '0 0 14px' }}>Free Stripe audit — no signup needed</p>
+              <Link href="/audit" style={{ display: 'block', padding: '10px', borderRadius: '6px', background: ACCENT, color: '#fff', fontWeight: 500, fontSize: '13px', textDecoration: 'none' }}>
                 Run Free Audit →
               </Link>
             </div>
           </aside>
         )}
       </div>
-
-      {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid #1e293b', padding: '32px 24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-        <p style={{ margin: 0 }}>© 2026 ChurnGuard · <Link href="/blog" style={{ color: '#64748b' }}>Blog</Link> · <Link href="/#pricing" style={{ color: '#64748b' }}>Pricing</Link></p>
-      </footer>
-    </div>
+    </PublicShell>
   );
 }

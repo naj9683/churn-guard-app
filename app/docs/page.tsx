@@ -1,23 +1,31 @@
 'use client';
 
+import PublicShell from '@/app/components/ui/PublicShell';
+import {
+  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, TEXT, MUTED, WHITE,
+} from '@/app/lib/design-tokens';
+
 export default function DocsPage() {
   return (
-    <div style={{minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'system-ui', padding: '2rem'}}>
-      <div style={{maxWidth: '800px', margin: '0 auto'}}>
-        <h1 style={{fontSize: '2.5rem', marginBottom: '0.5rem'}}>📚 Integration Guide</h1>
-        <p style={{color: '#94a3b8', fontSize: '1.125rem', marginBottom: '2rem'}}>
+    <PublicShell activeHref="/docs">
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '64px 24px 96px' }}>
+
+        <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+          📚 Integration Guide
+        </h1>
+        <p style={{ color: MUTED, fontSize: '16px', marginBottom: '40px', lineHeight: 1.6 }}>
           Track your users and reduce churn automatically
         </p>
 
         {/* Step 1 */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 1: Add the Script</h2>
-          <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 1: Add the Script</h2>
+          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Add this to your website&apos;s &lt;head&gt; or before closing &lt;/body&gt; tag:
           </p>
-          <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
-            <code style={{color: '#10b981', fontSize: '0.875rem'}}>
-{`<script src="https://churn-guard-app.vercel.app/churnguard.js" 
+          <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
+            <code style={{ color: '#cdd6f4', fontSize: '13px' }}>
+{`<script src="https://churnguardapp.com/widget.js"
   data-churnguard-key="YOUR_API_KEY">
 </script>`}
             </code>
@@ -25,13 +33,13 @@ export default function DocsPage() {
         </div>
 
         {/* Step 2 */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 2: Track Login</h2>
-          <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 2: Track Login</h2>
+          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             When user logs in, tell ChurnGuard:
           </p>
-          <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
-            <code style={{color: '#10b981', fontSize: '0.875rem'}}>
+          <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
+            <code style={{ color: '#cdd6f4', fontSize: '13px' }}>
 {`// After successful login
 ChurnGuard.trackLogin({
   id: 'user_123',
@@ -43,13 +51,13 @@ ChurnGuard.trackLogin({
         </div>
 
         {/* Step 3 */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 3: Track Important Actions</h2>
-          <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 3: Track Important Actions</h2>
+          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Track when users complete key actions (onboarding, purchase, etc.):
           </p>
-          <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
-            <code style={{color: '#10b981', fontSize: '0.875rem'}}>
+          <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
+            <code style={{ color: '#cdd6f4', fontSize: '13px' }}>
 {`// User completed onboarding
 ChurnGuard.trackFeature('onboarding_complete');
 
@@ -66,13 +74,13 @@ ChurnGuard.trackFeature('exported_report');`}
         </div>
 
         {/* Step 4 */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 4: Track Payment Failures</h2>
-          <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 4: Track Payment Failures</h2>
+          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             When payment fails, trigger retention playbook:
           </p>
-          <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
-            <code style={{color: '#10b981', fontSize: '0.875rem'}}>
+          <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
+            <code style={{ color: '#cdd6f4', fontSize: '13px' }}>
 {`// When Stripe payment fails
 ChurnGuard.trackPaymentFailed({
   amount: 99,
@@ -84,13 +92,13 @@ ChurnGuard.trackPaymentFailed({
         </div>
 
         {/* Step 5 */}
-        <div style={{background: '#1e293b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{color: '#3b82f6', marginTop: 0}}>Step 5: Track Churn Signals</h2>
-          <p style={{color: '#94a3b8', marginBottom: '1rem'}}>
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
+          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 5: Track Churn Signals</h2>
+          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Detect when users show intent to leave:
           </p>
-          <pre style={{background: '#0f172a', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto'}}>
-            <code style={{color: '#10b981', fontSize: '0.875rem'}}>
+          <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
+            <code style={{ color: '#cdd6f4', fontSize: '13px' }}>
 {`// User clicked "Cancel Subscription"
 ChurnGuard.trackChurnSignal('clicked_cancel');
 
@@ -103,32 +111,25 @@ ChurnGuard.trackChurnSignal('viewed_cancellation_help');`}
           </pre>
         </div>
 
-        {/* What Happens */}
-        <div style={{background: '#059669', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem'}}>
-          <h2 style={{marginTop: 0}}>✨ What Happens Automatically?</h2>
-          <ul style={{lineHeight: '2', margin: 0, paddingLeft: '1.5rem'}}>
-            <li><strong>Day 3 No Login:</strong> Onboarding rescue email sent</li>
-            <li><strong>5 Days Absent:</strong> &quot;We miss you&quot; email + Slack alert</li>
-            <li><strong>Payment Failed:</strong> 30% discount offer sent</li>
-            <li><strong>High Risk Score:</strong> Automatic retention campaign</li>
-            <li><strong>Churn Signal:</strong> Immediate intervention email</li>
+        {/* What Happens Automatically */}
+        <div style={{ background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
+          <h2 style={{ color: TEXT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>What Happens Automatically</h2>
+          <ul style={{ lineHeight: 2, margin: 0, paddingLeft: '20px', color: MUTED, fontSize: '14px' }}>
+            <li><strong style={{ color: TEXT }}>Day 3 No Login:</strong> Onboarding rescue email sent</li>
+            <li><strong style={{ color: TEXT }}>5 Days Absent:</strong> &quot;We miss you&quot; email + Slack alert</li>
+            <li><strong style={{ color: TEXT }}>Payment Failed:</strong> 30% discount offer sent</li>
+            <li><strong style={{ color: TEXT }}>High Risk Score:</strong> Automatic retention campaign</li>
+            <li><strong style={{ color: TEXT }}>Churn Signal:</strong> Immediate intervention email</li>
           </ul>
         </div>
 
-        <div style={{textAlign: 'center', marginTop: '2rem'}}>
-          <a href="/dashboard" style={{
-            display: 'inline-block',
-            background: '#3b82f6',
-            color: 'white',
-            padding: '1rem 2rem',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '600'
-          }}>
+        <div style={{ textAlign: 'center' }}>
+          <a href="/dashboard" style={{ display: 'inline-block', background: ACCENT, color: WHITE, padding: '11px 26px', borderRadius: '6px', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
             ← Back to Dashboard
           </a>
         </div>
+
       </div>
-    </div>
+    </PublicShell>
   );
 }

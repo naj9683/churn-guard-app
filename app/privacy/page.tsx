@@ -1,21 +1,23 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import PublicShell from '@/app/components/ui/PublicShell';
+import { BORDER, TEXT, MUTED, FAINT, ACCENT } from '@/app/lib/design-tokens';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Privacy Policy — ChurnGuard',
   description: 'How ChurnGuard collects, uses, and protects your data.',
+  alternates: { canonical: 'https://churnguardapp.com/privacy' },
 };
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <div className="max-w-3xl mx-auto px-6 py-16">
+    <PublicShell activeHref="/privacy">
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 24px 96px' }}>
 
-        {/* Header */}
-        <div className="mb-10">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← churnguardapp.com</Link>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900">Privacy Policy</h1>
-          <p className="mt-2 text-sm text-gray-500">Last updated: June 2026</p>
-        </div>
+        <h1 style={{ fontSize: '2rem', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+          Privacy Policy
+        </h1>
+        <p style={{ fontSize: '13px', color: FAINT, marginBottom: '48px' }}>Last updated: June 2026</p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-gray-700">
 
@@ -26,7 +28,7 @@ export default function PrivacyPage() {
               operated at <strong>churnguardapp.com</strong>. We help SaaS businesses identify
               at-risk customers and automate retention campaigns.
               Questions? Contact us at{' '}
-              <a href="mailto:admin@churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 admin@churnguardapp.com
               </a>.
             </p>
@@ -128,7 +130,7 @@ export default function PrivacyPage() {
             </ul>
             <p className="mt-3">
               To exercise any of these rights, email{' '}
-              <a href="mailto:admin@churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 admin@churnguardapp.com
               </a>{' '}
               with the subject line &ldquo;Privacy Request.&rdquo; We will respond within 30 days.
@@ -162,10 +164,10 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Contact</h2>
             <p>
               ChurnGuard<br />
-              <a href="mailto:admin@churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 admin@churnguardapp.com
               </a><br />
-              <a href="https://churnguardapp.com" className="text-indigo-600 hover:underline">
+              <a href="https://churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                 churnguardapp.com
               </a>
             </p>
@@ -173,12 +175,12 @@ export default function PrivacyPage() {
 
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200 flex gap-6 text-sm text-gray-500">
-          <Link href="/terms" className="hover:text-gray-900">Terms of Service</Link>
-          <Link href="/" className="hover:text-gray-900">Back to ChurnGuard</Link>
+        <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${BORDER}`, display: 'flex', gap: '24px', fontSize: '13px', color: FAINT }}>
+          <Link href="/terms" style={{ color: MUTED, textDecoration: 'none' }}>Terms of Service</Link>
+          <Link href="/" style={{ color: MUTED, textDecoration: 'none' }}>Back to ChurnGuard</Link>
         </div>
 
       </div>
-    </main>
+    </PublicShell>
   );
 }
