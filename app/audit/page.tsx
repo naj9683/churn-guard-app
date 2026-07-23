@@ -266,12 +266,9 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
               🛡️
             </div>
           </div>
-          <h2 className="text-lg font-bold text-center mb-1" style={{ color: TEXT }}>
+          <h2 className="text-lg font-bold text-center mb-6" style={{ color: TEXT }}>
             Enter your details to see your free churn risk audit
           </h2>
-          <p className="text-sm text-center mb-6" style={{ color: FAINT }}>
-            First Name · Last Name · Email · Company
-          </p>
 
           {/* HubSpot form embed — renders into an iframe */}
           <div className="cg-hs-wrapper">
@@ -318,9 +315,108 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         </div>
       </main>
 
-      {/* HubSpot iframe width fix */}
+      {/* HubSpot form — light-theme overrides */}
       <style>{`
-        .cg-hs-wrapper .hs-form-frame { display: block; width: 100%; }
+        .cg-hs-wrapper .hs-form {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+        .cg-hs-wrapper .hs-form-field {
+          margin-bottom: 16px !important;
+        }
+        .cg-hs-wrapper .hs-form-field > label {
+          display: block !important;
+          color: #111827 !important;
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          margin-bottom: 6px !important;
+          line-height: 1.4 !important;
+        }
+        .cg-hs-wrapper .hs-form-required {
+          color: #dc2626 !important;
+          margin-left: 2px;
+        }
+        .cg-hs-wrapper .hs-input,
+        .cg-hs-wrapper .hs-input[type="text"],
+        .cg-hs-wrapper .hs-input[type="email"],
+        .cg-hs-wrapper .hs-input[type="tel"],
+        .cg-hs-wrapper .hs-input[type="number"],
+        .cg-hs-wrapper textarea.hs-input,
+        .cg-hs-wrapper select.hs-input {
+          width: 100% !important;
+          box-sizing: border-box !important;
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+          color: #111827 !important;
+          border: 1px solid rgba(0,0,0,0.13) !important;
+          border-radius: 6px !important;
+          padding: 10px 12px !important;
+          font-size: 15px !important;
+          min-height: 42px !important;
+          font-family: inherit !important;
+          transition: border-color 150ms, box-shadow 150ms !important;
+          outline: none !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
+        }
+        .cg-hs-wrapper .hs-input::placeholder {
+          color: #9ca3af !important;
+          opacity: 1 !important;
+        }
+        .cg-hs-wrapper .hs-input:focus {
+          border-color: #6d28d9 !important;
+          box-shadow: 0 0 0 3px rgba(109,40,217,0.12) !important;
+        }
+        .cg-hs-wrapper .hs-input[type="checkbox"],
+        .cg-hs-wrapper .hs-input[type="radio"] {
+          min-height: unset !important;
+          width: auto !important;
+          padding: 0 !important;
+          -webkit-appearance: auto !important;
+          appearance: auto !important;
+        }
+        .cg-hs-wrapper select.hs-input {
+          -webkit-appearance: auto !important;
+          appearance: auto !important;
+          cursor: pointer !important;
+        }
+        .cg-hs-wrapper .hs-error-msg,
+        .cg-hs-wrapper ul.hs-error-msgs,
+        .cg-hs-wrapper ul.hs-error-msgs li {
+          color: #dc2626 !important;
+          font-size: 13px !important;
+          margin-top: 4px !important;
+          padding-left: 0 !important;
+          list-style: none !important;
+          background: transparent !important;
+        }
+        .cg-hs-wrapper input[type="submit"],
+        .cg-hs-wrapper .hs-button.primary {
+          width: 100% !important;
+          background: #6d28d9 !important;
+          background-color: #6d28d9 !important;
+          color: #ffffff !important;
+          border: none !important;
+          border-radius: 6px !important;
+          padding: 12px 24px !important;
+          font-size: 15px !important;
+          font-weight: 500 !important;
+          font-family: inherit !important;
+          cursor: pointer !important;
+          transition: opacity 150ms !important;
+          margin-top: 8px !important;
+          box-shadow: none !important;
+        }
+        .cg-hs-wrapper input[type="submit"]:hover,
+        .cg-hs-wrapper .hs-button.primary:hover {
+          opacity: 0.85 !important;
+        }
+        .cg-hs-wrapper .submitted-message {
+          color: #111827 !important;
+          font-size: 15px !important;
+          text-align: center !important;
+          padding: 16px 0 !important;
+        }
+        .cg-hs-wrapper .hs-form-frame { display: block !important; width: 100% !important; }
         .cg-hs-wrapper .hs-form-frame iframe {
           width: 100% !important;
           min-height: 340px !important;
