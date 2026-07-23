@@ -3,9 +3,9 @@ import LandingPage from '@/app/components/LandingPage';
 import ChatWidget from '@/app/components/ChatWidget';
 
 export const metadata: Metadata = {
-  title: 'Stop Churn Before It Happens — Without Hiring a CS Team | ChurnGuard',
+  title: 'ChurnGuard — know who\'s about to cancel before they do',
   description:
-    "ChurnGuard's AI predicts which customers will cancel and automatically triggers retention campaigns across email, SMS, Slack, and in-app. Set up in 15 minutes with Stripe. From $79/mo.",
+    'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own — email, SMS, and Slack. 15 minutes to first score. From $79/mo.',
   keywords: [
     'churn prevention',
     'SaaS churn',
@@ -18,18 +18,18 @@ export const metadata: Metadata = {
     'churn prevention platform',
   ],
   openGraph: {
-    title: 'Stop Churn Before It Happens — Without Hiring a CS Team | ChurnGuard',
+    title: 'ChurnGuard — know who\'s about to cancel before they do',
     description:
-      "ChurnGuard's AI predicts which customers will cancel and automatically triggers retention campaigns. Set up in 15 minutes with Stripe. From $79/mo.",
+      'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own. 15 minutes to first score. From $79/mo.',
     url: 'https://churnguardapp.com',
     siteName: 'ChurnGuard',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Stop Churn Before It Happens — Without Hiring a CS Team | ChurnGuard',
+    title: 'ChurnGuard — know who\'s about to cancel before they do',
     description:
-      "ChurnGuard's AI predicts which customers will cancel and auto-triggers retention campaigns across email, SMS, Slack, and in-app. From $79/mo.",
+      'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own. From $79/mo.',
   },
   robots: {
     index: true,
@@ -97,15 +97,11 @@ const softwareSchema = {
     'AI-personalized email copy via Claude',
   ],
   offers: [
-    { '@type': 'Offer', name: 'Seed', price: '79', priceCurrency: 'USD', billingIncrement: 'P1M' },
-    { '@type': 'Offer', name: 'Growth', price: '149', priceCurrency: 'USD', billingIncrement: 'P1M' },
-    { '@type': 'Offer', name: 'Scale', price: '299', priceCurrency: 'USD', billingIncrement: 'P1M' },
+    { '@type': 'Offer', name: 'Seed',       price: '79',  priceCurrency: 'USD', billingIncrement: 'P1M' },
+    { '@type': 'Offer', name: 'Growth',     price: '149', priceCurrency: 'USD', billingIncrement: 'P1M' },
+    { '@type': 'Offer', name: 'Scale',      price: '299', priceCurrency: 'USD', billingIncrement: 'P1M' },
+    { '@type': 'Offer', name: 'Enterprise', priceCurrency: 'USD', description: 'Custom pricing — contact sales' },
   ],
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.9',
-    reviewCount: '50',
-  },
   publisher: { '@id': `${BASE}/#organization` },
 };
 
@@ -115,66 +111,50 @@ const faqSchema = {
   mainEntity: [
     {
       '@type': 'Question',
-      name: 'What is a good SaaS churn rate?',
+      name: 'How long does setup take?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'A good monthly churn rate depends on your customer segment. For SMB SaaS (under $10K ACV), below 2% monthly churn (roughly 22% annual) is considered good; below 1% monthly is excellent. For mid-market ($10K–$50K ACV), target below 8–15% annual. Enterprise SaaS (over $50K ACV) should aim for below 5% annual churn. Self-serve and PLG products typically see 25–50% annual churn, which is within normal range for that segment. Benchmarks also improve with scale: at over $20M ARR, top-quartile companies achieve below 0.5% monthly churn.',
+        text: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How do I reduce SaaS churn?',
+      name: 'Is our customer data secure?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'The fastest way to reduce SaaS churn is to fix involuntary churn first — 20–40% of SaaS churn is from failed payments, not deliberate cancellations. Set up a dunning sequence (automated emails on day 1, 3, 7, and 14 after a failed payment) to recover 30–60% of those customers. Then: improve onboarding so customers reach their activation milestone within 14 days; build an early warning system to identify disengaged customers 30 days before they cancel; and redesign your cancellation flow to include a save offer (pause option, downgrade, or discount). Tools like ChurnGuard automate the full retention playbook for Stripe-billing SaaS.',
+        text: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned. Stripe access is read-only by default — we never write to your Stripe account.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What is involuntary churn in SaaS?',
+      name: 'What if I exceed my MRR band?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Involuntary churn is when customer subscriptions lapse due to payment failures rather than a deliberate cancellation decision. Causes include expired credit cards, bank-flagged transactions, and insufficient funds. Involuntary churn accounts for 20–40% of total SaaS churn. Unlike voluntary churn, it is highly recoverable — a proper dunning email sequence can recover 30–60% of failed payment customers before they permanently lapse.',
+        text: 'We move you up automatically — no service interruption, no surprise bills. You will receive an email notice 7 days before the change.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What is a dunning sequence?',
+      name: 'Does it work with HubSpot?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'A dunning sequence is a series of automated emails sent to customers after a payment failure, designed to prompt them to update their payment details before their subscription is cancelled. A standard dunning sequence sends emails at day 1 (gentle alert), day 3 (reminder), day 7 (final warning before suspension), and day 14 (win-back offer after lapse). A well-designed dunning sequence recovers 30–60% of failed payment customers. Adding in-app banners and SMS for high-value accounts can push recovery rates above 65%.',
+        text: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What is net revenue retention (NRR) in SaaS?',
+      name: 'Do I need to send messages manually?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Net Revenue Retention (NRR), also called Net Dollar Retention (NDR), measures how much revenue you retain from existing customers over a period, including expansion revenue (upgrades, upsells) minus lost revenue (cancellations, downgrades). An NRR above 100% means your existing customers generate more revenue over time than you lose — called negative net churn. SaaS companies with NRR above 120% typically command 2–3× higher valuation multiples than those with sub-100% NRR.',
+        text: 'No. Automated playbooks send every message via email, SMS, and Slack. Retention emails are personalized by Claude AI. You review results.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What causes SaaS churn?',
+      name: 'Do I need Stripe to use ChurnGuard?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'The main causes of SaaS churn are: (1) Failed payments / involuntary churn (20–40% of total churn) — cards expire, banks decline transactions; (2) Poor onboarding — customers who do not reach their activation milestone within 14 days are 3× more likely to cancel within 60 days; (3) Value not realised — customers who never use the core features that justify the price; (4) Price sensitivity — especially in SMB; (5) Competition — a better-positioned competitor at the wrong moment; (6) Product gaps — a specific missing feature a competitor has. Drivers 1 and 3 are the most automatable and highest-ROI to address first.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How does ChurnGuard work?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'ChurnGuard scores every customer for churn risk using deterministic behavioral signals: login activity, payment failures, feature usage, and support tickets. Every 6 hours the engine re-scores your customer base and flags anyone crossing your risk threshold. When a customer is flagged, ChurnGuard automatically fires a targeted retention message via email, SMS (Twilio), or Slack. Connect Stripe for billing data, install the widget on your app for engagement tracking, or sync from HubSpot. It also runs dunning sequences for failed payments and surfaces a Revenue at Risk dashboard showing exactly which customers are at risk and how much MRR is at stake.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What is customer churn rate and how do you calculate it?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Customer churn rate is the percentage of customers who cancel in a given period. Formula: Churn Rate = (Customers Lost in Period / Customers at Start of Period) × 100. Example: 400 customers at the start of the month, 18 cancelled → (18 / 400) × 100 = 4.5% monthly churn. To annualise: Annual Churn ≈ 1 − (1 − Monthly Churn)^12. A 3% monthly churn compounds to roughly 31% annual churn. Revenue churn rate is usually more useful than customer churn rate because it weights high-value accounts appropriately.',
+        text: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.',
       },
     },
   ],

@@ -1,755 +1,820 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
-import DemoVideoModal from './DemoVideoModal';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const BG = '#060610';
-const GLASS: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
-};
+// ─── Theme ────────────────────────────────────────────────────────────────────
+const ACCENT        = '#6d28d9';
+const ACCENT_BG     = '#ede9fe';
+const ACCENT_BORDER = 'rgba(109,40,217,0.2)';
+const BORDER        = 'rgba(0,0,0,0.08)';
+const BORDER_MED    = 'rgba(0,0,0,0.13)';
+const TEXT          = '#111827';
+const MUTED         = '#6b7280';
+const FAINT         = '#9ca3af';
+const WHITE         = '#ffffff';
+const PAGE_BG       = '#f9fafb';
+const SUCCESS       = '#059669';
+const SUCCESS_BG    = '#ecfdf5';
+const SUCCESS_BORD  = 'rgba(5,150,105,0.2)';
+const DANGER        = '#dc2626';
+const DANGER_BG     = '#fef2f2';
+const DANGER_BORD   = 'rgba(220,38,38,0.2)';
+const WARN          = '#d97706';
+const WARN_BG       = '#fffbeb';
+const WARN_BORD     = 'rgba(217,119,6,0.2)';
+const FONT          = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-// ─── FloatCard ────────────────────────────────────────────────────────────────
-function FloatCard({ children, className, style, delay = 0, amplitude = 10 }: {
-  children: React.ReactNode; className?: string; style?: React.CSSProperties; delay?: number; amplitude?: number;
-}) {
-  const reduced = useReducedMotion();
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
+function getPlan(mrr: number): { name: string; monthly: number | null } {
+  if (mrr <= 50000)   return { name: 'Seed',       monthly: 79 };
+  if (mrr <= 200000)  return { name: 'Growth',     monthly: 149 };
+  if (mrr <= 1000000) return { name: 'Scale',      monthly: 299 };
+  return                     { name: 'Enterprise', monthly: null };
+}
+
+// ─── Inline SVGs ─────────────────────────────────────────────────────────────
+function IconCheck({ color = SUCCESS }: { color?: string }) {
   return (
-    <motion.div className={className} style={style}
-      animate={reduced ? {} : { y: [0, -amplitude, 0] }}
-      transition={{ duration: 4 + delay * 0.5, repeat: Infinity, ease: 'easeInOut', delay }}>
-      {children}
-    </motion.div>
+    <svg width="14" height="14" fill="none" stroke={color} strokeWidth={2} viewBox="0 0 24 24"
+      aria-hidden="true" style={{ flexShrink: 0, marginTop: '2px' }}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
   );
 }
 
-// ─── FadeIn ───────────────────────────────────────────────────────────────────
-function FadeIn({ children, className, style, delay = 0, direction = 'up' }: {
-  children: React.ReactNode; className?: string; style?: React.CSSProperties; delay?: number; direction?: 'up' | 'left' | 'right' | 'none';
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-  const initial = direction === 'up' ? { opacity: 0, y: 28 } : direction === 'left' ? { opacity: 0, x: -28 } : direction === 'right' ? { opacity: 0, x: 28 } : { opacity: 0 };
+function IconChevron({ className }: { className?: string }) {
   return (
-    <motion.div ref={ref} className={className} style={style} initial={initial}
-      animate={inView ? { opacity: 1, y: 0, x: 0 } : initial}
-      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay }}>
-      {children}
-    </motion.div>
+    <svg className={className} width="15" height="15" fill="none" stroke="currentColor"
+      strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0, color: FAINT }}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
   );
 }
 
-// ─── Logo Ticker ──────────────────────────────────────────────────────────────
-const LOGOS = ['Stripe', 'HubSpot', 'Twilio', 'Slack', 'Postmark', 'Segment', 'Intercom', 'Linear', 'Mixpanel', 'Amplitude', 'Salesforce', 'Notion'];
+// ─── Calculator ───────────────────────────────────────────────────────────────
+function ChurnCalculator() {
+  const [mrr, setMrr]           = useState(25000);
+  const [churnRate, setChurnRate] = useState(3);
 
-function LogoTicker() {
+  const lostPerYear    = Math.round(mrr * (churnRate / 100) * 12);
+  const recoverable    = Math.round(lostPerYear * 0.35);
+  const plan           = getPlan(mrr);
+  const planCostAnnual = plan.monthly ? plan.monthly * 12 : null;
+  const churnColor     = churnRate > 5 ? DANGER : churnRate > 2 ? WARN : SUCCESS;
+
   return (
-    <div style={{ overflow: 'hidden', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)' }}>
-      <style>{`@keyframes cg-tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.cg-tick{animation:cg-tick 30s linear infinite}.cg-tick:hover{animation-play-state:paused}`}</style>
-      <div className="cg-tick" style={{ display: 'flex', gap: '16px', width: 'max-content', alignItems: 'center', padding: '4px 0' }}>
-        {[...LOGOS, ...LOGOS].map((logo, i) => (
-          <div key={i} style={{ padding: '10px 22px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', color: 'rgba(255,255,255,0.22)', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
-            {logo}
+    <div style={{ background: WHITE, border: `1px solid ${BORDER_MED}`, borderRadius: '12px', padding: '28px 32px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginBottom: '28px' }}>
+
+        {/* MRR slider */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <label htmlFor="mrr-slider" style={{ fontSize: '14px', color: TEXT, fontWeight: 500 }}>
+              Monthly recurring revenue
+            </label>
+            <span style={{ fontSize: '15px', fontWeight: 500, color: ACCENT }}>{fmt(mrr)}</span>
           </div>
-        ))}
+          <input
+            id="mrr-slider"
+            type="range"
+            min={1000}
+            max={500000}
+            step={1000}
+            value={mrr}
+            onChange={e => setMrr(Number(e.target.value))}
+            aria-valuetext={fmt(mrr)}
+            className="cg-range"
+            style={{ width: '100%' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: FAINT, marginTop: '5px' }}>
+            <span>$1k</span><span>$500k</span>
+          </div>
+        </div>
+
+        {/* Churn rate slider */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <label htmlFor="churn-slider" style={{ fontSize: '14px', color: TEXT, fontWeight: 500 }}>
+              Monthly churn rate
+            </label>
+            <span style={{ fontSize: '15px', fontWeight: 500, color: churnColor }}>{churnRate}%</span>
+          </div>
+          <input
+            id="churn-slider"
+            type="range"
+            min={0.5}
+            max={15}
+            step={0.5}
+            value={churnRate}
+            onChange={e => setChurnRate(Number(e.target.value))}
+            aria-valuetext={`${churnRate} percent monthly churn`}
+            className="cg-range"
+            style={{ width: '100%' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: FAINT, marginTop: '5px' }}>
+            <span>0.5%</span><span>15%</span>
+          </div>
+        </div>
       </div>
+
+      {/* Output row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" style={{ marginBottom: '20px' }}>
+        <div style={{ padding: '18px', background: DANGER_BG, border: `1px solid ${DANGER_BORD}`, borderRadius: '10px' }}>
+          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>Lost per year</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: DANGER }}>{fmt(lostPerYear)}</div>
+        </div>
+        <div style={{ padding: '18px', background: SUCCESS_BG, border: `1px solid ${SUCCESS_BORD}`, borderRadius: '10px' }}>
+          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>Recoverable at 35%</div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: SUCCESS }}>{fmt(recoverable)}</div>
+        </div>
+        <div style={{ padding: '18px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '10px' }}>
+          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>
+            ChurnGuard ({plan.name})
+          </div>
+          <div style={{ fontSize: '22px', fontWeight: 500, color: ACCENT }}>
+            {planCostAnnual ? `${fmt(planCostAnnual)}/yr` : 'Custom'}
+          </div>
+        </div>
+      </div>
+
+      <p style={{ fontSize: '14px', color: MUTED, textAlign: 'center' }}>
+        See your real numbers —{' '}
+        <Link href="/signup" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+          connect Stripe free
+        </Link>
+      </p>
     </div>
   );
 }
 
-// ─── FAQ ──────────────────────────────────────────────────────────────────────
+// ─── Dashboard showcase ───────────────────────────────────────────────────────
+function DashboardShowcase() {
+  const rows = [
+    { name: 'CloudBase',    signal: 'No login in 14 days',       mrr: '$2,400', score: 85, level: 'danger' as const },
+    { name: 'Acme Corp',    signal: 'Payment failed twice',       mrr: '$1,200', score: 92, level: 'danger' as const },
+    { name: 'DataFlow Inc', signal: 'Reports usage down 60%',     mrr: '$890',   score: 78, level: 'warn'   as const },
+  ];
+
+  return (
+    <div>
+      {/* Browser chrome frame */}
+      <div style={{ border: `1px solid ${BORDER_MED}`, borderRadius: '12px', overflow: 'hidden', background: WHITE }}>
+        {/* Chrome bar */}
+        <div style={{ background: PAGE_BG, borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '5px' }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: BORDER_MED }} />
+            ))}
+          </div>
+          <div style={{ flex: 1, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '4px', padding: '4px 12px', fontSize: '12px', color: FAINT, fontFamily: 'monospace' }}>
+            app.churnguardapp.com
+          </div>
+        </div>
+
+        {/* Dashboard content */}
+        <div style={{ padding: '24px' }}>
+          {/* Metric cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" style={{ marginBottom: '20px' }}>
+            <div style={{ padding: '16px', border: `1px solid ${DANGER_BORD}`, borderRadius: '10px', background: DANGER_BG }}>
+              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Revenue at risk</div>
+              <div style={{ fontSize: '22px', fontWeight: 500, color: DANGER }}>$4,940</div>
+            </div>
+            <div style={{ padding: '16px', border: `1px solid ${SUCCESS_BORD}`, borderRadius: '10px', background: SUCCESS_BG }}>
+              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Recovered this month</div>
+              <div style={{ fontSize: '22px', fontWeight: 500, color: SUCCESS }}>$1,830</div>
+            </div>
+            <div style={{ padding: '16px', border: `1px solid ${BORDER}`, borderRadius: '10px', background: PAGE_BG }}>
+              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Accounts flagged</div>
+              <div style={{ fontSize: '22px', fontWeight: 500, color: TEXT }}>7</div>
+            </div>
+          </div>
+
+          {/* At-risk accounts table */}
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', overflow: 'hidden' }}>
+            {/* Table title */}
+            <div style={{ padding: '11px 16px', borderBottom: `1px solid ${BORDER}`, background: PAGE_BG, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>At-risk accounts</span>
+              <span style={{ fontSize: '12px', color: FAINT }}>sorted by MRR</span>
+            </div>
+            {/* Column headers — hidden on mobile via CSS */}
+            <div className="cg-risk-header" style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 72px', padding: '8px 16px', background: PAGE_BG, borderBottom: `1px solid ${BORDER}` }}>
+              {['Account', 'Signal', 'MRR', 'Score'].map(h => (
+                <span key={h} style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</span>
+              ))}
+            </div>
+            {/* Rows */}
+            {rows.map((row, i) => (
+              <div key={row.name} className="cg-risk-row"
+                style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 72px', padding: '12px 16px', alignItems: 'center', borderBottom: i < rows.length - 1 ? `1px solid ${BORDER}` : 'none', background: WHITE }}>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>{row.name}</span>
+                <span style={{ fontSize: '13px', color: MUTED }}>{row.signal}</span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>{row.mrr}</span>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    background: row.level === 'danger' ? DANGER_BG : WARN_BG,
+                    color: row.level === 'danger' ? DANGER : WARN,
+                    border: `1px solid ${row.level === 'danger' ? DANGER_BORD : WARN_BORD}`,
+                  }}>
+                    {row.score}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p style={{ textAlign: 'center', fontSize: '12px', color: FAINT, marginTop: '10px' }}>
+        Example dashboard with sample data.
+      </p>
+    </div>
+  );
+}
+
+// ─── FAQ data ─────────────────────────────────────────────────────────────────
 const FAQS = [
-  { q: 'How long does setup take?', a: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.' },
-  { q: 'Is our customer data secure?', a: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned.' },
-  { q: 'What if I exceed my MRR band?', a: 'We move you up automatically — no service interruption, no surprise bills.' },
-  { q: 'Does it work with HubSpot?', a: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.' },
-  { q: 'Do I need to send messages manually?', a: 'No. Automated playbooks send every message via Email, SMS, and Slack. Retention emails are personalized using Claude AI. You review results.' },
-  { q: 'Do I need Stripe to use ChurnGuard?', a: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.' },
+  {
+    q: 'How long does setup take?',
+    a: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.',
+  },
+  {
+    q: 'Is our customer data secure?',
+    a: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned. Stripe access is read-only by default — we never write to your Stripe account.',
+  },
+  {
+    q: 'What if I exceed my MRR band?',
+    a: 'We move you up automatically — no service interruption, no surprise bills. You will receive an email notice 7 days before the change.',
+  },
+  {
+    q: 'Does it work with HubSpot?',
+    a: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.',
+  },
+  {
+    q: 'Do I need to send messages manually?',
+    a: 'No. Automated playbooks send every message via email, SMS, and Slack. Retention emails are personalized by Claude AI. You review results.',
+  },
+  {
+    q: 'Do I need Stripe to use ChurnGuard?',
+    a: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.',
+  },
 ];
 
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div onClick={() => setOpen(!open)} style={{ ...GLASS, borderRadius: '14px', cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, background 0.2s', border: `1px solid ${open ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.08)'}`, background: open ? 'rgba(124,58,237,0.07)' : 'rgba(255,255,255,0.02)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', color: '#fff', fontWeight: '600', fontSize: '15px' }}>
-        <span>{q}</span>
-        <span style={{ color: '#a78bfa', transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', fontSize: '22px', lineHeight: 1, flexShrink: 0, marginLeft: '16px' }}>+</span>
-      </div>
-      <motion.div initial={false} animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }} transition={{ duration: 0.25, ease: 'easeInOut' }} style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '0 24px 20px', paddingTop: '16px', color: 'rgba(255,255,255,0.45)', fontSize: '14px', lineHeight: 1.7, borderTop: '1px solid rgba(255,255,255,0.06)' }}>{a}</div>
-      </motion.div>
-    </div>
-  );
-}
+// ─── Pricing tiers ────────────────────────────────────────────────────────────
+const PLANS = [
+  {
+    name: 'Seed',
+    price: '$79',
+    band: 'Up to $50K MRR',
+    features: ['100 customers tracked', 'Email + Slack alerts', 'Basic playbooks (3 active)', 'Payment dunning sequences', '7-day data retention'],
+    popular: false,
+    href: '/signup?plan=seed',
+    cta: 'Get started',
+  },
+  {
+    name: 'Growth',
+    price: '$149',
+    band: '$50K – $200K MRR',
+    features: ['Unlimited customers tracked', 'SMS via Twilio', 'Advanced playbooks (10 active)', 'VIP account alerts', 'AI-written retention emails', '90-day data retention'],
+    popular: true,
+    href: '/signup?plan=growth',
+    cta: 'Get started',
+  },
+  {
+    name: 'Scale',
+    price: '$299',
+    band: '$200K – $1M MRR',
+    features: ['Unlimited everything', 'Custom risk scoring models', 'API access + webhooks', 'Team collaboration (10 seats)', '1-year data retention'],
+    popular: false,
+    href: '/signup?plan=scale',
+    cta: 'Get started',
+  },
+  {
+    name: 'Enterprise',
+    price: 'Custom',
+    band: '$1M+ MRR',
+    features: ['Dedicated success manager', 'White-glove onboarding', 'SSO + advanced security', 'Custom SLA guarantees', 'Unlimited seats'],
+    popular: false,
+    href: 'mailto:admin@churnguardapp.com?subject=Enterprise inquiry',
+    cta: 'Contact us',
+  },
+];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
-  const [email, setEmail] = useState('');
+  const [scrolled,    setScrolled]    = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 72);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const btnPrimary: React.CSSProperties = {
+    display: 'inline-block',
+    fontSize: '15px',
+    fontWeight: 500,
+    color: WHITE,
+    textDecoration: 'none',
+    padding: '11px 26px',
+    borderRadius: '6px',
+    background: ACCENT,
+    transition: 'opacity 150ms',
+    cursor: 'pointer',
+    border: 'none',
+  };
+
+  const btnOutline: React.CSSProperties = {
+    display: 'inline-block',
+    fontSize: '15px',
+    fontWeight: 500,
+    color: TEXT,
+    textDecoration: 'none',
+    padding: '10px 26px',
+    borderRadius: '6px',
+    background: WHITE,
+    border: `1px solid ${BORDER_MED}`,
+    transition: 'border-color 150ms',
+    cursor: 'pointer',
+  };
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", overflowX: 'hidden', background: BG }}>
+    <div style={{ fontFamily: FONT, background: PAGE_BG, color: TEXT, overflowX: 'hidden' }}>
 
-      {/* ── NAV ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(6,6,16,0.85)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <nav style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo-purple.png" alt="ChurnGuard" height={32} style={{ height: '32px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
-          </div>
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '30px' }}>
-            {[['#features', 'Features'], ['#how-it-works', 'How it works'], ['#pricing', 'Pricing'], ['/blog', 'Blog']].map(([href, label]) => (
-              <a key={href} href={href} style={{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', fontWeight: '500', textDecoration: 'none', transition: 'color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
+      {/* ── Global styles ── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Range inputs */
+        .cg-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
+          background: #e5e7eb; outline: none; cursor: pointer; }
+        .cg-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px;
+          border-radius: 50%; background: ${ACCENT}; border: 2px solid ${WHITE};
+          box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+        .cg-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%;
+          background: ${ACCENT}; border: 2px solid ${WHITE}; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+
+        /* FAQ details */
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] .cg-chevron { transform: rotate(180deg); }
+        .cg-chevron { transition: transform 150ms ease; }
+
+        /* Focus rings */
+        a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+          outline: 2px solid ${ACCENT}; outline-offset: 2px; border-radius: 2px; }
+
+        /* Hover states */
+        .cg-nav-link:hover { color: ${TEXT} !important; }
+        .cg-outline-btn:hover { border-color: #9ca3af !important; }
+
+        /* Mobile: dashboard table rows become stacked cards */
+        @media (max-width: 639px) {
+          .cg-risk-header { display: none !important; }
+          .cg-risk-row {
+            display: flex !important; flex-direction: column !important;
+            gap: 6px !important; padding: 14px 16px !important; }
+          .cg-risk-row > span:first-child { font-weight: 500; color: ${TEXT}; }
+        }
+
+        /* Mobile: full-width CTAs */
+        @media (max-width: 639px) {
+          .cg-cta-group { flex-direction: column !important; align-items: stretch !important; }
+          .cg-cta-group a { text-align: center !important; }
+        }
+
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { transition: none !important; animation: none !important; }
+        }
+      ` }} />
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          NAV
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 50, background: WHITE,
+        borderBottom: `1px solid ${scrolled ? BORDER : 'transparent'}`,
+        transition: 'border-color 150ms',
+      }}>
+        <nav style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+          <Link href="/" aria-label="ChurnGuard home" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo-purple.png" alt="ChurnGuard" width={116} height={28} style={{ height: '28px', width: 'auto', display: 'block' }} />
+          </Link>
+
+          {/* Desktop links */}
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '28px' }}>
+            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/login', 'Login']].map(([href, label]) => (
+              <a key={href} href={href} className="cg-nav-link"
+                style={{ fontSize: '14px', color: MUTED, textDecoration: 'none', transition: 'color 150ms' }}>
                 {label}
               </a>
             ))}
-            <Link href="/book-demo" style={{ color: '#a78bfa', fontSize: '14px', fontWeight: '600', textDecoration: 'none' }}>Book a Call</Link>
-          </div>
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '12px' }}>
-            <Link href="/login" style={{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', fontWeight: '500', textDecoration: 'none', padding: '8px 16px' }}>Login</Link>
-            <Link href="/audit" style={{ fontSize: '14px', fontWeight: '700', color: '#fff', textDecoration: 'none', padding: '10px 22px', borderRadius: '10px', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', boxShadow: '0 0 28px rgba(124,58,237,0.45)' }}>
-              Free Audit →
+            <Link href="/signup" style={{ ...btnPrimary, fontSize: '14px', padding: '8px 18px' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+              Start free
             </Link>
           </div>
-          <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: '8px' }}>
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden"
+            onClick={() => setMobileOpen(v => !v)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: TEXT }}>
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+              {mobileOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
             </svg>
           </button>
         </nav>
+
+        {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="md:hidden" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(6,6,16,0.97)' }}>
-            {[['#features', 'Features'], ['#how-it-works', 'How it works'], ['#pricing', 'Pricing'], ['/blog', 'Blog']].map(([href, label]) => (
-              <a key={href} href={href} style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>{label}</a>
+          <div className="md:hidden" style={{ borderTop: `1px solid ${BORDER}`, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '14px', background: WHITE }}>
+            {[['#features', 'Product'], ['#pricing', 'Pricing'], ['/blog', 'Blog'], ['/login', 'Login']].map(([href, label]) => (
+              <a key={href} href={href} style={{ fontSize: '14px', color: MUTED, textDecoration: 'none' }}
+                onClick={() => setMobileOpen(false)}>{label}</a>
             ))}
-            <Link href="/book-demo" style={{ color: '#a78bfa', fontSize: '14px', fontWeight: '600', textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>Book a Call</Link>
-            <Link href="/login" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', textDecoration: 'none' }}>Login</Link>
-            <Link href="/audit" style={{ fontSize: '14px', fontWeight: '700', color: '#fff', textDecoration: 'none', padding: '14px', borderRadius: '10px', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', textAlign: 'center', display: 'block' }} onClick={() => setMobileOpen(false)}>
-              Get Free Audit →
+            <Link href="/signup" style={{ ...btnPrimary, textAlign: 'center', padding: '12px' }}
+              onClick={() => setMobileOpen(false)}>
+              Start free
             </Link>
           </div>
         )}
       </header>
 
-      {/* ════════════════════════════════════════════════════════════════════════
+      {/* ═══════════════════════════════════════════════════════════════════════
           HERO
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ position: 'relative', minHeight: '95vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-        {/* Grid */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)', backgroundSize: '64px 64px' }} />
-        {/* Glows */}
-        <div style={{ position: 'absolute', top: '-15%', left: '15%', width: '900px', height: '700px', background: 'radial-gradient(ellipse, rgba(124,58,237,0.14) 0%, transparent 60%)', filter: 'blur(90px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '5%', right: '-5%', width: '600px', height: '500px', background: 'radial-gradient(ellipse, rgba(99,102,241,0.1) 0%, transparent 60%)', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '40%', right: '25%', width: '400px', height: '400px', background: 'radial-gradient(ellipse, rgba(6,182,212,0.07) 0%, transparent 60%)', filter: 'blur(70px)', pointerEvents: 'none' }} />
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px 64px' }}>
+        <div style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center' }}>
 
-        <div style={{ position: 'relative', maxWidth: '1280px', margin: '0 auto', padding: '96px 32px', width: '100%' }}>
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-
-            {/* Copy */}
-            <div style={{ position: 'relative', zIndex: 10 }}>
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.1)', color: '#c4b5fd', fontSize: '12px', fontWeight: '700', marginBottom: '32px', letterSpacing: '0.02em' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} className="animate-pulse" />
-                  Customer retention platform · 2026
-                </div>
-              </motion.div>
-
-              <motion.h1
-                style={{ fontWeight: 800, color: '#fff', lineHeight: 1.08, marginBottom: '24px', letterSpacing: '-0.04em', fontSize: 'clamp(2.4rem,4.5vw,4.2rem)' }}
-                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, delay: 0.1 }}
-              >
-                Stop churn before it happens —{' '}
-                <span style={{ background: 'linear-gradient(135deg,#a78bfa,#7c3aed,#6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  without hiring
-                </span>{' '}
-                <span style={{ background: 'linear-gradient(135deg,#6366f1,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  a CS team.
-                </span>
-              </motion.h1>
-
-              <motion.p style={{ fontSize: '18px', lineHeight: 1.7, color: 'rgba(255,255,255,0.45)', marginBottom: '20px', maxWidth: '480px' }}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-                ChurnGuard&apos;s AI predicts which customers will cancel and automatically triggers retention campaigns across email, SMS, Slack, and in-app. From $79/mo.
-              </motion.p>
-
-              <motion.ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: '10px' }}
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.25 }}>
-                {[
-                  'Predicts churn risk from real product + billing signals',
-                  '4 retention channels, zero manual work',
-                  'Set up in 15 minutes with Stripe',
-                ].map(bullet => (
-                  <li key={bullet} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: 'rgba(255,255,255,0.65)' }}>
-                    <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    {bullet}
-                  </li>
-                ))}
-              </motion.ul>
-
-              <motion.div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', marginBottom: '40px' }}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
-                <Link href="/audit" style={{ padding: '14px 32px', borderRadius: '12px', fontWeight: '700', color: '#fff', fontSize: '15px', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', boxShadow: '0 0 50px rgba(124,58,237,0.45)', display: 'inline-block' }}
-                  onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}>
-                  Run your free churn audit →
-                </Link>
-                <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
-                  or{' '}
-                  <Link href="/signup" style={{ color: '#a78bfa', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-                    start a 30-day free trial
-                  </Link>
-                </p>
-              </motion.div>
-
-              <motion.div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }}>
-                <div style={{ display: 'flex' }}>
-                  {[{ i: 'SR', bg: 'linear-gradient(135deg,#7c3aed,#6366f1)' }, { i: 'MK', bg: 'linear-gradient(135deg,#f97316,#fb923c)' }, { i: 'AJ', bg: 'linear-gradient(135deg,#4ade80,#22c55e)' }, { i: 'PL', bg: 'linear-gradient(135deg,#f472b6,#e879f9)' }].map((a, i) => (
-                    <div key={a.i} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${BG}`, background: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', marginLeft: i > 0 ? '-10px' : 0 }}>{a.i}</div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{ display: 'flex', gap: '2px', marginBottom: '2px' }}>{[...Array(5)].map((_, i) => <span key={i} style={{ color: '#fbbf24', fontSize: '13px' }}>★</span>)}</div>
-                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>Loved by 200+ SaaS founders</p>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Floating cards */}
-            <div className="relative hidden lg:block" style={{ height: '540px' }}>
-              <FloatCard delay={0} amplitude={10} style={{ position: 'absolute', top: '0%', left: '5%', width: '340px' }}>
-                <div style={{ borderRadius: '20px', ...GLASS, border: '1px solid rgba(124,58,237,0.2)', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.25)' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }} />
-                    <span style={{ marginLeft: '8px', fontSize: '11px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.2)' }}>dashboard · at-risk</span>
-                  </div>
-                  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.06)' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>Revenue at Risk</div>
-                      <div style={{ fontWeight: 800, fontSize: '26px', color: '#f87171', letterSpacing: '-0.03em' }}>$47,200</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(248,113,113,0.6)', marginTop: '4px' }}>↑ 14 accounts flagged today</div>
-                    </div>
-                    <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(74,222,128,0.15)', background: 'rgba(74,222,128,0.06)' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>Saved This Month</div>
-                      <div style={{ fontWeight: 800, fontSize: '26px', color: '#4ade80', letterSpacing: '-0.03em' }}>$18,400</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(74,222,128,0.6)', marginTop: '4px' }}>↑ 3 customers retained</div>
-                    </div>
-                    {[{ name: 'Acme Corp', action: 'Email fired', color: '#a78bfa' }, { name: 'DataFlow Inc', action: 'SMS sent', color: '#4ade80' }].map(r => (
-                      <div key={r.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', borderRadius: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.03)' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{r.name}</span>
-                        <span style={{ color: r.color, fontWeight: 600 }}>{r.action}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </FloatCard>
-
-              <FloatCard delay={1.2} amplitude={7} style={{ position: 'absolute', top: '2%', right: '0%', width: '185px' }}>
-                <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(124,58,237,0.25)', background: 'rgba(124,58,237,0.1)', backdropFilter: 'blur(12px)', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg,#f97316,#fb923c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', flexShrink: 0 }}>MK</div>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#c4b5fd' }}>Risk alert</span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Marcus K. hasn't logged in for <strong style={{ color: '#fff' }}>12 days</strong></div>
-                  <div style={{ marginTop: '10px', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', textAlign: 'center', background: 'rgba(167,139,250,0.2)', color: '#a78bfa' }}>Email queued ✓</div>
-                </div>
-              </FloatCard>
-
-              <FloatCard delay={0.6} amplitude={14} style={{ position: 'absolute', bottom: '12%', right: '2%', width: '170px' }}>
-                <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(74,222,128,0.2)', background: 'rgba(74,222,128,0.07)', backdropFilter: 'blur(12px)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}>
-                  <div style={{ fontSize: '22px', marginBottom: '4px' }}>🎉</div>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#4ade80', marginBottom: '4px' }}>MRR Saved</div>
-                  <div style={{ fontSize: '24px', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>$1,200</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Acme Corp retained</div>
-                </div>
-              </FloatCard>
-
-              <FloatCard delay={1.8} amplitude={9} style={{ position: 'absolute', bottom: '5%', left: '8%', width: '205px' }}>
-                <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(6,182,212,0.18)', background: 'rgba(6,182,212,0.06)', backdropFilter: 'blur(12px)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(6,182,212,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✉</div>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#67e8f9' }}>AI Message</span>
-                  </div>
-                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>"Hi Sarah, we noticed you haven't used the reports feature…"</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Sent via Email</span>
-                  </div>
-                </div>
-              </FloatCard>
-
-              <FloatCard delay={2.4} amplitude={7} style={{ position: 'absolute', top: '50%', left: '0%', width: '170px' }}>
-                <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(244,114,182,0.18)', background: 'rgba(244,114,182,0.06)', backdropFilter: 'blur(12px)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#e879f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700' }}>S</div>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#f0abfc' }}>Slack Alert</span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>VIP customer <strong style={{ color: '#fff' }}>CloudBase</strong> is at 91% risk</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(240,171,252,0.55)', marginTop: '6px' }}>→ CSM notified</div>
-                </div>
-              </FloatCard>
-            </div>
+          {/* Pill */}
+          <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '999px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT, fontSize: '13px', fontWeight: 500, marginBottom: '24px' }}>
+            Now live · founding pricing open
           </div>
+
+          <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: TEXT, lineHeight: 1.15, marginBottom: '18px', letterSpacing: '-0.02em' }}>
+            The dashboard that tells you who's about to leave
+          </h1>
+
+          <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
+            Connect Stripe, get a ranked list of at-risk accounts with the dollars attached. Retention runs on its own.
+          </p>
+
+          {/* CTAs */}
+          <div className="cg-cta-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginBottom: '14px' }}>
+            <Link href="/signup" style={btnPrimary}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+              Connect Stripe — free
+            </Link>
+            <Link href="/book-demo" className="cg-outline-btn" style={btnOutline}>
+              Watch 90-second demo
+            </Link>
+          </div>
+          <p style={{ fontSize: '13px', color: FAINT }}>
+            Read-only access · no credit card · disconnect any time
+          </p>
         </div>
       </section>
 
-      {/* ── STATS BAR ── */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.015)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 32px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {[{ value: '$47M+', label: 'MRR Protected' }, { value: '3,200+', label: 'Customers Monitored' }, { value: '35%', label: 'Avg Churn Reduction' }].map((s, i) => (
-            <div key={s.label} style={{ padding: '28px 24px', textAlign: 'center', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', marginBottom: '4px' }}>{s.value}</div>
-              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── LOGO TICKER ── */}
-      <section style={{ padding: '48px 0' }}>
-        <p style={{ textAlign: 'center', fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px' }}>Integrated with the tools you already use</p>
-        <LogoTicker />
+      {/* ═══════════════════════════════════════════════════════════════════════
+          DASHBOARD SHOWCASE
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '0 24px 80px', maxWidth: '960px', margin: '0 auto' }}>
+        <DashboardShowcase />
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════════
-          FEATURES — BENTO GRID
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section id="features" style={{ padding: '96px 32px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <FadeIn style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)', color: '#c4b5fd', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>The Platform</div>
-            <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(2rem,4.5vw,3.25rem)', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '16px' }}>Everything you need to stop churn</h2>
-            <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', maxWidth: '500px', margin: '0 auto', lineHeight: 1.7 }}>One platform. Full loop — from signal detection to automated retention.</p>
-          </FadeIn>
-
-          {/* Row 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
-            {/* Revenue Intelligence */}
-            <FadeIn direction="left" className="lg:col-span-7">
-              <div style={{ ...GLASS, borderRadius: '20px', padding: '32px', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '220px', height: '220px', background: 'radial-gradient(ellipse, rgba(124,58,237,0.16) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', color: '#c4b5fd', fontSize: '11px', fontWeight: '700', marginBottom: '14px' }}>Revenue Intelligence</div>
-                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '20px', letterSpacing: '-0.02em', marginBottom: '8px' }}>See exactly how much revenue is at risk</h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: '24px', maxWidth: '380px' }}>Every customer gets a live risk score with the exact MRR attached. No vague health percentages — just dollars.</p>
-                <div style={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '16px', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {[{ l: 'Revenue at Risk', v: '$47,200', c: '#f87171' }, { l: 'Saved This Month', v: '$18,400', c: '#4ade80' }].map(s => (
-                      <div key={s.l} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>{s.l}</div>
-                        <div style={{ fontWeight: 800, fontSize: '20px', color: s.c, letterSpacing: '-0.02em' }}>{s.v}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {[{ name: 'Acme Corp', mrr: '$1,200', risk: 92, c: '#f87171' }, { name: 'DataFlow Inc', mrr: '$890', risk: 78, c: '#fb923c' }, { name: 'CloudBase', mrr: '$2,400', risk: 85, c: '#f87171' }].map(r => (
-                      <div key={r.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>{r.name}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>{r.mrr}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '56px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.08)' }}>
-                            <div style={{ height: '100%', borderRadius: '2px', width: `${r.risk}%`, background: r.c }} />
-                          </div>
-                          <span style={{ color: r.c, fontWeight: 700, fontSize: '11px' }}>{r.risk}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* AI + Integrations stacked */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              <FadeIn direction="right" delay={0.1}>
-                <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', bottom: '-20px', right: '-20px', width: '140px', height: '140px', background: 'radial-gradient(ellipse, rgba(6,182,212,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                  <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)', color: '#67e8f9', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Automated Retention</div>
-                  <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Right message, right moment</h3>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Personalized emails via Claude AI. SMS via Twilio. Slack alerts to your CSM — all automatic.</p>
-                  <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(6,182,212,0.15)', background: 'rgba(6,182,212,0.05)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#67e8f9', marginBottom: '6px' }}>Retention Email · Sent 2 min ago</div>
-                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, fontStyle: 'italic' }}>"Hi Sarah, we noticed you haven't used ChurnGuard's reports in 2 weeks…"</p>
-                  </div>
-                </div>
-              </FadeIn>
-              <FadeIn direction="right" delay={0.18}>
-                <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px', background: 'radial-gradient(ellipse, rgba(245,158,11,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                  <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)', color: '#fcd34d', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Integrations</div>
-                  <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '12px' }}>Connects in minutes</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {[{ name: 'Stripe', color: '#818cf8' }, { name: 'HubSpot', color: '#fb923c' }, { name: 'Twilio', color: '#06b6d4' }, { name: 'Slack', color: '#a78bfa' }, { name: 'Postmark', color: '#fcd34d' }, { name: 'Widget.js', color: '#4ade80' }].map(int => (
-                      <div key={int.name} style={{ padding: '9px 6px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: int.color }}>{int.name}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </FadeIn>
-            </div>
-          </div>
-
-          {/* Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
-            <FadeIn direction="up" delay={0.1} className="lg:col-span-5">
-              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(ellipse, rgba(248,113,113,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.22)', color: '#fca5a5', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Dunning Recovery</div>
-                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Recover failed payments</h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>20–40% of SaaS churn is involuntary. Automated sequences recover 30–60% of failed payments.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {[{ day: 'Day 1', msg: 'Gentle alert email', color: '#fca5a5' }, { day: 'Day 3', msg: 'Follow-up reminder', color: '#fb923c' }, { day: 'Day 7', msg: 'Final warning + SMS', color: '#f87171' }, { day: 'Day 14', msg: 'Win-back offer', color: '#ef4444' }].map(step => (
-                    <div key={step.day} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: step.color, minWidth: '44px' }}>{step.day}</span>
-                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{step.msg}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-
-            <FadeIn direction="up" delay={0.18} className="lg:col-span-7">
-              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', bottom: '-40px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '200px', background: 'radial-gradient(ellipse, rgba(99,102,241,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#a5b4fc', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Cancellation Flow</div>
-                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Save customers at the door</h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '20px' }}>When a customer clicks "Cancel," show them a save offer — pause, downgrade, or discount. Recover 15–25% of would-be cancellations.</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  {[{ label: 'Pause Plan', icon: '⏸', color: '#a5b4fc', bg: 'rgba(99,102,241,0.1)' }, { label: 'Downgrade', icon: '📉', color: '#67e8f9', bg: 'rgba(6,182,212,0.08)' }, { label: '30% Discount', icon: '🏷️', color: '#fcd34d', bg: 'rgba(251,191,36,0.08)' }].map(opt => (
-                    <div key={opt.label} style={{ padding: '16px', borderRadius: '12px', background: opt.bg, border: `1px solid ${opt.color}22`, textAlign: 'center' }}>
-                      <div style={{ fontSize: '22px', marginBottom: '8px' }}>{opt.icon}</div>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: opt.color }}>{opt.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-
-          {/* Row 3 — Widget.js + HubSpot Sync */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <FadeIn direction="up" delay={0.1}>
-              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(ellipse, rgba(74,222,128,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.22)', color: '#86efac', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>Embeddable Widget</div>
-                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Track engagement from inside your app</h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Drop one script tag into your app. ChurnGuard captures page views, feature usage, and session activity — no backend changes needed.</p>
-                <div style={{ borderRadius: '12px', padding: '14px', border: '1px solid rgba(74,222,128,0.15)', background: 'rgba(74,222,128,0.04)', fontFamily: 'monospace' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#86efac', marginBottom: '8px' }}>widget.js · One-line install</div>
-                  <code style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, display: 'block' }}>
-                    {'<script src="churnguardapp.com/widget.js"'}<br />
-                    {'  data-key="YOUR_KEY"></script>'}
-                  </code>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' }}>
-                  {['Page views', 'Feature usage', 'Login activity', 'Session depth'].map(tag => (
-                    <span key={tag} style={{ fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '999px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#86efac' }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-
-            <FadeIn direction="up" delay={0.18}>
-              <div style={{ ...GLASS, borderRadius: '20px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', bottom: '-30px', right: '-30px', width: '160px', height: '160px', background: 'radial-gradient(ellipse, rgba(251,146,60,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '999px', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.22)', color: '#fdba74', fontSize: '11px', fontWeight: '700', marginBottom: '12px' }}>HubSpot Sync</div>
-                <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '17px', letterSpacing: '-0.02em', marginBottom: '8px' }}>Two-way CRM sync, out of the box</h3>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: '16px' }}>Connect HubSpot and ChurnGuard pulls your contacts, scores them for churn risk, and pushes risk scores back as HubSpot contact properties — automatically every 6 hours.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {[
-                    { dir: '← Pull', label: 'HubSpot contacts → ChurnGuard customers', color: '#818cf8' },
-                    { dir: '→ Push', label: 'Risk scores → HubSpot contact properties', color: '#fdba74' },
-                    { dir: '⚡ Live', label: 'Webhook updates on contact changes', color: '#86efac' },
-                  ].map(row => (
-                    <div key={row.dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: row.color, minWidth: '44px' }}>{row.dir}</span>
-                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{row.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          CHURN CALCULATOR
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="calculator" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
+            What is churn costing you?
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '28px' }}>
+            Adjust the sliders to your numbers. No email needed.
+          </p>
+          <ChurnCalculator />
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════════
-          HOW IT WORKS
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section id="how-it-works" style={{ padding: '96px 32px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <FadeIn style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)', color: '#67e8f9', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>How it works</div>
-            <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(2rem,4.5vw,3.25rem)', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '16px' }}>Set it once. It runs forever.</h2>
-            <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.4)', maxWidth: '440px', margin: '0 auto' }}>From connect to first saved customer in under 24 hours.</p>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ position: 'relative' }}>
-            <div className="hidden md:block" style={{ position: 'absolute', top: '48px', left: '33%', right: '33%', height: '1px', background: 'linear-gradient(90deg,rgba(124,58,237,0.5),rgba(99,102,241,0.5))' }} />
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HOW THE SCORING WORKS
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="features" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
+            How the scoring works
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '48px', maxWidth: '500px' }}>
+            Every account gets a score from 0–100, updated every 6 hours. Anything above 75 triggers a retention action automatically.
+          </p>
+
+          {/* Three steps */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '40px' }}>
             {[
-              { n: '01', icon: '⚡', accent: '#7c3aed', accentBg: 'rgba(124,58,237,0.12)', title: 'Connect Your Data', body: 'Install the widget for engagement tracking, connect Stripe for billing data, or sync from HubSpot. ChurnGuard pulls customer signals from wherever they live.' },
-              { n: '02', icon: '📊', accent: '#6366f1', accentBg: 'rgba(99,102,241,0.12)', title: 'Behavioral Risk Scoring', body: 'Every 6 hours, the engine scores every customer on real signals: payment failures, login drops, feature abandonment, and support tickets. Transparent math — not a black box.' },
-              { n: '03', icon: '✉️', accent: '#06b6d4', accentBg: 'rgba(6,182,212,0.12)', title: 'Automated Retention Fires', body: 'When a customer hits a risk threshold, personalized email, SMS, or Slack message goes out automatically — zero manual work required.' },
-            ].map((s, i) => (
-              <FadeIn key={s.n} delay={i * 0.12}>
-                <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}
-                  whileHover={{ y: -4, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${s.accent}20` }} transition={{ duration: 0.2 }}>
-                  <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', width: '160px', height: '160px', background: `radial-gradient(ellipse, ${s.accent}25 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 20px', background: s.accentBg, border: `1px solid ${s.accent}50` }}>{s.icon}</div>
-                  <div style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: s.accent, marginBottom: '10px' }}>Step {s.n}</div>
-                  <h3 style={{ fontWeight: 700, color: '#fff', fontSize: '18px', letterSpacing: '-0.02em', marginBottom: '10px' }}>{s.title}</h3>
-                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>{s.body}</p>
-                </motion.div>
-              </FadeIn>
+              {
+                n: '01',
+                title: 'Detect',
+                body: 'We pull billing, usage, and engagement signals from Stripe, HubSpot, and your widget. Every signal has a weight; the engine adds them up into a score.',
+              },
+              {
+                n: '02',
+                title: 'Reach out',
+                body: 'When a customer crosses the risk threshold, a personalized message goes out automatically — email, SMS, or Slack, whichever channel fits the urgency.',
+              },
+              {
+                n: '03',
+                title: 'Save at the door',
+                body: 'If they reach your cancellation page, they see a relevant offer — pause, downgrade, or a one-time discount — before the subscription ends.',
+              },
+            ].map(step => (
+              <div key={step.n} style={{ padding: '24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 500, color: ACCENT, marginBottom: '12px', letterSpacing: '0.04em' }}>
+                  {step.n}
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 500, color: TEXT, marginBottom: '8px' }}>{step.title}</h3>
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>{step.body}</p>
+              </div>
             ))}
           </div>
+
+          {/* Expandable scoring model — content always in DOM for crawlers */}
+          <details style={{ border: `1px solid ${BORDER}`, borderRadius: '12px', background: WHITE, overflow: 'hidden' }}>
+            <summary style={{ padding: '18px 24px', fontSize: '14px', fontWeight: 500, color: TEXT, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', userSelect: 'none' }}>
+              <span>See the actual scoring model</span>
+              <IconChevron className="cg-chevron" />
+            </summary>
+            <div style={{ borderTop: `1px solid ${BORDER}`, padding: '24px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 500, color: TEXT, marginBottom: '12px' }}>No black box</h4>
+              <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, marginBottom: '20px' }}>
+                Every score is the sum of weighted signals. Open any customer record to see exactly which signals are firing and how many points each contributed.
+              </p>
+              <div style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', background: PAGE_BG, padding: '10px 16px', borderBottom: `1px solid ${BORDER}` }}>
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Signal</span>
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Weight</span>
+                </div>
+                {[
+                  { signal: 'Payment failures',                    weight: '30 pts' },
+                  { signal: 'Login gap (14+ days without activity)', weight: '25 pts' },
+                  { signal: 'Feature usage drop (>50% decline)',    weight: '20 pts' },
+                  { signal: 'Seat reductions',                      weight: '15 pts' },
+                  { signal: 'Support ticket volume spike',           weight: '10 pts' },
+                ].map((row, i, arr) => (
+                  <div key={row.signal} style={{ display: 'grid', gridTemplateColumns: '1fr auto', padding: '12px 16px', alignItems: 'center', borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none', background: WHITE, gap: '16px' }}>
+                    <span style={{ fontSize: '14px', color: TEXT }}>{row.signal}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: ACCENT, whiteSpace: 'nowrap' }}>{row.weight}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '13px', color: FAINT, marginTop: '14px', lineHeight: 1.6 }}>
+                Scores 75 and above are danger. Scores 50–74 are watch. Scores below 50 are healthy.
+                Read more about churn signals on our{' '}
+                <Link href="/blog" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>blog</Link>.
+              </p>
+            </div>
+          </details>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════════
-          TESTIMONIALS
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '96px 32px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <FadeIn style={{ textAlign: 'center', marginBottom: '56px' }}>
-            <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', color: '#fcd34d', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>Testimonials</div>
-            <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(2rem,4.5vw,3.25rem)', letterSpacing: '-0.04em', lineHeight: 1.1 }}>SaaS founders love it</h2>
-          </FadeIn>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          INTEGRATIONS
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '64px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <p style={{ fontSize: '12px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '18px' }}>
+            Connects with
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {['Stripe', 'HubSpot', 'Twilio', 'Slack', 'Postmark', 'Segment'].map(name => (
+              <div key={name} style={{ padding: '8px 18px', border: `1px solid ${BORDER}`, borderRadius: '6px', fontSize: '14px', color: MUTED, background: WHITE, fontWeight: 500 }}>
+                {name}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '12px', color: FAINT, marginTop: '12px' }}>These are integration partners, not customers.</p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          PRICING
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="pricing" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
+            Simple, predictable pricing
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '40px' }}>
+            Four plans based on your MRR. No metered billing, no surprise overages.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ alignItems: 'start', marginBottom: '20px' }}>
+            {PLANS.map(tier => (
+              <div key={tier.name} style={{
+                padding: '24px',
+                background: WHITE,
+                border: tier.popular ? `2px solid ${ACCENT}` : `1px solid ${BORDER}`,
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+              }}>
+                {tier.popular && (
+                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: WHITE, fontSize: '11px', fontWeight: 500, padding: '3px 12px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+                    Most popular
+                  </div>
+                )}
+                <div style={{ marginBottom: '18px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 500, color: TEXT, marginBottom: '4px' }}>{tier.name}</h3>
+                  <p style={{ fontSize: '13px', color: FAINT }}>{tier.band}</p>
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <span style={{ fontSize: '26px', fontWeight: 500, color: TEXT }}>{tier.price}</span>
+                  {tier.price !== 'Custom' && (
+                    <span style={{ fontSize: '13px', color: FAINT, marginLeft: '4px' }}>/mo</span>
+                  )}
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: '9px', flex: 1 }}>
+                  {tier.features.map(f => (
+                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: MUTED }}>
+                      <IconCheck />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={tier.href} style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  transition: 'opacity 150ms',
+                  ...(tier.popular
+                    ? { background: ACCENT, color: WHITE }
+                    : { background: 'transparent', color: TEXT, border: `1px solid ${BORDER_MED}` }),
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                  {tier.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: '13px', color: FAINT, textAlign: 'center' }}>
+            30-day free trial · cancel any time · no setup fees
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECURITY AND SETUP
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '40px', letterSpacing: '-0.01em' }}>
+            Built for trust
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { name: 'Sarah R.', role: 'CEO, PipelineHQ', av: 'SR', bg: 'linear-gradient(135deg,#7c3aed,#6366f1)', quote: 'Recovered $8,400 in failed payments in the first week. The dunning sequence paid for itself 10x over.', accent: '#7c3aed' },
-              { name: 'Marcus K.', role: 'Founder, DataStack', av: 'MK', bg: 'linear-gradient(135deg,#f97316,#fb923c)', quote: 'I used to manually email at-risk customers. Now ChurnGuard does it while I sleep. Churn dropped 31%.', accent: '#f97316' },
-              { name: 'Priya N.', role: 'CTO, Launchly', av: 'PN', bg: 'linear-gradient(135deg,#4ade80,#22c55e)', quote: "The Revenue at Risk dashboard is the first thing I check every morning. Best visibility we've ever had.", accent: '#4ade80' },
-            ].map((t, i) => (
-              <FadeIn key={t.name} delay={i * 0.1}>
-                <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '28px', height: '100%', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', overflow: 'hidden' }}
-                  whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                  <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', height: '1px', background: `linear-gradient(90deg, transparent, ${t.accent}55, transparent)` }} />
-                  <div style={{ display: 'flex', gap: '2px' }}>{[...Array(5)].map((_, i) => <span key={i} style={{ color: '#fbbf24', fontSize: '14px' }}>★</span>)}</div>
-                  <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, flex: 1 }}>"{t.quote}"</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{t.av}</div>
-                    <div>
-                      <div style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{t.name}</div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>{t.role}</div>
-                    </div>
-                  </div>
-                </motion.div>
-              </FadeIn>
+              {
+                title: 'No black box',
+                body: 'Open any risk score and see the exact signals and weights that produced it. Every number is explainable to your team and your customers.',
+              },
+              {
+                title: 'Read-only by default',
+                body: 'Stripe access is read-only. Customer data is AES-256 encrypted at rest. GDPR compliant. We never write to your Stripe account.',
+              },
+              {
+                title: '15 minutes to first score',
+                body: 'One OAuth click for Stripe, or one script tag for the widget. No backend changes required, no engineering sprint.',
+              },
+            ].map(col => (
+              <div key={col.title} style={{ padding: '24px', border: `1px solid ${BORDER}`, borderRadius: '12px', background: PAGE_BG }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '10px' }}>{col.title}</h3>
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>{col.body}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════════
-          PRICING
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section id="pricing" style={{ padding: '96px 32px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <FadeIn style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)', color: '#c4b5fd', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>Pricing</div>
-            <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(2rem,4.5vw,3.25rem)', letterSpacing: '-0.04em', marginBottom: '12px' }}>Simple, predictable pricing</h2>
-            <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.4)', maxWidth: '420px', margin: '0 auto' }}>Most teams recover 10× their subscription in the first month.</p>
-          </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-            {/* Free Trial */}
-            <FadeIn>
-              <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '28px', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', border: '1px solid rgba(74,222,128,0.2)' }}
-                whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#16a34a', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '4px 14px', borderRadius: '999px', whiteSpace: 'nowrap' }}>NO CREDIT CARD</div>
-                <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#4ade80', marginBottom: '4px' }}>Free Trial</h3>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '20px' }}>30 days full access</p>
-                <div style={{ marginBottom: '24px' }}><span style={{ fontSize: '32px', fontWeight: 800, color: '#fff' }}>$0</span><span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginLeft: '4px' }}>/30 days</span></div>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', flex: 1 }}>
-                  {['100 customers tracked', 'Basic automation', 'Slack alerts', 'Email sequences', 'CRM sync'].map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>
-                      <span style={{ color: '#4ade80', fontWeight: 700 }}>✓</span>{f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup" style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: '700', color: '#fff', fontSize: '14px', textDecoration: 'none', background: '#16a34a' }}>Start Free Trial</Link>
-              </motion.div>
-            </FadeIn>
-
-            {/* Seed */}
-            <FadeIn delay={0.06}>
-              <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '28px', height: '100%', display: 'flex', flexDirection: 'column' }}
-                whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '4px' }}>Seed</h3>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '20px' }}>Up to $50K MRR</p>
-                <div style={{ marginBottom: '24px' }}><span style={{ fontSize: '32px', fontWeight: 800, color: '#fff' }}>$79</span><span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginLeft: '4px' }}>/mo</span></div>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', flex: 1 }}>
-                  {['100 customers tracked', 'Basic automation', 'Slack alerts', 'Email sequences', 'CRM sync'].map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>✓</span>{f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup?plan=seed" style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.65)', fontSize: '14px', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>Get Started</Link>
-              </motion.div>
-            </FadeIn>
-
-            {/* Growth — gradient border */}
-            <FadeIn delay={0.12}>
-              <div style={{ borderRadius: '22px', padding: '2px', background: 'linear-gradient(135deg,#7c3aed,#6366f1,#06b6d4)', boxShadow: '0 0 60px rgba(124,58,237,0.3)' }}>
-                <motion.div style={{ borderRadius: '20px', padding: '28px', height: '100%', display: 'flex', flexDirection: 'column', background: '#0e0920', position: 'relative', overflow: 'hidden' }}
-                  whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                  <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '4px 14px', borderRadius: '999px', whiteSpace: 'nowrap' }}>MOST POPULAR</div>
-                  <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '4px' }}>Growth</h3>
-                  <p style={{ fontSize: '12px', color: 'rgba(167,139,250,0.55)', marginBottom: '20px' }}>$50K – $200K MRR</p>
-                  <div style={{ marginBottom: '24px' }}><span style={{ fontSize: '36px', fontWeight: 800, color: '#fff' }}>$149</span><span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginLeft: '4px' }}>/mo</span></div>
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', flex: 1 }}>
-                    {['Unlimited customers', 'Advanced playbooks', 'SMS via Twilio', 'VIP Slack alerts', 'AI-written emails', 'Priority support'].map(f => (
-                      <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-                        <span style={{ color: '#a78bfa', fontWeight: 700 }}>✓</span>{f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/signup?plan=growth" style={{ display: 'block', textAlign: 'center', padding: '13px', borderRadius: '12px', fontWeight: '700', color: '#fff', fontSize: '14px', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)' }}>Get Started</Link>
-                </motion.div>
-              </div>
-            </FadeIn>
-
-            {/* Scale */}
-            <FadeIn delay={0.18}>
-              <motion.div style={{ ...GLASS, borderRadius: '20px', padding: '28px', height: '100%', display: 'flex', flexDirection: 'column' }}
-                whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '4px' }}>Scale</h3>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '20px' }}>$200K – $1M MRR</p>
-                <div style={{ marginBottom: '24px' }}><span style={{ fontSize: '32px', fontWeight: 800, color: '#fff' }}>$299</span><span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginLeft: '4px' }}>/mo</span></div>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', flex: 1 }}>
-                  {['Unlimited everything', 'API access', 'Custom risk models', 'White-glove onboarding', 'Dedicated CSM'].map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>✓</span>{f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup?plan=scale" style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.65)', fontSize: '14px', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>Get Started</Link>
-              </motion.div>
-            </FadeIn>
-          </div>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '13px', marginTop: '24px' }}>30-day free trial · Cancel anytime · No contracts · No setup fees</p>
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section style={{ padding: '80px 32px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          <FadeIn style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(1.75rem,4vw,2.5rem)', letterSpacing: '-0.04em', marginBottom: '10px' }}>Common questions</h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.35)' }}>Everything you need before getting started.</p>
-          </FadeIn>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {FAQS.map(f => <FaqItem key={f.q} q={f.q} a={f.a} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════════════════════════════
-          FINAL CTA
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ position: 'relative', padding: '128px 32px', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0e0920 0%, #1a0b3d 30%, #0c1a3a 60%, #060610 100%)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(124,58,237,0.16) 0%, transparent 65%)' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.5), rgba(99,102,241,0.5), transparent)' }} />
-
-        <FloatCard delay={0} amplitude={10} className="absolute hidden lg:block" style={{ left: '3%', top: '20%', width: '160px' }}>
-          <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(74,222,128,0.2)', background: 'rgba(74,222,128,0.08)', backdropFilter: 'blur(12px)' }}>
-            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🎉</div>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#4ade80' }}>Revenue saved</div>
-            <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>$1,200</div>
-          </div>
-        </FloatCard>
-        <FloatCard delay={1.5} amplitude={8} className="absolute hidden lg:block" style={{ right: '3%', top: '15%', width: '165px' }}>
-          <div style={{ borderRadius: '16px', padding: '16px', border: '1px solid rgba(6,182,212,0.2)', background: 'rgba(6,182,212,0.07)', backdropFilter: 'blur(12px)' }}>
-            <div style={{ fontSize: '20px', marginBottom: '4px' }}>✉️</div>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#67e8f9' }}>Email sent</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Acme Corp saved</div>
-          </div>
-        </FloatCard>
-
-        <FadeIn style={{ position: 'relative', maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', color: '#c4b5fd', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '28px' }}>Get started today</div>
-          <h2 style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(2.2rem,5.5vw,4rem)', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: '20px' }}>
-            Ready to reduce{' '}
-            <span style={{ background: 'linear-gradient(135deg,#a78bfa,#7c3aed,#6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>churn?</span>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FAQ
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '32px', letterSpacing: '-0.01em' }}>
+            Common questions
           </h2>
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, marginBottom: '40px' }}>
-            Get your free churn risk audit. See your at-risk MRR in 2 minutes — no signup required.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <Link href="/audit" style={{ padding: '16px 40px', borderRadius: '14px', fontWeight: '700', color: '#fff', fontSize: '16px', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', boxShadow: '0 0 60px rgba(124,58,237,0.45)', display: 'inline-block' }}
-              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}>
-              Run your free churn audit →
-            </Link>
-            <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
-              or{' '}
-              <Link href="/signup" style={{ color: '#a78bfa', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-                start a 30-day free trial
-              </Link>
-              {' '}· No credit card required
-            </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {FAQS.map(({ q, a }) => (
+              <details key={q} style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', background: WHITE, overflow: 'hidden' }}>
+                <summary style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 500, color: TEXT, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', userSelect: 'none' }}>
+                  <span>{q}</span>
+                  <IconChevron className="cg-chevron" />
+                </summary>
+                <div style={{ borderTop: `1px solid ${BORDER}`, padding: '16px 20px', fontSize: '14px', color: MUTED, lineHeight: 1.7 }}>
+                  {a}
+                </div>
+              </details>
+            ))}
           </div>
-        </FadeIn>
+        </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '64px 32px 40px', background: '#030308' }}>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FOUNDING OFFER
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: ACCENT_BG }}>
+        <div style={{ maxWidth: '580px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '16px', letterSpacing: '-0.01em' }}>
+            Founding accounts — 25 spots, lifetime pricing
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
+            ChurnGuard launched this year. Rather than pad the page with logos we don't have, the first 25 accounts get lifetime pricing, a direct line to me, and real influence over what gets built.
+          </p>
+          <Link href="/signup" style={btnPrimary}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+            Claim a spot
+          </Link>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <footer style={{ borderTop: `1px solid ${BORDER}`, padding: '48px 24px 32px', background: WHITE }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10" style={{ marginBottom: '48px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10" style={{ marginBottom: '40px' }}>
+
             <div>
-              <div style={{ marginBottom: '12px' }}>
-                <img src="/logo-purple.png" alt="ChurnGuard" height={40} style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.3))' }} />
-              </div>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.7, marginBottom: '16px' }}>Customer retention platform for SaaS founders. Monitor. Score. Retain.</p>
-              <a href="mailto:admin@churnguardapp.com" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+              <img src="/logo-purple.png" alt="ChurnGuard" width={116} height={28} style={{ height: '28px', width: 'auto', display: 'block', marginBottom: '12px' }} />
+              <p style={{ fontSize: '13px', color: MUTED, lineHeight: 1.7, marginBottom: '14px' }}>
+                Customer retention platform for SaaS founders.
+              </p>
+              <a href="mailto:admin@churnguardapp.com" style={{ fontSize: '13px', color: MUTED, textDecoration: 'none' }}
+                onMouseEnter={e => (e.currentTarget.style.color = TEXT)}
+                onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
                 admin@churnguardapp.com
               </a>
             </div>
+
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: '16px' }}>Product</div>
-              {[['#features', 'Features'], ['#pricing', 'Pricing'], ['/audit', 'Free Audit'], ['/blog', 'Blog']].map(([href, label]) => (
-                <a key={label} href={href} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.35)', textDecoration: 'none', marginBottom: '10px' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}>
+              <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: FAINT, marginBottom: '14px' }}>Product</div>
+              {[['#features', 'How it works'], ['#pricing', 'Pricing'], ['/audit', 'Free churn audit'], ['/blog', 'Blog']].map(([href, label]) => (
+                <a key={label} href={href} style={{ display: 'block', fontSize: '13px', color: MUTED, textDecoration: 'none', marginBottom: '9px' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = TEXT)}
+                  onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
                   {label}
                 </a>
               ))}
             </div>
+
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: '16px' }}>Company</div>
-              {[['/about', 'About'], ['/privacy', 'Privacy'], ['/terms', 'Terms']].map(([href, label]) => (
-                <a key={label} href={href} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.35)', textDecoration: 'none', marginBottom: '10px' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}>
+              <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: FAINT, marginBottom: '14px' }}>Company</div>
+              {[['/about', 'About'], ['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/book-demo', 'Book a call']].map(([href, label]) => (
+                <a key={label} href={href} style={{ display: 'block', fontSize: '13px', color: MUTED, textDecoration: 'none', marginBottom: '9px' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = TEXT)}
+                  onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
                   {label}
                 </a>
               ))}
             </div>
+
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: '16px' }}>Free audit</div>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginBottom: '16px', lineHeight: 1.6 }}>See which customers are at risk and how much MRR is on the line — in 2 minutes, no signup.</p>
-              <Link href="/audit" style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', background: 'linear-gradient(135deg,#7c3aed,#6366f1)' }}>
-                Run your free audit →
-              </Link>
+              <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: FAINT, marginBottom: '14px' }}>Resources</div>
+              <p style={{ fontSize: '13px', color: MUTED, lineHeight: 1.7, marginBottom: '10px' }}>
+                Read about churn prevention, retention tactics, and SaaS benchmarks on our{' '}
+                <Link href="/blog" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>blog</Link>.
+              </p>
             </div>
           </div>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.15)' }}>© 2026 ChurnGuard · All rights reserved</p>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.12)' }}>Built for SaaS founders who care about retention</p>
+
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <p style={{ fontSize: '12px', color: FAINT }}>© 2026 ChurnGuard · All rights reserved</p>
+            <p style={{ fontSize: '12px', color: FAINT }}>Built for SaaS founders who care about retention</p>
           </div>
         </div>
       </footer>
 
-      <DemoVideoModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
     </div>
   );
 }
