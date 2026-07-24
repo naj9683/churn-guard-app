@@ -24,12 +24,17 @@ export async function GET() {
       return res;
     }
 
-    // Check for active subscription in DB
+    // Statuses that grant dashboard access. past_due = Stripe retry window; the subscriber
+    // paid and must not be locked out. canceled with a future currentPeriodEnd = they paid
+    // through that date and access continues until it passes.
+    const OPEN_STATUSES = ['active', 'trialing', 'past_due', 'paused'];
+
+    // Fetch the most recent subscription regardless of status so we can evaluate period-end access.
     const user = await prisma.user.findFirst({
       where: { clerkId: userId },
       include: {
         subscriptions: {
-          where: { status: 'active' },
+          orderBy: { createdAt: 'desc' },
           take: 1,
         },
       },
@@ -59,12 +64,20 @@ export async function GET() {
         hasPaidPlan: false,
         status: 'trial',
         blocked: false,
+        subscriptionStatus: null,
+        hadAnySubscription: false,
       });
       res.cookies.set('cg_paywall', 'active', PAYWALL_COOKIE);
       return res;
     }
 
-    const hasPaidSubscription = user.subscriptions.length > 0;
+    const now = new Date();
+    const latestSub = user.subscriptions[0] ?? null;
+    const hasPaidSubscription = latestSub !== null && (
+      OPEN_STATUSES.includes(latestSub.status) ||
+      (latestSub.status === 'canceled' && latestSub.currentPeriodEnd !== null && latestSub.currentPeriodEnd > now)
+    );
+    const hadAnySubscription = user.subscriptions.length > 0;
     const trialInfo = getTrialInfo(user.createdAt, hasPaidSubscription);
     const cookieVal = paywallCookieValue(trialInfo);
 
@@ -76,6 +89,8 @@ export async function GET() {
       hasPaidPlan: hasPaidSubscription,
       status: trialInfo.status,
       blocked: trialInfo.blocked,
+      subscriptionStatus: latestSub?.status ?? null,
+      hadAnySubscription,
     });
     res.cookies.set('cg_paywall', cookieVal, PAYWALL_COOKIE);
     return res;

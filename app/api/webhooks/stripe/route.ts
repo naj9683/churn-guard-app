@@ -91,8 +91,9 @@ export async function POST(req: Request) {
       const stripeCustomerId = sub.customer as string;
       console.log('Subscription cancelled for Stripe customer:', stripeCustomerId);
 
-      // Cancel the platform Subscription record so the user loses dashboard access
-      await cancelPlatformSubscription(stripeCustomerId);
+      // Pass the full sub object so cancelPlatformSubscription can record current_period_end,
+      // allowing access to continue until the end of the paid period.
+      await cancelPlatformSubscription(stripeCustomerId, sub);
 
       // Also mark any ChurnGuard-tracked customers as cancelled
       await cancelCustomer(stripeCustomerId);
@@ -161,6 +162,10 @@ async function provisionSubscription(
 
 // ── Sync subscription status on updates ─────────────────────────────────────
 
+// Stripe statuses that grant dashboard access. past_due = card retry window; subscriber
+// is still a paying customer and must not be locked out. unpaid/canceled/incomplete = gated.
+const OPEN_STATUSES = new Set(['active', 'trialing', 'past_due', 'paused']);
+
 async function syncSubscriptionStatus(stripeSub: Stripe.Subscription) {
   try {
     const stripeCustomerId = stripeSub.customer as string;
@@ -170,15 +175,15 @@ async function syncSubscriptionStatus(stripeSub: Stripe.Subscription) {
     });
     if (!user) return;
 
-    const status = stripeSub.status === 'active' ? 'active' : 'canceled';
     const priceId = stripeSub.items.data[0]?.price?.id ?? '';
+    const currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
 
     await prisma.subscription.updateMany({
       where: { userId: user.id },
-      data: { status, priceId },
+      data: { status: stripeSub.status, priceId, currentPeriodEnd },
     });
 
-    console.log(`✅ Subscription status synced for user ${user.id} → ${status}`);
+    console.log(`✅ Subscription status synced for user ${user.id} → ${stripeSub.status}`);
   } catch (error) {
     console.error('Error syncing subscription status:', error);
   }
@@ -186,7 +191,7 @@ async function syncSubscriptionStatus(stripeSub: Stripe.Subscription) {
 
 // ── Cancel the platform Subscription row ────────────────────────────────────
 
-async function cancelPlatformSubscription(stripeCustomerId: string) {
+async function cancelPlatformSubscription(stripeCustomerId: string, stripeSub: Stripe.Subscription) {
   try {
     const user = await prisma.user.findFirst({
       where: { stripeCustomerId },
@@ -196,11 +201,14 @@ async function cancelPlatformSubscription(stripeCustomerId: string) {
       console.warn(`cancelPlatformSubscription: no user found for Stripe customer ${stripeCustomerId}`);
       return;
     }
+    // Store current_period_end so the status route can keep access open until
+    // the period the subscriber paid through, rather than cutting off immediately.
+    const currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
     const updated = await prisma.subscription.updateMany({
-      where: { userId: user.id, status: 'active' },
-      data: { status: 'canceled' },
+      where: { userId: user.id, status: { not: 'canceled' } },
+      data: { status: 'canceled', currentPeriodEnd },
     });
-    console.log(`✅ Cancelled ${updated.count} platform subscription(s) for user ${user.id}`);
+    console.log(`✅ Cancelled ${updated.count} platform subscription(s) for user ${user.id} (access until ${currentPeriodEnd.toISOString()})`);
   } catch (error) {
     console.error('Error cancelling platform subscription:', error);
   }

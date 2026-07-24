@@ -100,12 +100,13 @@ model Playbook {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String
-  status    String
-  priceId   String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id               String    @id @default(cuid())
+  userId           String
+  status           String
+  priceId          String
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id])
 }
 
 model RevenueMetrics {

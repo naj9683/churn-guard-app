@@ -56,15 +56,20 @@ export default function UpgradePage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [statusInfo, setStatusInfo] = useState<{ blocked: boolean; hadAnySubscription: boolean } | null>(null);
 
-  // Admin bypass: if this account has permanent access, redirect to dashboard immediately
   useEffect(() => {
     fetch('/api/subscription/status')
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.isAdmin || d?.hasPaidPlan || d?.status === 'active') {
           router.replace('/dashboard');
+          return;
         }
+        setStatusInfo({
+          blocked: d?.blocked ?? false,
+          hadAnySubscription: d?.hadAnySubscription ?? false,
+        });
       })
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -120,18 +125,22 @@ export default function UpgradePage() {
         </span>
       </div>
 
-      {/* Trial expired badge */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: '8px',
-        marginBottom: '24px',
-        background: 'rgba(239,68,68,0.1)',
-        border: '1px solid rgba(239,68,68,0.3)',
-        padding: '6px 16px',
-        borderRadius: '999px',
-      }}>
-        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-        <span style={{ color: '#ef4444', fontSize: '13px', fontWeight: '600' }}>Free trial ended</span>
-      </div>
+      {/* Status badge — only rendered when the user is blocked */}
+      {statusInfo?.blocked && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          marginBottom: '24px',
+          background: 'rgba(239,68,68,0.1)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          padding: '6px 16px',
+          borderRadius: '999px',
+        }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+          <span style={{ color: '#ef4444', fontSize: '13px', fontWeight: '600' }}>
+            {statusInfo.hadAnySubscription ? 'Subscription ended' : 'Free trial ended'}
+          </span>
+        </div>
+      )}
 
       {/* Headline */}
       <h1 style={{
@@ -143,7 +152,9 @@ export default function UpgradePage() {
         margin: '0 0 12px',
         maxWidth: '640px',
       }}>
-        Your free trial has ended
+        {statusInfo?.blocked
+          ? (statusInfo.hadAnySubscription ? 'Your subscription has ended' : 'Your free trial has ended')
+          : 'Simple, transparent pricing'}
       </h1>
       <p style={{
         color: 'rgba(255,255,255,0.45)',
@@ -153,7 +164,11 @@ export default function UpgradePage() {
         margin: '0 0 8px',
         lineHeight: '1.6',
       }}>
-        Upgrade to keep protecting your revenue and accessing your customer data.
+        {statusInfo?.blocked
+          ? (statusInfo.hadAnySubscription
+              ? 'Resubscribe to restore access to your dashboard and customer data.'
+              : 'Upgrade to keep protecting your revenue and accessing your customer data.')
+          : 'Start protecting your revenue today. No contracts, cancel anytime.'}
       </p>
       <p style={{
         color: 'rgba(255,255,255,0.25)',
@@ -161,7 +176,9 @@ export default function UpgradePage() {
         textAlign: 'center',
         marginBottom: '48px',
       }}>
-        Your data is safe and will be restored immediately after upgrading.
+        {statusInfo?.blocked
+          ? `Your data is safe and will be restored immediately after ${statusInfo.hadAnySubscription ? 'resubscribing' : 'upgrading'}.`
+          : 'Cancel anytime. Your data is always safe.'}
       </p>
 
       {/* Pricing cards */}
