@@ -440,21 +440,82 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          INTEGRATIONS
+          CONNECTED IN MINUTES
       ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '64px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
+      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <p style={{ fontSize: '12px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '18px' }}>
-            Connects with
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
+            Connected in minutes, not sprints
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '40px', maxWidth: '560px' }}>
+            Most churn tools need you to instrument events in your codebase before they return anything. ChurnGuard starts scoring from data you already have.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {['Stripe', 'HubSpot', 'Twilio', 'Slack', 'Postmark', 'Segment'].map(name => (
-              <div key={name} style={{ padding: '8px 18px', border: `1px solid ${BORDER}`, borderRadius: '6px', fontSize: '14px', color: MUTED, background: WHITE, fontWeight: 500 }}>
-                {name}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '24px' }}>
+
+            {/* Card 1 — Stripe */}
+            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.07em', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, padding: '2px 8px', borderRadius: '4px' }}>
+                  No code
+                </span>
+                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                </svg>
               </div>
-            ))}
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Connect Stripe</h3>
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
+                  One OAuth click. Read-only. Pulls customers, MRR, and payment history.
+                </p>
+              </div>
+              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Scores within the hour</p>
+            </div>
+
+            {/* Card 2 — HubSpot */}
+            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.07em', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, padding: '2px 8px', borderRadius: '4px' }}>
+                  No code
+                </span>
+                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Sync HubSpot</h3>
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
+                  OAuth both ways. Contacts pull in, risk scores push back as properties.
+                </p>
+              </div>
+              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Re-syncs hourly</p>
+            </div>
+
+            {/* Card 3 — Widget */}
+            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: SUCCESS, textTransform: 'uppercase', letterSpacing: '0.07em', background: SUCCESS_BG, border: `1px solid ${SUCCESS_BORD}`, padding: '2px 8px', borderRadius: '4px' }}>
+                  One line
+                </span>
+                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Drop in the widget</h3>
+                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
+                  One script tag with your API key. Tracks page views and sessions. No backend changes.
+                </p>
+              </div>
+              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Tracking starts immediately</p>
+            </div>
+
           </div>
-          <p style={{ fontSize: '12px', color: FAINT, marginTop: '12px' }}>These are integration partners, not customers.</p>
+
+          <p style={{ fontSize: '13px', color: FAINT, marginBottom: '4px' }}>
+            Also connects with Twilio, Slack, Postmark, and Segment.
+          </p>
+          <p style={{ fontSize: '12px', color: FAINT }}>These are integration partners, not customers.</p>
         </div>
       </section>
 
