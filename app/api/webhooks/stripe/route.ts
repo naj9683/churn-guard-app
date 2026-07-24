@@ -8,18 +8,46 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// ChurnGuard's own Stripe account — verifies our platform billing events.
+const platformWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: Request) {
   try {
     const payload = await req.text();
     const signature = req.headers.get('stripe-signature')!;
 
-    let event: Stripe.Event;
+    // Verification strategy: try the platform secret first (fast path for our own billing),
+    // then try each per-account secret stored for connected integrations.
+    // constructEvent throws on any mismatch — we catch per attempt and keep trying.
+    // event remains null if nothing verifies; we reject below.
+    let event: Stripe.Event | null = null;
+
     try {
-      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
+      event = stripe.webhooks.constructEvent(payload, signature, platformWebhookSecret);
+    } catch {
+      // Not signed with our platform secret — try per-account secrets below
+    }
+
+    if (!event) {
+      const integrations = await prisma.crmIntegration.findMany({
+        where: { type: 'stripe', webhookSecret: { not: null } },
+        select: { webhookSecret: true },
+      });
+      for (const row of integrations) {
+        try {
+          event = stripe.webhooks.constructEvent(payload, signature, row.webhookSecret!);
+          break; // verified — stop trying
+        } catch {
+          // Wrong secret for this account — keep trying
+        }
+      }
+    }
+
+    // ── Security boundary ──────────────────────────────────────────────────────
+    // No secret verified this request. Reject with 400. There is no code path below
+    // this point that accepts an event that did not pass constructEvent.
+    if (!event) {
+      console.error('Webhook rejected: signature matched no known secret');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
