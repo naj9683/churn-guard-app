@@ -10,11 +10,12 @@ export interface FormulaInput {
 
 export interface FormulaResult {
   daysSinceLogin: number | null; // null = no widget data (lastLoginAt never set)
-  billingPts: number;            // 0–40, from payment_failed events in last 30 days
+  billingPts: number;            // 0–40: payment failures + downgrade, capped at 40
   recencyPts: number;            // 0–35, login recency (0 when no engagement data)
   activityPts: number;           // 0–25, login frequency (0 when no engagement data)
   hasEngagementData: boolean;    // false when lastLoginAt is null — absent data ≠ risk
-  failedPayments30d: number;     // raw count driving billingPts
+  failedPayments30d: number;     // raw count driving billing pts
+  hasDowngrade30d: boolean;      // true if downgrade_detected event in last 30 days
   score: number;                 // 0–100, clamped
 }
 
@@ -23,13 +24,19 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
   const msPerDay = 1000 * 60 * 60 * 24;
   const ms30Days = 30 * msPerDay;
 
-  // ── Billing: payment_failed events in last 30 days (max 40 pts) ────────────
-  // Each failure adds 20 pts; capped at 40. payment_failed is written
-  // automatically by the Stripe webhook — no manual tracking required.
+  // ── Billing: payment failures + downgrade in last 30 days (max 40 pts) ─────
+  // payment_failed: written automatically by Stripe webhook (20 pts each, cap 40)
+  // downgrade_detected: written by Stripe webhook when quantity/amount reduces (15 pts)
+  // Combined cap at 40 — cannot exceed billing ceiling regardless of combination.
   const failedPayments30d = input.recentEvents.filter(
     e => e.event === 'payment_failed' && (now - e.timestamp) <= ms30Days
   ).length;
-  const billingPts = Math.min(failedPayments30d * 20, 40);
+
+  const hasDowngrade30d = input.recentEvents.some(
+    e => e.event === 'downgrade_detected' && (now - e.timestamp) <= ms30Days
+  );
+
+  const billingPts = Math.min(failedPayments30d * 20 + (hasDowngrade30d ? 15 : 0), 40);
 
   // ── Engagement signals — only scored when the widget has fired at least once
   // lastLoginAt === null means the widget is not installed or has never fired.
@@ -60,6 +67,7 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
     activityPts,
     hasEngagementData,
     failedPayments30d,
+    hasDowngrade30d,
     score,
   };
 }

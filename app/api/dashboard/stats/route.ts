@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find user by clerkId (matching your pattern)
     const user = await prisma.user.findFirst({
       where: { clerkId: userId },
       select: {
@@ -23,13 +22,12 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get stats only (no customer list)
     const totalCustomers = await prisma.customer.count({
       where: { userId: user.id }
     });
 
     const atRisk = await prisma.customer.count({
-      where: { userId: user.id, riskScore: { gte: 70 } }
+      where: { userId: user.id, riskScore: { gte: 50 } }
     });
 
     const monthlyRevenue = await prisma.customer.aggregate({
@@ -37,13 +35,11 @@ export async function GET() {
       _sum: { mrr: true }
     });
 
-    // Engagement-based revenue at risk: MRR of customers with riskScore >= 70
     const engagementRisk = await prisma.customer.aggregate({
-      where: { userId: user.id, riskScore: { gte: 70 } },
+      where: { userId: user.id, riskScore: { gte: 50 } },
       _sum: { mrr: true },
     });
 
-    // Check if user has a Stripe key stored for live Revenue at Risk
     const stripeIntegration = await prisma.crmIntegration.findUnique({
       where: { userId_type: { userId: user.id, type: 'stripe' } },
       select: { enabled: true, accessToken: true },
@@ -54,20 +50,32 @@ export async function GET() {
       where: { userId: user.id, isActive: true }
     });
 
-    // Get intervention stats
     const savedInterventions = await prisma.interventionOutcome.count({
       where: { userId: user.id, status: 'saved' }
     });
 
-    // Top high-risk customers with AI-generated risk reasons for dashboard display
+    // Customers with score >= 50 that have widget data — these will always have engagement
+    // data because scoring above 50 requires engagement signals (billing alone caps at 40).
     const highRiskCustomers = await prisma.customer.findMany({
-      where: { userId: user.id, riskScore: { gte: 60 } },
+      where: { userId: user.id, riskScore: { gte: 50 } },
       orderBy: { riskScore: 'desc' },
       take: 5,
-      select: { id: true, email: true, name: true, riskScore: true, riskReason: true, mrr: true },
+      select: { id: true, email: true, name: true, riskScore: true, riskReason: true, mrr: true, lastLoginAt: true },
     });
 
-    // Enroll new users in trial email sequence on first dashboard load
+    // Customers without widget data that have billing signals (show in separate UI group)
+    const missingDataCustomers = await prisma.customer.findMany({
+      where: { userId: user.id, lastLoginAt: null, riskScore: { gt: 0 } },
+      orderBy: { riskScore: 'desc' },
+      take: 5,
+      select: { id: true, email: true, name: true, riskScore: true, riskReason: true, mrr: true, lastLoginAt: true },
+    });
+
+    // Count for dashboard banner: how many customers have no widget data at all
+    const engagementDataMissingCount = await prisma.customer.count({
+      where: { userId: user.id, lastLoginAt: null },
+    });
+
     if (user.nextTrialEmailAt === null && user.trialEmailStep === 0) {
       const ageMs = Date.now() - user.createdAt.getTime();
       if (ageMs < 30 * 24 * 60 * 60 * 1000) {
@@ -85,9 +93,9 @@ export async function GET() {
       activePlaybooks,
       savedInterventions,
       highRiskCustomers,
-      // Engagement-based revenue at risk (riskScore >= 70)
+      missingDataCustomers,
+      engagementDataMissingCount,
       engagementRiskMrr: engagementRisk._sum?.mrr || 0,
-      // Whether user has connected their Stripe account for live Revenue at Risk
       stripeConnected,
     });
 

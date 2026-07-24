@@ -831,6 +831,22 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Widget coverage banner — shown when >50% of customers have no engagement data */}
+        {!demoMode && dashboardData && dashboardData.totalCustomers > 0 && dashboardData.engagementDataMissingCount > dashboardData.totalCustomers / 2 && (
+          <div style={{ marginTop: '20px', padding: '14px 18px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '2px' }}>
+                Widget not installed for {dashboardData.engagementDataMissingCount} of {dashboardData.totalCustomers} customers ({Math.round(dashboardData.engagementDataMissingCount / dashboardData.totalCustomers * 100)}%)
+              </div>
+              <div style={{ fontSize: '13px', color: '#a16207', lineHeight: 1.5 }}>
+                Engagement scoring requires the ChurnGuard widget. Without it, risk scores reflect billing signals only and customers cannot be enrolled in retention sequences.{' '}
+                <a href="/widget-install" style={{ color: '#92400e', fontWeight: '600', textDecoration: 'underline' }}>Install the widget →</a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* AI Risk Analysis — always visible */}
         <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {/* Section title row */}
@@ -887,7 +903,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {((demoMode ? DEMO_STATS.highRiskCustomers : dashboardData?.highRiskCustomers)?.length ?? 0) === 0 ? (
+          {/* ── Scored at-risk customers ── */}
+          {((demoMode ? DEMO_STATS.highRiskCustomers : dashboardData?.highRiskCustomers)?.length ?? 0) === 0 && !(!demoMode && (dashboardData?.missingDataCustomers?.length ?? 0) > 0) ? (
             <div style={{ textAlign: 'center', padding: '36px 24px' }}>
               <div style={{ width: '48px', height: '48px', background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '22px' }}>✓</div>
               <p style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '600', color: '#111827' }}>No high-risk customers found</p>
@@ -915,11 +932,11 @@ export default function Dashboard() {
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: '8px' }}>
                   <div style={{
                     width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
-                    background: c.riskScore >= 80 ? '#fef2f2' : c.riskScore >= 60 ? '#fff7ed' : '#f0fdf4',
-                    border: `2px solid ${c.riskScore >= 80 ? '#fecaca' : c.riskScore >= 60 ? '#fed7aa' : '#bbf7d0'}`,
+                    background: c.riskScore >= 80 ? '#fef2f2' : c.riskScore >= 60 ? '#fff7ed' : '#fff7ed',
+                    border: `2px solid ${c.riskScore >= 80 ? '#fecaca' : '#fed7aa'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '14px', fontWeight: '700',
-                    color: c.riskScore >= 80 ? '#ef4444' : c.riskScore >= 60 ? '#f97316' : '#22c55e',
+                    color: c.riskScore >= 80 ? '#ef4444' : '#f97316',
                   }}>
                     {c.riskScore}
                   </div>
@@ -946,6 +963,57 @@ export default function Dashboard() {
                   </Link>
                 </div>
               ))}
+
+              {/* ── Insufficient data group — billing signals but no widget ── */}
+              {!demoMode && (dashboardData?.missingDataCustomers?.length ?? 0) > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '6px 0 2px' }}>
+                    <div style={{ flex: 1, height: '1px', background: '#f3f4f6' }} />
+                    <span style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                      Billing signals — no engagement data
+                    </span>
+                    <div style={{ flex: 1, height: '1px', background: '#f3f4f6' }} />
+                  </div>
+                  {(dashboardData.missingDataCustomers as any[]).map((c: any) => (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', background: '#fafafa', border: '1px solid #f3f4f6', borderRadius: '8px', opacity: 0.9 }}>
+                      <div style={{
+                        width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
+                        background: '#f3f4f6', border: '2px solid #d1d5db',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '18px', color: '#9ca3af',
+                      }}>
+                        ?
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '3px' }}>
+                          {c.name || c.email}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                          Insufficient data — <a href="/widget-install" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '500' }}>install widget</a> for engagement scoring
+                          {c.riskScore > 0 && (
+                            <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: '600', padding: '1px 7px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '10px' }}>
+                              {c.riskScore >= 40 ? '2+ payments failed' : '1 payment failed'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#374151', fontWeight: '500', flexShrink: 0 }}>
+                        ${c.mrr}/mo
+                      </div>
+                      <Link
+                        href={`/dashboard/customers/${c.id}`}
+                        style={{
+                          fontSize: '12px', color: '#6b7280', textDecoration: 'none',
+                          border: '1px solid #e5e7eb', padding: '5px 10px', borderRadius: '6px',
+                          flexShrink: 0, whiteSpace: 'nowrap', fontWeight: '500',
+                        }}
+                      >
+                        View
+                      </Link>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>

@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      // Enroll in risk-retention sequence when score crosses 60
-      if (result.churnProbability >= 60 && previousScore < 60) {
+      // Enroll in risk-retention sequence when score crosses 50
+      if (result.churnProbability >= 50 && previousScore < 50) {
         await enrollInSequence(customer.userId, customer.id, 'risk_retention', {
           riskScore: result.churnProbability,
           riskReason: result.summary,

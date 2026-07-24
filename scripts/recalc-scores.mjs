@@ -2,11 +2,12 @@
  * scripts/recalc-scores.mjs
  *
  * Rescores every customer using the current formula:
- *   - billing_pts  (0–40): payment_failed events in last 30 days × 20, capped at 40
- *   - recency_pts  (0–35): login recency (only if widget data present)
- *   - activity_pts (0–25): login frequency (only if widget data present)
+ *   billing_pts  (0–40): payment_failed × 20 + downgrade 15, capped at 40
+ *   recency_pts  (0–35): login recency (only if widget data present)
+ *   activity_pts (0–25): login frequency (only if widget data present)
  *
- * Customers with no widget data (lastLoginAt = null) score on billing alone.
+ * Customers with no widget data (lastLoginAt = null) score on billing alone (max 40).
+ * Customers above 50 are enrolled in the risk-retention sequence by the analyzer cron.
  *
  * Usage:
  *   node scripts/recalc-scores.mjs              # uses DATABASE_URL from .env
@@ -35,13 +36,16 @@ function computeRiskScore({ lastLoginAt, loginCountThisMonth, recentEvents }) {
   const msPerDay = 1000 * 60 * 60 * 24;
   const ms30Days = 30 * msPerDay;
 
-  // Billing: payment_failed events in last 30 days (max 40 pts)
   const failedPayments30d = recentEvents.filter(
     e => e.event === 'payment_failed' && (now - Number(e.timestamp)) <= ms30Days
   ).length;
-  const billingPts = Math.min(failedPayments30d * 20, 40);
 
-  // Engagement: only scored when widget data is present
+  const hasDowngrade30d = recentEvents.some(
+    e => e.event === 'downgrade_detected' && (now - Number(e.timestamp)) <= ms30Days
+  );
+
+  const billingPts = Math.min(failedPayments30d * 20 + (hasDowngrade30d ? 15 : 0), 40);
+
   const hasEngagementData = lastLoginAt !== null;
 
   const daysSinceLogin = hasEngagementData
@@ -59,7 +63,7 @@ function computeRiskScore({ lastLoginAt, loginCountThisMonth, recentEvents }) {
 
   const score = Math.min(100, Math.max(0, billingPts + recencyPts + activityPts));
 
-  return { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d };
+  return { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d, hasDowngrade30d };
 }
 
 async function main() {
@@ -86,23 +90,35 @@ async function main() {
 
   console.log(`Found ${customers.length} customer(s). Recalculating...\n`);
 
+  const bands = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 };
+  let missingData = 0;
   let changed = 0;
   let unchanged = 0;
 
   for (const c of customers) {
-    const { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d } = computeRiskScore({
+    const { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d, hasDowngrade30d } = computeRiskScore({
       lastLoginAt: c.lastLoginAt,
       loginCountThisMonth: c.loginCountThisMonth,
       recentEvents: c.events,
     });
 
+    // Tally bands and flags using the NEW score
+    if (score <= 25) bands['0-25']++;
+    else if (score <= 50) bands['26-50']++;
+    else if (score <= 75) bands['51-75']++;
+    else bands['76-100']++;
+
+    if (!hasEngagementData) missingData++;
+
     const arrow = score !== c.riskScore ? `${c.riskScore} → ${score}` : `${score} (no change)`;
-    const detail = [
-      `billing=${billingPts}(${failedPayments30d} failures)`,
-      hasEngagementData
-        ? `recency=${recencyPts}(${daysSinceLogin}d ago) activity=${activityPts}`
-        : `recency=0 activity=0 [no widget data]`,
-    ].join(' ');
+    const billingDetail = [
+      failedPayments30d > 0 && `${failedPayments30d} failure(s)`,
+      hasDowngrade30d && 'downgrade',
+    ].filter(Boolean).join('+') || 'no billing signals';
+
+    const detail = hasEngagementData
+      ? `billing=${billingPts}(${billingDetail}) recency=${recencyPts}(${daysSinceLogin}d) activity=${activityPts}`
+      : `billing=${billingPts}(${billingDetail}) [no widget data]`;
 
     if (score !== c.riskScore) {
       console.log(`  ✓ ${c.email.padEnd(40)} ${arrow}`);
@@ -121,7 +137,13 @@ async function main() {
 
   console.log(`\n${'─'.repeat(60)}`);
   console.log(`Updated: ${changed}  |  Unchanged: ${unchanged}  |  Total: ${customers.length}`);
-  if (DRY_RUN) console.log('[DRY RUN] No database writes were made.');
+  console.log(`\nScore distribution (new scores):`);
+  console.log(`  0–25:    ${bands['0-25']} customers`);
+  console.log(`  26–50:   ${bands['26-50']} customers`);
+  console.log(`  51–75:   ${bands['51-75']} customers`);
+  console.log(`  76–100:  ${bands['76-100']} customers`);
+  console.log(`\nengagement_data_missing: ${missingData} customers (lastLoginAt = null)`);
+  if (DRY_RUN) console.log('\n[DRY RUN] No database writes were made.');
 }
 
 main()

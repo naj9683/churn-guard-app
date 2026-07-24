@@ -50,7 +50,9 @@ export async function POST(req: Request) {
     // Subscription status changes (upgrades, downgrades, reactivations) — keep DB in sync.
     if (event.type === 'customer.subscription.updated') {
       const sub = event.data.object as Stripe.Subscription;
+      const prev = event.data.previous_attributes as Record<string, unknown> | undefined;
       await syncSubscriptionStatus(sub);
+      if (prev) await maybeRecordDowngrade(sub, prev);
     }
 
     // Handle payment failure — record event + fire automation rules
@@ -251,5 +253,51 @@ async function markInterventionAsSaved(stripeCustomerId: string) {
     }
   } catch (error) {
     console.error('Error marking intervention as saved:', error);
+  }
+}
+
+// ── Detect and record subscription downgrades ─────────────────────────────────
+// Fires when customer.subscription.updated carries a quantity or unit_amount reduction.
+// Writes a downgrade_detected Event row so the risk formula can score on it.
+
+async function maybeRecordDowngrade(
+  sub: Stripe.Subscription,
+  prev: Record<string, unknown>,
+) {
+  try {
+    const prevItems = (prev.items as any)?.data;
+    const prevQty: number | undefined = prevItems?.[0]?.quantity ?? (prev.quantity as number | undefined);
+    const prevAmount: number | undefined = (prev.plan as any)?.amount ?? prevItems?.[0]?.plan?.amount;
+
+    const newQty = sub.items.data[0]?.quantity ?? 1;
+    const newAmount = sub.items.data[0]?.price?.unit_amount ?? null;
+
+    const isQuantityReduction = typeof prevQty === 'number' && newQty < prevQty;
+    const isAmountReduction =
+      typeof prevAmount === 'number' && typeof newAmount === 'number' && newAmount < prevAmount;
+
+    if (!isQuantityReduction && !isAmountReduction) return;
+
+    const stripeCustomerId = sub.customer as string;
+    const customer = await prisma.customer.findFirst({
+      where: { externalId: stripeCustomerId },
+    });
+    if (!customer) return;
+
+    await prisma.event.create({
+      data: {
+        customerId: customer.id,
+        event: 'downgrade_detected',
+        metadata: {
+          ...(isQuantityReduction && { previousQuantity: prevQty, newQuantity: newQty }),
+          ...(isAmountReduction && { previousAmount: prevAmount, newAmount }),
+        },
+        timestamp: BigInt(Date.now()),
+      },
+    });
+
+    console.log(`✅ downgrade_detected recorded for customer ${customer.id}`);
+  } catch (error) {
+    console.error('Error recording downgrade:', error);
   }
 }

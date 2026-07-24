@@ -169,6 +169,7 @@ export default function CustomerDetailPage() {
     ? new Date(Number(events[0].timestamp)).toLocaleString()
     : 'Never';
 
+  const hasEngagementData = customer.lastLoginAt !== null;
   const riskColor = customer.riskScore >= 70 ? '#ef4444' : customer.riskScore >= 40 ? '#f59e0b' : '#10b981';
   const riskBg   = customer.riskScore >= 70 ? '#fef2f2' : customer.riskScore >= 40 ? '#fffbeb' : '#f0fdf4';
 
@@ -197,9 +198,18 @@ export default function CustomerDetailPage() {
                   Critical — Call Required
                 </span>
               )}
-              <span style={{ padding: '8px 16px', borderRadius: '8px', background: riskBg, color: riskColor, fontWeight: '600', fontSize: '14px' }}>
-                Risk: {customer.riskScore}
-              </span>
+              {hasEngagementData ? (
+                <span style={{ padding: '8px 16px', borderRadius: '8px', background: riskBg, color: riskColor, fontWeight: '600', fontSize: '14px' }}>
+                  Risk: {customer.riskScore}
+                </span>
+              ) : (
+                <span style={{ padding: '8px 16px', borderRadius: '8px', background: '#f3f4f6', color: '#6b7280', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Insufficient data
+                  <a href="/widget-install" style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none', fontWeight: '500', borderLeft: '1px solid #d1d5db', paddingLeft: '6px' }}>
+                    Install widget →
+                  </a>
+                </span>
+              )}
               <Link
                 href={`/dashboard/risk-analysis/${params.id}`}
                 style={{

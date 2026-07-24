@@ -61,7 +61,11 @@ export default function UpgradePage() {
   useEffect(() => {
     fetch('/api/subscription/status')
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.isAdmin) router.replace('/dashboard'); })
+      .then(d => {
+        if (d?.isAdmin || d?.hasPaidPlan || d?.status === 'active') {
+          router.replace('/dashboard');
+        }
+      })
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

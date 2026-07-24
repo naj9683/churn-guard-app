@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       data: { riskScore: result.churnProbability, riskReason: result.summary },
     });
 
-    if (result.churnProbability >= 60 && previousScore < 60) {
+    if (result.churnProbability >= 50 && previousScore < 50) {
       await enrollInSequence(user.id, customer.id, 'risk_retention', {
         riskScore: result.churnProbability,
         riskReason: result.summary,
