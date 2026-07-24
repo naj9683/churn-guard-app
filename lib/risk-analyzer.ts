@@ -14,7 +14,6 @@ export interface CustomerRiskInput {
   email: string;
   mrr: number;
   plan: string | null;
-  healthScore: number | null;
   currentRiskScore: number;
   lastLoginAt: Date | null;
   loginCountThisMonth: number;
@@ -27,26 +26,32 @@ export async function analyzeCustomerRisk(
   input: CustomerRiskInput
 ): Promise<RiskAnalysisResult> {
   // ── Step 1: compute the authoritative score deterministically ──────────────
-  const { score: baselineScore, daysSinceLogin } = computeRiskScore({
+  const {
+    score: baselineScore,
+    daysSinceLogin,
+    failedPayments30d,
+    hasEngagementData,
+  } = computeRiskScore({
     lastLoginAt: input.lastLoginAt,
-    healthScore: input.healthScore,
     loginCountThisMonth: input.loginCountThisMonth,
+    recentEvents: input.recentEvents,
   });
 
   // ── Step 2: ask AI for qualitative analysis only (no number) ───────────────
   const dataBlock = JSON.stringify({
     mrr_usd_per_month: input.mrr,
     plan: input.plan ?? 'unknown',
-    health_score: input.healthScore ?? 100,
-    days_since_last_login: daysSinceLogin ?? 'never logged in',
-    logins_this_month: input.loginCountThisMonth,
+    days_since_last_login: hasEngagementData ? (daysSinceLogin ?? 'never logged in') : 'no widget data',
+    logins_this_month: hasEngagementData ? input.loginCountThisMonth : 'no widget data',
+    failed_payments_last_30_days: failedPayments30d,
     features_used: input.featuresUsed.length ? input.featuresUsed : ['none recorded'],
     recent_events: input.recentEvents.slice(0, 10).map(e => e.event),
     active_interventions: input.activeInterventions,
+    engagement_data_missing: !hasEngagementData,
   });
 
   const prompt = `You are a customer churn analyst for a B2B SaaS company.
-The rule-based risk score for this customer is ${baselineScore}/100 (based on login recency, health score, and activity).
+The rule-based risk score for this customer is ${baselineScore}/100 (based on login recency, login frequency, and billing failures in the last 30 days).
 
 Analyze the following customer data and explain the risk. Return ONLY a valid JSON object — no markdown, no explanation.
 

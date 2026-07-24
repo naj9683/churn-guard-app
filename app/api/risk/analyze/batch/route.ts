@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
       email: customer.email,
       mrr: customer.mrr,
       plan: customer.plan,
-      healthScore: customer.healthScore,
       currentRiskScore: customer.riskScore,
       lastLoginAt: customer.lastLoginAt,
       loginCountThisMonth: customer.loginCountThisMonth,
@@ -74,7 +73,7 @@ export async function POST(req: NextRequest) {
       data: { riskScore: result.churnProbability, riskReason: result.summary },
     });
 
-    if (result.churnProbability >= 80 && previousScore < 80) {
+    if (result.churnProbability >= 60 && previousScore < 60) {
       await enrollInSequence(user.id, customer.id, 'risk_retention', {
         riskScore: result.churnProbability,
         riskReason: result.summary,

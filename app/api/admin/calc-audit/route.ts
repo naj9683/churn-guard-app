@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
         arr: true,
         plan: true,
         riskScore: true,
-        healthScore: true,
         lastLoginAt: true,
         loginCountThisMonth: true,
         featuresUsed: true,
@@ -43,6 +42,11 @@ export async function GET(req: NextRequest) {
         csmStatus: true,
         createdAt: true,
         updatedAt: true,
+        events: {
+          select: { event: true, timestamp: true },
+          orderBy: { timestamp: 'desc' },
+          take: 30,
+        },
       },
     });
 

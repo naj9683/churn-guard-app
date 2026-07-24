@@ -6,13 +6,15 @@ import { computeRiskScore } from '@/lib/risk-formula';
 
 // ─── Audit wrapper ────────────────────────────────────────────────────────────
 // computeRiskScore is the single source of truth — same function used when
-// storing the score. A mismatch here means the record pre-dates this fix.
+// storing the score. A mismatch here means the record pre-dates this formula version.
 
 interface CalcSteps {
   daysSinceLogin: number | null;
-  loginPts: number;
-  healthPts: number;
+  billingPts: number;
+  recencyPts: number;
   activityPts: number;
+  hasEngagementData: boolean;
+  failedPayments30d: number;
   calculatedScore: number;
   storedScore: number;
   storedRevenueAtRisk: number;
@@ -21,10 +23,14 @@ interface CalcSteps {
 }
 
 function runFormula(c: any): CalcSteps {
+  const events = Array.isArray(c.events)
+    ? c.events.map((e: any) => ({ event: e.event, timestamp: Number(e.timestamp) }))
+    : [];
+
   const result = computeRiskScore({
     lastLoginAt: c.lastLoginAt ? new Date(c.lastLoginAt) : null,
-    healthScore: c.healthScore,
     loginCountThisMonth: c.loginCountThisMonth ?? 0,
+    recentEvents: events,
   });
 
   const storedScore = c.riskScore ?? 0;
@@ -34,9 +40,11 @@ function runFormula(c: any): CalcSteps {
 
   return {
     daysSinceLogin: result.daysSinceLogin,
-    loginPts: result.loginPts,
-    healthPts: result.healthPts,
+    billingPts: result.billingPts,
+    recencyPts: result.recencyPts,
     activityPts: result.activityPts,
+    hasEngagementData: result.hasEngagementData,
+    failedPayments30d: result.failedPayments30d,
     calculatedScore: result.score,
     storedScore,
     storedRevenueAtRisk,
@@ -73,7 +81,6 @@ export default function CalcAuditPage() {
   const [showCalc, setShowCalc] = useState(false);
   const [error, setError] = useState('');
 
-  // Load user list
   useEffect(() => {
     fetch('/api/admin/calc-audit')
       .then(r => r.json())
@@ -86,7 +93,6 @@ export default function CalcAuditPage() {
       .finally(() => setLoadingUsers(false));
   }, []);
 
-  // Load customers when user changes
   useEffect(() => {
     if (!selectedUserId) { setCustomers([]); setSelectedCustomerId(''); setShowCalc(false); return; }
     setLoadingCustomers(true);
@@ -176,7 +182,7 @@ export default function CalcAuditPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td style={tdS}>Churn Score (AI)</td>
+                    <td style={tdS}>Churn Score</td>
                     <td style={{ ...tdS, textAlign: 'right' }}><RiskBadge score={steps.storedScore} /></td>
                   </tr>
                   <tr>
@@ -223,6 +229,14 @@ export default function CalcAuditPage() {
                     <td style={{ ...tdS, textAlign: 'right' }}>{customer.plan || '—'}</td>
                   </tr>
                   <tr>
+                    <td style={tdS}>Widget Data</td>
+                    <td style={{ ...tdS, textAlign: 'right' }}>
+                      {steps.hasEngagementData
+                        ? <span style={{ color: '#16a34a', fontWeight: '600' }}>Present</span>
+                        : <span style={{ color: '#ef4444', fontWeight: '600' }}>Missing — install widget</span>}
+                    </td>
+                  </tr>
+                  <tr>
                     <td style={tdS}>Last Login</td>
                     <td style={{ ...tdS, textAlign: 'right' }}>
                       {customer.lastLoginAt ? (
@@ -232,29 +246,23 @@ export default function CalcAuditPage() {
                             ({steps.daysSinceLogin}d ago)
                           </span>
                         </>
-                      ) : <span style={{ color: '#ef4444' }}>Never</span>}
+                      ) : <span style={{ color: '#9ca3af' }}>No data</span>}
                     </td>
                   </tr>
                   <tr>
                     <td style={tdS}>Logins This Month</td>
                     <td style={{ ...tdS, textAlign: 'right' }}>
-                      <span style={{ color: (customer.loginCountThisMonth ?? 0) === 0 ? '#ef4444' : '#374151' }}>
-                        {customer.loginCountThisMonth ?? 0}
-                      </span>
+                      {steps.hasEngagementData
+                        ? <span style={{ color: (customer.loginCountThisMonth ?? 0) === 0 ? '#ef4444' : '#374151' }}>{customer.loginCountThisMonth ?? 0}</span>
+                        : <span style={{ color: '#9ca3af' }}>No data</span>}
                     </td>
                   </tr>
                   <tr>
-                    <td style={tdS}>Health Score</td>
+                    <td style={tdS}>Failed Payments (30d)</td>
                     <td style={{ ...tdS, textAlign: 'right' }}>
-                      <span style={{ color: (customer.healthScore ?? 100) < 50 ? '#ef4444' : (customer.healthScore ?? 100) < 75 ? '#f97316' : '#16a34a' }}>
-                        {customer.healthScore ?? 100}
+                      <span style={{ color: steps.failedPayments30d > 0 ? '#ef4444' : '#374151', fontWeight: steps.failedPayments30d > 0 ? '700' : '400' }}>
+                        {steps.failedPayments30d}
                       </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={tdS}>Days Since Activity</td>
-                    <td style={{ ...tdS, textAlign: 'right' }}>
-                      {steps.daysSinceLogin !== null ? `${steps.daysSinceLogin} days` : 'N/A'}
                     </td>
                   </tr>
                   <tr>
@@ -293,37 +301,53 @@ export default function CalcAuditPage() {
               <>
                 {/* Formula steps */}
                 <div style={{ background: '#0f172a', borderRadius: '10px', padding: '20px 24px', fontFamily: 'ui-monospace,SFMono-Regular,monospace', fontSize: '13px', lineHeight: '2', marginBottom: '20px', color: '#e2e8f0' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: '4px' }}>{'// Step 1 — Login Recency  (max 45 pts)'}</div>
+
+                  <div style={{ color: '#94a3b8', marginBottom: '4px' }}>{'// Step 1 — Billing Failures  (max 40 pts)'}</div>
                   <div>
-                    days_since_login = <span style={{ color: '#fbbf24' }}>{steps.daysSinceLogin !== null ? steps.daysSinceLogin : '"never"'}</span>
+                    failed_payments_30d = <span style={{ color: '#fbbf24' }}>{steps.failedPayments30d}</span>
                   </div>
                   <div>
-                    capped_days = min(<span style={{ color: '#fbbf24' }}>{steps.daysSinceLogin !== null ? steps.daysSinceLogin : 999}</span>, 30) = <span style={{ color: '#34d399' }}>{Math.min(steps.daysSinceLogin ?? 999, 30)}</span>
-                  </div>
-                  <div>
-                    login_pts = {Math.min(steps.daysSinceLogin ?? 999, 30)} / 30 × 45 = <span style={{ color: '#818cf8' }}>{steps.loginPts} pts</span>
+                    billing_pts = min({steps.failedPayments30d} × 20, 40) = <span style={{ color: '#818cf8' }}>{steps.billingPts} pts</span>
                   </div>
 
-                  <div style={{ color: '#94a3b8', marginTop: '12px', marginBottom: '4px' }}>{'// Step 2 — Health Score  (max 30 pts)'}</div>
+                  <div style={{ color: '#94a3b8', marginTop: '12px', marginBottom: '4px' }}>{'// Step 2 — Login Recency  (max 35 pts, only if widget data present)'}</div>
                   <div>
-                    health_score = <span style={{ color: '#fbbf24' }}>{customer.healthScore ?? 100}</span>
+                    engagement_data = <span style={{ color: steps.hasEngagementData ? '#34d399' : '#f87171' }}>{steps.hasEngagementData ? 'yes' : 'no — widget not installed'}</span>
                   </div>
-                  <div>
-                    health_pts = (100 - {customer.healthScore ?? 100}) / 100 × 30 = <span style={{ color: '#818cf8' }}>{steps.healthPts} pts</span>
-                  </div>
+                  {steps.hasEngagementData ? (
+                    <>
+                      <div>
+                        days_since_login = <span style={{ color: '#fbbf24' }}>{steps.daysSinceLogin}</span>
+                      </div>
+                      <div>
+                        capped_days = min(<span style={{ color: '#fbbf24' }}>{steps.daysSinceLogin}</span>, 30) = <span style={{ color: '#34d399' }}>{Math.min(steps.daysSinceLogin!, 30)}</span>
+                      </div>
+                      <div>
+                        recency_pts = {Math.min(steps.daysSinceLogin!, 30)} / 30 × 35 = <span style={{ color: '#818cf8' }}>{steps.recencyPts} pts</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: '#64748b' }}>recency_pts = 0 pts  {'// absent data ≠ risk'}</div>
+                  )}
 
-                  <div style={{ color: '#94a3b8', marginTop: '12px', marginBottom: '4px' }}>{'// Step 3 — Activity Gap  (max 25 pts)'}</div>
-                  <div>
-                    logins_this_month = <span style={{ color: '#fbbf24' }}>{customer.loginCountThisMonth ?? 0}</span>
-                  </div>
-                  <div>
-                    activity_pts = <span style={{ color: '#818cf8' }}>{steps.activityPts} pts</span>
-                    <span style={{ color: '#94a3b8' }}> ({customer.loginCountThisMonth === 0 ? '0 logins → 25' : (customer.loginCountThisMonth ?? 0) < 3 ? '<3 logins → 12' : '≥3 logins → 0'})</span>
-                  </div>
+                  <div style={{ color: '#94a3b8', marginTop: '12px', marginBottom: '4px' }}>{'// Step 3 — Login Frequency  (max 25 pts, only if widget data present)'}</div>
+                  {steps.hasEngagementData ? (
+                    <>
+                      <div>
+                        logins_this_month = <span style={{ color: '#fbbf24' }}>{customer.loginCountThisMonth ?? 0}</span>
+                      </div>
+                      <div>
+                        activity_pts = <span style={{ color: '#818cf8' }}>{steps.activityPts} pts</span>
+                        <span style={{ color: '#94a3b8' }}> ({(customer.loginCountThisMonth ?? 0) === 0 ? '0 logins → 25' : (customer.loginCountThisMonth ?? 0) < 3 ? '<3 logins → 12' : '≥3 logins → 0'})</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: '#64748b' }}>activity_pts = 0 pts  {'// absent data ≠ risk'}</div>
+                  )}
 
                   <div style={{ borderTop: '1px solid #1e293b', marginTop: '16px', paddingTop: '16px', color: '#94a3b8', marginBottom: '4px' }}>{'// Result'}</div>
                   <div>
-                    calculated_score = {steps.loginPts} + {steps.healthPts} + {steps.activityPts} = <span style={{ color: '#34d399', fontWeight: '700' }}>{steps.calculatedScore}</span>
+                    calculated_score = {steps.billingPts} + {steps.recencyPts} + {steps.activityPts} = <span style={{ color: '#34d399', fontWeight: '700' }}>{steps.calculatedScore}</span>
                   </div>
                   <div style={{ marginTop: '8px' }}>
                     revenue_at_risk = ${(customer.mrr ?? 0).toLocaleString()} × ({steps.calculatedScore} / 100) = <span style={{ color: '#f87171', fontWeight: '700' }}>${steps.calculatedRevenueAtRisk.toLocaleString()}</span>
@@ -335,7 +359,7 @@ export default function CalcAuditPage() {
                   <thead>
                     <tr>
                       <th style={thS}>Metric</th>
-                      <th style={{ ...thS, textAlign: 'center' }}>Stored (AI)</th>
+                      <th style={{ ...thS, textAlign: 'center' }}>Stored</th>
                       <th style={{ ...thS, textAlign: 'center' }}>Calculated (Formula)</th>
                       <th style={{ ...thS, textAlign: 'center' }}>Delta</th>
                       <th style={{ ...thS, textAlign: 'center' }}>Status</th>
@@ -379,7 +403,7 @@ export default function CalcAuditPage() {
                     <div>
                       <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '14px', marginBottom: '2px' }}>CALCULATION MISMATCH — Stale Record</div>
                       <div style={{ fontSize: '13px', color: '#7f1d1d' }}>
-                        Stored score ({steps.storedScore}) was written by the old AI system before the formula became the source of truth.
+                        Stored score ({steps.storedScore}) was written before the current formula was applied.
                         Re-run the AI analysis for this customer to sync the stored score to the formula value ({steps.calculatedScore}).
                       </div>
                     </div>
@@ -390,7 +414,7 @@ export default function CalcAuditPage() {
                   <div style={{ padding: '14px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '18px' }}>✅</span>
                     <div style={{ fontSize: '13px', color: '#14532d' }}>
-                      <strong>Scores align.</strong> The AI score and rule-based formula are within 15 points — no anomaly detected.
+                      <strong>Scores align.</strong> Stored score and formula are within 15 points — no anomaly detected.
                     </div>
                   </div>
                 )}

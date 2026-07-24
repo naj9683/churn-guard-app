@@ -1,16 +1,21 @@
 /**
  * scripts/recalc-scores.mjs
  *
- * Recalculates riskScore for every customer using the live formula.
- * Runs directly against the database — no HTTP auth, no browser needed.
+ * Rescores every customer using the current formula:
+ *   - billing_pts  (0–40): payment_failed events in last 30 days × 20, capped at 40
+ *   - recency_pts  (0–35): login recency (only if widget data present)
+ *   - activity_pts (0–25): login frequency (only if widget data present)
+ *
+ * Customers with no widget data (lastLoginAt = null) score on billing alone.
  *
  * Usage:
  *   node scripts/recalc-scores.mjs              # uses DATABASE_URL from .env
  *   node scripts/recalc-scores.mjs --dry-run    # prints changes without writing
- *   node scripts/recalc-scores.mjs --email foo@bar.com  # single customer
+ *   node scripts/recalc-scores.mjs --email foo@bar.com  # single customer by email
  *
- * Prisma automatically loads .env. If your DATABASE_URL is only in .env.local,
- * pass it inline: DATABASE_URL="..." node scripts/recalc-scores.mjs
+ * npm shortcuts:
+ *   npm run admin:recalc
+ *   npm run admin:recalc-dry
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -25,25 +30,36 @@ const emailFilter = (() => {
 const prisma = new PrismaClient();
 
 // Mirror of lib/risk-formula.ts — keep in sync if formula changes
-function computeRiskScore({ lastLoginAt, healthScore, loginCountThisMonth }) {
+function computeRiskScore({ lastLoginAt, loginCountThisMonth, recentEvents }) {
+  const now = Date.now();
   const msPerDay = 1000 * 60 * 60 * 24;
+  const ms30Days = 30 * msPerDay;
 
-  const daysSinceLogin = lastLoginAt
-    ? Math.floor((Date.now() - new Date(lastLoginAt).getTime()) / msPerDay)
+  // Billing: payment_failed events in last 30 days (max 40 pts)
+  const failedPayments30d = recentEvents.filter(
+    e => e.event === 'payment_failed' && (now - Number(e.timestamp)) <= ms30Days
+  ).length;
+  const billingPts = Math.min(failedPayments30d * 20, 40);
+
+  // Engagement: only scored when widget data is present
+  const hasEngagementData = lastLoginAt !== null;
+
+  const daysSinceLogin = hasEngagementData
+    ? Math.floor((now - new Date(lastLoginAt).getTime()) / msPerDay)
     : null;
 
-  const loginDays = daysSinceLogin ?? 999;
-  const cappedDays = Math.min(loginDays, 30);
-  const loginPts = Math.round((cappedDays / 30) * 45);
-
-  const health = healthScore ?? 100;
-  const healthPts = Math.round(((100 - health) / 100) * 30);
+  const recencyPts = hasEngagementData
+    ? Math.round((Math.min(daysSinceLogin, 30) / 30) * 35)
+    : 0;
 
   const logins = loginCountThisMonth ?? 0;
-  const activityPts = logins === 0 ? 25 : logins < 3 ? 12 : 0;
+  const activityPts = hasEngagementData
+    ? (logins === 0 ? 25 : logins < 3 ? 12 : 0)
+    : 0;
 
-  const score = Math.min(100, Math.max(0, loginPts + healthPts + activityPts));
-  return { score, daysSinceLogin, loginPts, healthPts, activityPts };
+  const score = Math.min(100, Math.max(0, billingPts + recencyPts + activityPts));
+
+  return { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d };
 }
 
 async function main() {
@@ -57,9 +73,13 @@ async function main() {
       id: true,
       email: true,
       riskScore: true,
-      healthScore: true,
       lastLoginAt: true,
       loginCountThisMonth: true,
+      events: {
+        select: { event: true, timestamp: true },
+        orderBy: { timestamp: 'desc' },
+        take: 30,
+      },
     },
     orderBy: { email: 'asc' },
   });
@@ -70,14 +90,19 @@ async function main() {
   let unchanged = 0;
 
   for (const c of customers) {
-    const { score, daysSinceLogin, loginPts, healthPts, activityPts } = computeRiskScore({
+    const { score, daysSinceLogin, billingPts, recencyPts, activityPts, hasEngagementData, failedPayments30d } = computeRiskScore({
       lastLoginAt: c.lastLoginAt,
-      healthScore: c.healthScore,
       loginCountThisMonth: c.loginCountThisMonth,
+      recentEvents: c.events,
     });
 
     const arrow = score !== c.riskScore ? `${c.riskScore} → ${score}` : `${score} (no change)`;
-    const detail = `  login=${loginPts} health=${healthPts} activity=${activityPts}  lastLogin=${daysSinceLogin === null ? 'never' : daysSinceLogin + 'd ago'}`;
+    const detail = [
+      `billing=${billingPts}(${failedPayments30d} failures)`,
+      hasEngagementData
+        ? `recency=${recencyPts}(${daysSinceLogin}d ago) activity=${activityPts}`
+        : `recency=0 activity=0 [no widget data]`,
+    ].join(' ');
 
     if (score !== c.riskScore) {
       console.log(`  ✓ ${c.email.padEnd(40)} ${arrow}`);

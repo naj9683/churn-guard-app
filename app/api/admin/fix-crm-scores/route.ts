@@ -37,8 +37,8 @@ export async function POST() {
     // Recalculate with healthScore treated as null (unknown = no extra risk)
     const { score } = computeRiskScore({
       lastLoginAt: customer.lastLoginAt,
-      healthScore: null,
       loginCountThisMonth: customer.loginCountThisMonth,
+      recentEvents: [],
     });
 
     await prisma.customer.update({

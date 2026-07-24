@@ -4,39 +4,62 @@
 
 export interface FormulaInput {
   lastLoginAt: Date | null;
-  healthScore: number | null;
   loginCountThisMonth: number;
+  recentEvents: Array<{ event: string; timestamp: number }>;
 }
 
 export interface FormulaResult {
-  daysSinceLogin: number | null; // null = never logged in
-  loginPts: number;              // 0–45
-  healthPts: number;             // 0–30
-  activityPts: number;           // 0–25
+  daysSinceLogin: number | null; // null = no widget data (lastLoginAt never set)
+  billingPts: number;            // 0–40, from payment_failed events in last 30 days
+  recencyPts: number;            // 0–35, login recency (0 when no engagement data)
+  activityPts: number;           // 0–25, login frequency (0 when no engagement data)
+  hasEngagementData: boolean;    // false when lastLoginAt is null — absent data ≠ risk
+  failedPayments30d: number;     // raw count driving billingPts
   score: number;                 // 0–100, clamped
 }
 
 export function computeRiskScore(input: FormulaInput): FormulaResult {
+  const now = Date.now();
   const msPerDay = 1000 * 60 * 60 * 24;
+  const ms30Days = 30 * msPerDay;
 
-  const daysSinceLogin: number | null = input.lastLoginAt
-    ? Math.floor((Date.now() - new Date(input.lastLoginAt).getTime()) / msPerDay)
+  // ── Billing: payment_failed events in last 30 days (max 40 pts) ────────────
+  // Each failure adds 20 pts; capped at 40. payment_failed is written
+  // automatically by the Stripe webhook — no manual tracking required.
+  const failedPayments30d = input.recentEvents.filter(
+    e => e.event === 'payment_failed' && (now - e.timestamp) <= ms30Days
+  ).length;
+  const billingPts = Math.min(failedPayments30d * 20, 40);
+
+  // ── Engagement signals — only scored when the widget has fired at least once
+  // lastLoginAt === null means the widget is not installed or has never fired.
+  // Absent engagement data is not evidence of risk; score 0, flag the customer.
+  const hasEngagementData = input.lastLoginAt !== null;
+
+  const daysSinceLogin: number | null = hasEngagementData
+    ? Math.floor((now - new Date(input.lastLoginAt!).getTime()) / msPerDay)
     : null;
 
-  // 45 pts max — login recency, capped at 30 days (beyond 30 = full 45 pts)
-  const loginDays = daysSinceLogin ?? 999;
-  const cappedDays = Math.min(loginDays, 30);
-  const loginPts = Math.round((cappedDays / 30) * 45);
+  // Login recency: 0–35 pts, capped at 30 days (beyond 30 = full 35 pts)
+  const recencyPts = hasEngagementData
+    ? Math.round((Math.min(daysSinceLogin!, 30) / 30) * 35)
+    : 0;
 
-  // 30 pts max — inverted health score
-  const health = input.healthScore ?? 100;
-  const healthPts = Math.round(((100 - health) / 100) * 30);
-
-  // 25 pts max — login frequency this month
+  // Login frequency: 0–25 pts
   const logins = input.loginCountThisMonth ?? 0;
-  const activityPts = logins === 0 ? 25 : logins < 3 ? 12 : 0;
+  const activityPts = hasEngagementData
+    ? (logins === 0 ? 25 : logins < 3 ? 12 : 0)
+    : 0;
 
-  const score = Math.min(100, Math.max(0, loginPts + healthPts + activityPts));
+  const score = Math.min(100, Math.max(0, billingPts + recencyPts + activityPts));
 
-  return { daysSinceLogin, loginPts, healthPts, activityPts, score };
+  return {
+    daysSinceLogin,
+    billingPts,
+    recencyPts,
+    activityPts,
+    hasEngagementData,
+    failedPayments30d,
+    score,
+  };
 }
