@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getTrialInfo, paywallCookieValue, TRIAL_DAYS } from "@/lib/trial";
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
-const PAYWALL_COOKIE = { path: '/', httpOnly: true, maxAge: 3600, sameSite: 'lax' as const };
+const PAYWALL_COOKIE = { path: '/', httpOnly: true, maxAge: 60, sameSite: 'lax' as const };
 
 export async function GET() {
   try {

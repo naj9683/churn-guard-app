@@ -67,6 +67,7 @@ model Customer {
   lastFeatureUsedAt   DateTime?
   csmStatus           String?
   phone               String?
+  stripeCustomerId    String?
   activityLogs        ActivityLog[]
   user                User                  @relation(fields: [userId], references: [id])
   events              Event[]
@@ -74,6 +75,7 @@ model Customer {
   sequenceEnrollments SequenceEnrollment[]
 
   @@unique([userId, externalId])
+  @@index([stripeCustomerId])
 }
 
 model Event {
@@ -101,7 +103,7 @@ model Playbook {
 
 model Subscription {
   id               String    @id @default(cuid())
-  userId           String
+  userId           String    @unique
   status           String
   priceId          String
   currentPeriodEnd DateTime?

@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     // constructEvent throws on any mismatch — we catch per attempt and keep trying.
     // event remains null if nothing verifies; we reject below.
     let event: Stripe.Event | null = null;
+    let verifiedUserId: string | null = null;
 
     try {
       event = stripe.webhooks.constructEvent(payload, signature, platformWebhookSecret);
@@ -31,11 +32,12 @@ export async function POST(req: Request) {
     if (!event) {
       const integrations = await prisma.crmIntegration.findMany({
         where: { type: 'stripe', webhookSecret: { not: null } },
-        select: { webhookSecret: true },
+        select: { userId: true, webhookSecret: true },
       });
       for (const row of integrations) {
         try {
           event = stripe.webhooks.constructEvent(payload, signature, row.webhookSecret!);
+          verifiedUserId = row.userId;
           break; // verified — stop trying
         } catch {
           // Wrong secret for this account — keep trying
@@ -54,9 +56,21 @@ export async function POST(req: Request) {
     // Handle successful payment
     if (event.type === 'invoice.payment_succeeded') {
       const invoice = event.data.object as Stripe.Invoice;
-      const customerId = invoice.customer as string;
-      console.log('Payment succeeded for customer:', customerId);
-      await markInterventionAsSaved(customerId);
+      const stripeCustomerId = invoice.customer as string;
+      console.log('Payment succeeded for customer:', stripeCustomerId);
+
+      // Resolve the ChurnGuard userId to scope the intervention lookup.
+      // Per-account event: verifiedUserId is the integration owner.
+      // Platform event: look up User by their Stripe customer ID.
+      let scopedUserId: string | null = verifiedUserId;
+      if (!scopedUserId) {
+        const payer = await prisma.user.findFirst({
+          where: { stripeCustomerId },
+          select: { id: true },
+        });
+        scopedUserId = payer?.id ?? null;
+      }
+      await markInterventionAsSaved(scopedUserId);
     }
 
     // Handle checkout completion — THIS is where we provision the subscription in our DB.
@@ -68,7 +82,16 @@ export async function POST(req: Request) {
 
       console.log('Checkout completed for customer:', stripeCustomerId, 'clerkUserId:', clerkUserId);
 
-      await markInterventionAsSaved(stripeCustomerId);
+      // Scope intervention to the subscribing user
+      let checkoutUserId: string | null = null;
+      if (clerkUserId) {
+        const checkoutUser = await prisma.user.findFirst({
+          where: { clerkId: clerkUserId },
+          select: { id: true },
+        });
+        checkoutUserId = checkoutUser?.id ?? null;
+      }
+      await markInterventionAsSaved(checkoutUserId);
 
       if (clerkUserId && session.mode === 'subscription') {
         await provisionSubscription(clerkUserId, stripeCustomerId, session.subscription as string | null);
@@ -80,16 +103,14 @@ export async function POST(req: Request) {
       const sub = event.data.object as Stripe.Subscription;
       const prev = event.data.previous_attributes as Record<string, unknown> | undefined;
       await syncSubscriptionStatus(sub);
-      if (prev) await maybeRecordDowngrade(sub, prev);
+      if (prev) await maybeRecordDowngrade(sub, prev, verifiedUserId);
     }
 
     // Handle payment failure — record event + fire automation rules
     if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object as Stripe.Invoice;
       const stripeCustomerId = invoice.customer as string;
-      const customer = await prisma.customer.findFirst({
-        where: { externalId: stripeCustomerId },
-      });
+      const customer = await resolveCustomerByStripeId(stripeCustomerId, verifiedUserId);
       if (customer) {
         // Record the failure as an Event so the automation engine can detect it
         await prisma.event.create({
@@ -124,7 +145,7 @@ export async function POST(req: Request) {
       await cancelPlatformSubscription(stripeCustomerId, sub);
 
       // Also mark any ChurnGuard-tracked customers as cancelled
-      await cancelCustomer(stripeCustomerId);
+      await cancelCustomer(stripeCustomerId, verifiedUserId);
     }
 
     return NextResponse.json({ received: true });
@@ -159,30 +180,26 @@ async function provisionSubscription(
       data: { stripeCustomerId },
     });
 
-    // Resolve the price ID from the Stripe subscription object
+    // Resolve the price ID from the Stripe subscription object.
+    // Throw on failure — empty priceId must not be stored. Stripe will retry the webhook.
     let priceId = '';
     if (stripeSubscriptionId) {
-      try {
-        const stripeSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-        priceId = stripeSub.items.data[0]?.price?.id ?? '';
-      } catch (e: any) {
-        console.error('provisionSubscription: could not retrieve Stripe subscription:', e.message);
-      }
+      const stripeSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      priceId = stripeSub.items.data[0]?.price?.id ?? '';
+    }
+    if (!priceId) {
+      throw new Error(`provisionSubscription: could not resolve priceId for subscription ${stripeSubscriptionId}`);
     }
 
-    // Avoid duplicates — only create if no active subscription exists for this user
-    const existing = await prisma.subscription.findFirst({
-      where: { userId: user.id, status: 'active' },
+    // Upsert — unique constraint on userId prevents duplicates from concurrent webhooks.
+    // update sets status+priceId so resubscribes (existing canceled row) activate correctly.
+    // On a double-webhook, the second upsert is idempotent: active→active, same priceId.
+    await prisma.subscription.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, status: 'active', priceId },
+      update: { status: 'active', priceId },
     });
-
-    if (!existing) {
-      await prisma.subscription.create({
-        data: { userId: user.id, status: 'active', priceId },
-      });
-      console.log(`✅ Subscription provisioned for user ${user.id} (${stripeCustomerId})`);
-    } else {
-      console.log(`ℹ️ Subscription already active for user ${user.id} — skipping create`);
-    }
+    console.log(`✅ Subscription provisioned for user ${user.id} (${stripeCustomerId})`);
   } catch (error) {
     console.error('Error provisioning subscription:', error);
   }
@@ -244,16 +261,17 @@ async function cancelPlatformSubscription(stripeCustomerId: string, stripeSub: S
 
 // ── Cancel ChurnGuard-tracked customers ─────────────────────────────────────
 
-async function cancelCustomer(stripeCustomerId: string) {
+async function cancelCustomer(stripeCustomerId: string, verifiedUserId: string | null = null) {
   try {
-    const updated = await prisma.customer.updateMany({
-      where: { externalId: stripeCustomerId },
-      data: { plan: 'cancelled' },
-    });
-    if (updated.count > 0) {
-      console.log(`✅ Marked ${updated.count} customer(s) as cancelled for Stripe ID: ${stripeCustomerId}`);
+    const customer = await resolveCustomerByStripeId(stripeCustomerId, verifiedUserId);
+    if (customer) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { plan: 'cancelled' },
+      });
+      console.log(`✅ Marked customer ${customer.id} as cancelled for Stripe ID: ${stripeCustomerId}`);
     } else {
-      console.warn(`⚠️ No customer found with externalId: ${stripeCustomerId}`);
+      console.warn(`⚠️ No customer found for Stripe ID: ${stripeCustomerId}`);
     }
   } catch (error) {
     console.error('Error cancelling customer:', error);
@@ -262,11 +280,12 @@ async function cancelCustomer(stripeCustomerId: string) {
 
 // ── Mark intervention as saved on payment ───────────────────────────────────
 
-async function markInterventionAsSaved(stripeCustomerId: string) {
+async function markInterventionAsSaved(userId: string | null) {
+  if (!userId) return;
   try {
-    // Find most recent pending intervention and mark as saved
+    // Find the most recent pending intervention scoped to this user
     const interventions = await prisma.interventionOutcome.findMany({
-      where: { status: 'pending' },
+      where: { status: 'pending', userId },
       orderBy: { createdAt: 'desc' },
       take: 1
     });
@@ -299,6 +318,7 @@ async function markInterventionAsSaved(stripeCustomerId: string) {
 async function maybeRecordDowngrade(
   sub: Stripe.Subscription,
   prev: Record<string, unknown>,
+  verifiedUserId: string | null = null,
 ) {
   try {
     const prevItems = (prev.items as any)?.data;
@@ -315,9 +335,7 @@ async function maybeRecordDowngrade(
     if (!isQuantityReduction && !isAmountReduction) return;
 
     const stripeCustomerId = sub.customer as string;
-    const customer = await prisma.customer.findFirst({
-      where: { externalId: stripeCustomerId },
-    });
+    const customer = await resolveCustomerByStripeId(stripeCustomerId, verifiedUserId);
     if (!customer) return;
 
     await prisma.event.create({
@@ -335,5 +353,55 @@ async function maybeRecordDowngrade(
     console.log(`✅ downgrade_detected recorded for customer ${customer.id}`);
   } catch (error) {
     console.error('Error recording downgrade:', error);
+  }
+}
+
+// ── Resolve a Stripe customer ID to a ChurnGuard Customer row ─────────────────
+// Imported customers have CRM externalIds (hubspot_*, salesforce_*), not Stripe IDs.
+// Three-step lookup: direct externalId → stored stripeCustomerId → email fallback via Stripe API.
+// On email match, stores stripeCustomerId for O(1) future lookups.
+
+async function resolveCustomerByStripeId(
+  stripeCustomerId: string,
+  verifiedUserId: string | null,
+) {
+  // Step 1: direct match (customers originally imported from Stripe)
+  const byExternalId = await prisma.customer.findFirst({
+    where: { externalId: stripeCustomerId },
+  });
+  if (byExternalId) return byExternalId;
+
+  // Step 2: cached stripeCustomerId field (populated below on first email match)
+  const byCachedId = await prisma.customer.findFirst({
+    where: { stripeCustomerId },
+  });
+  if (byCachedId) return byCachedId;
+
+  // Step 3: fetch email from user's Stripe account, match by email + userId
+  if (!verifiedUserId) return null;
+
+  const integration = await prisma.crmIntegration.findUnique({
+    where: { userId_type: { userId: verifiedUserId, type: 'stripe' } },
+    select: { accessToken: true },
+  });
+  if (!integration?.accessToken) return null;
+
+  try {
+    const userStripe = new Stripe(integration.accessToken, { apiVersion: '2023-10-16' });
+    const stripeCust = await userStripe.customers.retrieve(stripeCustomerId) as Stripe.Customer;
+    if (stripeCust.deleted || !stripeCust.email) return null;
+
+    const customer = await prisma.customer.findFirst({
+      where: { email: stripeCust.email, userId: verifiedUserId },
+    });
+    if (customer) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { stripeCustomerId },
+      }).catch(() => {});
+    }
+    return customer;
+  } catch {
+    return null;
   }
 }
