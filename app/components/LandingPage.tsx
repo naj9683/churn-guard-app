@@ -242,7 +242,7 @@ const FAQS = [
   },
   {
     q: 'Do I need to send messages manually?',
-    a: 'No. Automated playbooks send every message via email, SMS, and Slack. Retention emails are personalized by Claude AI. You review results.',
+    a: 'No. ChurnGuard automatically emails at-risk customers and recovers failed payments on its own. Slack alerts and SMS (when phone numbers are available) are also supported. Retention emails are personalized using AI. You review results.',
   },
   {
     q: 'Do I need Stripe to use ChurnGuard?',
@@ -265,7 +265,7 @@ const PLANS = [
     name: 'Growth',
     price: '$149',
     band: '$50K – $200K MRR',
-    features: ['Unlimited customers tracked', 'SMS via Twilio', 'Advanced playbooks (10 active)', 'VIP account alerts', 'AI-written retention emails', '90-day data retention'],
+    features: ['Unlimited customers tracked', 'SMS outreach (when phone numbers available)', 'Advanced playbooks (10 active)', 'VIP account alerts', 'AI-written retention emails', '90-day data retention'],
     popular: true,
     href: '/signup?plan=growth',
     cta: 'Get started',
@@ -307,11 +307,11 @@ export default function LandingPage() {
           </div>
 
           <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: TEXT, lineHeight: 1.15, marginBottom: '18px', letterSpacing: '-0.02em' }}>
-            The dashboard that tells you who's about to leave
+            Stop losing customers you didn't know were leaving.
           </h1>
 
           <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
-            Connect Stripe, get a ranked list of at-risk accounts with the dollars attached. Retention runs on its own.
+            ChurnGuard spots the customers drifting toward cancellation and automatically reaches out to keep them — by email, on its own. One line to paste on your site. No developer needed.
           </p>
 
           {/* CTAs */}
@@ -319,7 +319,7 @@ export default function LandingPage() {
             <Link href="/signup" style={btnPrimary}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-              Start free
+              See your churn risk free
             </Link>
             <a href="/audit" className="cg-outline-btn" style={btnOutline}>
               Run your free churn audit →
@@ -329,10 +329,18 @@ export default function LandingPage() {
             </a>
           </div>
           <p style={{ fontSize: '13px', color: FAINT }}>
-            No credit card · set up in 15 minutes · cancel any time
+            Paste one line · works in minutes · no engineering queue required
           </p>
-          <p style={{ fontSize: '13px', color: FAINT, marginTop: '4px' }}>
-            See your at-risk MRR in 2 minutes — no signup required.
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          PROBLEM
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '0 24px 48px' }}>
+        <div style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.7 }}>
+            By the time a customer cancels, they'd already checked out weeks ago. You just couldn't see it happening.
           </p>
         </div>
       </section>
@@ -365,10 +373,10 @@ export default function LandingPage() {
       <section id="features" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            How the scoring works
+            How it works
           </h2>
           <p style={{ fontSize: '16px', color: MUTED, marginBottom: '48px', maxWidth: '500px' }}>
-            Every account gets a score from 0–100, updated every 6 hours. Anything above 75 triggers a retention action automatically.
+            Three things happen after you paste one line.
           </p>
 
           {/* Three steps */}
@@ -376,18 +384,18 @@ export default function LandingPage() {
             {[
               {
                 n: '01',
-                title: 'Detect',
-                body: 'We pull billing, usage, and engagement signals from Stripe, HubSpot, and your widget. Every signal has a weight; the engine adds them up into a score.',
+                title: 'Paste one line',
+                body: 'Drop a single line into your site, the same way you\'d add Google Analytics. No developer, no code project, no waiting. That\'s the whole setup.',
               },
               {
                 n: '02',
-                title: 'Reach out',
-                body: 'When a customer crosses the risk threshold, a personalized message goes out automatically — email, SMS, or Slack, whichever channel fits the urgency.',
+                title: 'ChurnGuard watches for drift',
+                body: 'It tracks how your customers actually behave — who\'s logging in, who\'s gone quiet, who\'s slipping away — and scores the risk for each one.',
               },
               {
                 n: '03',
-                title: 'Save at the door',
-                body: 'If they reach your cancellation page, they see a relevant offer — pause, downgrade, or a one-time discount — before the subscription ends.',
+                title: 'It acts before they leave',
+                body: 'When someone\'s drifting, ChurnGuard automatically emails them to pull them back, and recovers failed payments before they become cancellations. On its own.',
               },
             ].map(step => (
               <div key={step.n} style={{ padding: '24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '12px' }}>
@@ -445,10 +453,10 @@ export default function LandingPage() {
       <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            Connected in minutes, not sprints
+            From audit to action — no engineering queue required.
           </h2>
           <p style={{ fontSize: '16px', color: MUTED, marginBottom: '40px', maxWidth: '560px' }}>
-            Most churn tools need you to instrument events in your codebase before they return anything. ChurnGuard starts scoring from data you already have.
+            ChurnGuard is built for operators who'd rather fix churn than file a ticket. Paste one line and it starts working — no APIs to wire up, no sprint to schedule.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '24px' }}>
@@ -512,10 +520,36 @@ export default function LandingPage() {
 
           </div>
 
-          <p style={{ fontSize: '13px', color: FAINT, marginBottom: '4px' }}>
-            Also connects with Twilio, Slack, Postmark, and Segment.
+          <p style={{ fontSize: '13px', color: FAINT }}>
+            Also connects with Slack, Postmark, and Twilio (for SMS when customer phone numbers are available).
           </p>
-          <p style={{ fontSize: '12px', color: FAINT }}>These are integration partners, not customers.</p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          WHAT IT DOES
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '32px', letterSpacing: '-0.01em' }}>
+            What it does
+          </h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {[
+              'Sees which customers are drifting, before they cancel',
+              'Automatically emails at-risk customers to keep them',
+              'Recovers failed payments within the hour',
+              'Texts at-risk customers too, when you have their phone number',
+              'Sends a Slack ping when a customer needs your attention',
+              'Shows you exactly who\'s at risk and why — scoring you can audit, with plain-English summaries',
+              'Works with Stripe and HubSpot out of the box',
+            ].map(item => (
+              <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '16px', color: MUTED, lineHeight: 1.6 }}>
+                <IconCheck color={ACCENT} />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -654,21 +688,40 @@ export default function LandingPage() {
       <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: ACCENT_BG }}>
         <div style={{ maxWidth: '580px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '16px', letterSpacing: '-0.01em' }}>
-            Founding accounts — 25 spots, lifetime pricing
+            Founding accounts — early adopters get lifetime pricing
           </h2>
           <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
-            ChurnGuard launched this year. Rather than pad the page with logos we don't have, the first 25 accounts get lifetime pricing, a direct line to me, and real influence over what gets built.
+            ChurnGuard is new. Rather than pad the page with logos we don't have, the first 25 accounts get lifetime pricing, a direct line to the founder, and real influence over what gets built. No fake scarcity — this offer closes when 25 accounts are in.
           </p>
           <div className="cg-cta-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
             <Link href="/signup" style={btnPrimary}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-              Claim a spot
+              Claim a founding spot
             </Link>
             <a href="/audit" className="cg-outline-btn" style={btnOutline}>
               Run your free churn audit →
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HONEST CLOSE
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '64px 24px', borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: '480px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '12px', letterSpacing: '-0.01em' }}>
+            See your churn risk free
+          </h2>
+          <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '28px' }}>
+            Paste the line, see your own churn risk, and decide for yourself.
+          </p>
+          <Link href="/signup" style={btnPrimary}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+            See your churn risk free
+          </Link>
         </div>
       </section>
 

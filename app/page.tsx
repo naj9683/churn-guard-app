@@ -3,9 +3,9 @@ import LandingPage from '@/app/components/LandingPage';
 import ChatWidget from '@/app/components/ChatWidget';
 
 export const metadata: Metadata = {
-  title: 'ChurnGuard — know who\'s about to cancel before they do',
+  title: 'ChurnGuard — stop losing customers you didn\'t know were leaving',
   description:
-    'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own — email, SMS, and Slack. 15 minutes to first score. From $79/mo.',
+    'Paste one line on your site and ChurnGuard scores every customer for churn risk, then automatically emails at-risk customers to keep them. Failed payments recovered within the hour. From $79/mo.',
   keywords: [
     'churn prevention',
     'SaaS churn',
@@ -18,18 +18,18 @@ export const metadata: Metadata = {
     'churn prevention platform',
   ],
   openGraph: {
-    title: 'ChurnGuard — know who\'s about to cancel before they do',
+    title: 'ChurnGuard — stop losing customers you didn\'t know were leaving',
     description:
-      'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own. 15 minutes to first score. From $79/mo.',
+      'Paste one line on your site and ChurnGuard scores every customer for churn risk, then automatically emails at-risk customers to keep them. Failed payments recovered within the hour. From $79/mo.',
     url: 'https://churnguardapp.com',
     siteName: 'ChurnGuard',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ChurnGuard — know who\'s about to cancel before they do',
+    title: 'ChurnGuard — stop losing customers you didn\'t know were leaving',
     description:
-      'Connect Stripe and get a ranked list of at-risk accounts with the revenue attached. Automated retention runs on its own. From $79/mo.',
+      'Paste one line on your site and ChurnGuard scores every customer for churn risk, then automatically emails at-risk customers to keep them. From $79/mo.',
   },
   robots: {
     index: true,
@@ -50,7 +50,7 @@ const organizationSchema = {
   url: BASE,
   logo: `${BASE}/logo-purple.png`,
   description:
-    'ChurnGuard is a customer retention platform for SaaS businesses. It monitors engagement, payment health, and feature usage to score every customer for churn risk, then automatically fires targeted retention campaigns via email, SMS, and Slack — reducing churn by up to 35%.',
+    'ChurnGuard is a customer retention platform for SaaS businesses. It monitors engagement, payment health, and feature usage to score every customer for churn risk, then automatically fires targeted retention emails when a customer drifts toward cancellation, and recovers failed payments before they become cancellations.',
   foundingDate: '2026',
   contactPoint: {
     '@type': 'ContactPoint',
@@ -65,7 +65,7 @@ const websiteSchema = {
   '@id': `${BASE}/#website`,
   url: BASE,
   name: 'ChurnGuard',
-  description: 'AI-powered churn prevention software for SaaS businesses',
+  description: 'Churn prevention software for SaaS businesses',
   publisher: { '@id': `${BASE}/#organization` },
   potentialAction: {
     '@type': 'SearchAction',
@@ -83,11 +83,11 @@ const softwareSchema = {
   operatingSystem: 'Web',
   url: BASE,
   description:
-    'ChurnGuard monitors engagement, payment health, and feature usage to score every customer for churn risk using deterministic behavioral scoring. It automatically sends retention campaigns via email, SMS (Twilio), and Slack when a customer enters the at-risk zone. Connects to Stripe for billing data, HubSpot for CRM sync, and installs an embeddable widget on your app for engagement tracking. Also automates failed payment recovery (dunning) and provides a real-time Revenue at Risk dashboard.',
+    'ChurnGuard monitors engagement, payment health, and feature usage to score every customer for churn risk using deterministic behavioral scoring. It automatically sends retention emails when a customer enters the at-risk zone, recovers failed payments before they become cancellations, and sends Slack pings when a customer needs attention. Connects to Stripe for billing data, HubSpot for CRM sync, and installs an embeddable widget on your app for engagement tracking.',
   featureList: [
     'Behavioral risk scoring updated every 6 hours',
     'Embeddable widget for engagement tracking (page views, feature usage, login activity)',
-    'Automated retention campaigns via email, SMS, and Slack',
+    'Automated retention emails and failed-payment recovery sequences',
     'Failed payment recovery and dunning sequences',
     'Revenue at Risk dashboard',
     'Stripe integration for billing and subscription data',
@@ -146,7 +146,7 @@ const faqSchema = {
       name: 'Do I need to send messages manually?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'No. Automated playbooks send every message via email, SMS, and Slack. Retention emails are personalized by Claude AI. You review results.',
+        text: 'No. ChurnGuard automatically emails at-risk customers and recovers failed payments on its own. You can also configure Slack alerts and, when customer phone numbers are available, SMS outreach. Retention emails are personalized using AI. You review results.',
       },
     },
     {
