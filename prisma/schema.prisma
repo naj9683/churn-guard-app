@@ -23,6 +23,7 @@ model User {
   postmarkFromEmail  String?
   postmarkFromName   String?
   widgetEnabled      Boolean?         @default(true)
+  widgetInstalled    Boolean          @default(false)
   alertFrequency     String           @default("immediate")
   alertRiskThreshold Int              @default(70)
   company            String?

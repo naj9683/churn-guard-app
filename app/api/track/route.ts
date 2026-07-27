@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
     }
 
+    if (!user.widgetInstalled) {
+      await prisma.user.update({ where: { id: user.id }, data: { widgetInstalled: true } });
+    }
+
     let customer = await prisma.customer.findFirst({
       where: { userId: user.id, externalId: customerId }
     });

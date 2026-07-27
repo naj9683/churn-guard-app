@@ -13,7 +13,7 @@ export async function GET() {
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
     if (email === ADMIN_EMAIL) {
-      return NextResponse.json({ onboardingComplete: true, stripe: true, slack: true, firstCustomer: true, isAdmin: true });
+      return NextResponse.json({ onboardingComplete: true, stripe: true, slack: true, firstCustomer: true, widgetInstalled: true, isAdmin: true });
     }
 
     const user = await prisma.user.findFirst({
@@ -24,7 +24,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ onboardingComplete: false, stripe: false, slack: false, firstCustomer: false });
+      return NextResponse.json({ onboardingComplete: false, stripe: false, slack: false, firstCustomer: false, widgetInstalled: false });
     }
 
     const stripe = !!user.stripeCustomerId;
@@ -34,7 +34,7 @@ export async function GET() {
     // Individual flags (stripe/slack/firstCustomer) drive the checklist only.
     const onboardingComplete = true;
 
-    return NextResponse.json({ onboardingComplete, stripe, slack, firstCustomer });
+    return NextResponse.json({ onboardingComplete, stripe, slack, firstCustomer, widgetInstalled: user.widgetInstalled });
   } catch (error) {
     console.error("Onboarding status error:", error);
     return NextResponse.json({ onboardingComplete: false, stripe: false, slack: false, firstCustomer: false });

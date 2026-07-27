@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [graceDaysLeft, setGraceDaysLeft] = useState<number | null>(null);
   const [demoMode, setDemoMode] = useState(false);
+  const [widgetInstalled, setWidgetInstalled] = useState<boolean | null>(null);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -165,6 +166,7 @@ export default function Dashboard() {
           router.push('/onboarding');
           return;
         }
+        setWidgetInstalled(data.widgetInstalled ?? false);
       }
     } catch (error) {
       console.error('Error checking onboarding:', error);
@@ -279,7 +281,7 @@ export default function Dashboard() {
         if (!c.createdAt) return false;
         const created = new Date(c.createdAt);
         return created <= date;
-      }).length || Math.floor(Math.random() * 20) + 40 + (29 - i);
+      }).length;
       
       days.push({
         date: dateStr,
@@ -289,7 +291,7 @@ export default function Dashboard() {
           if (!c.createdAt) return false;
           const created = new Date(c.createdAt);
           return created.toDateString() === date.toDateString();
-        }).length || Math.floor(Math.random() * 3)
+        }).length
       });
     }
     
@@ -418,6 +420,36 @@ export default function Dashboard() {
             </div>
           );
         })()}
+
+        {widgetInstalled === false && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            marginBottom: '24px',
+            background: 'rgba(99,102,241,0.06)',
+            border: '1px solid rgba(99,102,241,0.2)',
+          }}>
+            <span style={{ fontSize: '14px', color: '#4f46e5', fontWeight: '500' }}>
+              Paste your one line to start seeing your customers — until then, there&apos;s nothing to track yet.
+            </span>
+            <a href="/onboarding/widget" style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#fff',
+              background: '#6366f1',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              marginLeft: '16px',
+            }}>
+              Install widget →
+            </a>
+          </div>
+        )}
 
         {/* Header */}
         <div style={{

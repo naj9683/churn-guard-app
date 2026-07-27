@@ -33,7 +33,7 @@ export async function GET() {
 
   if (!user) {
     // New signup — grant trial access
-    const res = NextResponse.redirect(new URL('/onboarding', BASE_URL));
+    const res = NextResponse.redirect(new URL('/onboarding/widget', BASE_URL));
     res.cookies.set('cg_paywall', 'active', PAYWALL_COOKIE);
     return res;
   }
