@@ -4,7 +4,7 @@
 
 export interface FormulaInput {
   lastLoginAt: Date | null;
-  loginCountThisMonth: number;
+  loginCountThisMonth?: number; // retained for backward compat; not used by scoring
   recentEvents: Array<{ event: string; timestamp: number }>;
 }
 
@@ -13,6 +13,7 @@ export interface FormulaResult {
   billingPts: number;            // 0–40: payment failures + downgrade, capped at 40
   recencyPts: number;            // 0–35, login recency (0 when no engagement data)
   activityPts: number;           // 0–25, login frequency (0 when no engagement data)
+  uniqueDaysLast30d: number;     // distinct calendar days with page_view in last 30d
   hasEngagementData: boolean;    // false when lastLoginAt is null — absent data ≠ risk
   failedPayments30d: number;     // raw count driving billing pts
   hasDowngrade30d: boolean;      // true if downgrade_detected event in last 30 days
@@ -52,10 +53,17 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
     ? Math.round((Math.min(daysSinceLogin!, 30) / 30) * 35)
     : 0;
 
-  // Login frequency: 0–25 pts
-  const logins = input.loginCountThisMonth ?? 0;
+  // Login frequency: 0–25 pts, computed from rolling 30-day page_view events
+  const uniqueDaysLast30d = hasEngagementData
+    ? new Set(
+        input.recentEvents
+          .filter(e => e.event === 'page_view' && (now - e.timestamp) <= ms30Days)
+          .map(e => new Date(e.timestamp).toDateString())
+      ).size
+    : 0;
+
   const activityPts = hasEngagementData
-    ? (logins === 0 ? 25 : logins < 3 ? 12 : 0)
+    ? (uniqueDaysLast30d === 0 ? 25 : uniqueDaysLast30d < 5 ? 12 : 0)
     : 0;
 
   const score = Math.min(100, Math.max(0, billingPts + recencyPts + activityPts));
@@ -65,6 +73,7 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
     billingPts,
     recencyPts,
     activityPts,
+    uniqueDaysLast30d,
     hasEngagementData,
     failedPayments30d,
     hasDowngrade30d,

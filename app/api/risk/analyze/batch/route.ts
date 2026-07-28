@@ -40,12 +40,17 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findFirst({ where: { clerkId: userId } });
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+  const thirtyDaysAgo = BigInt(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const customers = await prisma.customer.findMany({
     where: { userId: user.id },
     orderBy: { updatedAt: 'asc' },
     take: BATCH_SIZE,
     include: {
-      events: { orderBy: { timestamp: 'desc' }, take: 10 },
+      events: {
+        where: { timestamp: { gte: thirtyDaysAgo } },
+        orderBy: { timestamp: 'desc' },
+      },
       interventions: { where: { status: 'pending' } },
     },
   });
@@ -70,7 +75,11 @@ export async function POST(req: NextRequest) {
 
     await prisma.customer.update({
       where: { id: customer.id },
-      data: { riskScore: result.churnProbability, riskReason: result.summary },
+      data: {
+        riskScore: result.churnProbability,
+        riskReason: result.summary,
+        activityDays30d: result.uniqueDaysLast30d,
+      },
     });
 
     if (result.churnProbability >= 50 && previousScore < 50) {

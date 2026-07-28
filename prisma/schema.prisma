@@ -64,6 +64,7 @@ model Customer {
   featuresUsed        Json?
   lastLoginAt         DateTime?
   loginCountThisMonth Int                   @default(0)
+  activityDays30d     Int                   @default(0)
   riskReason          String?
   lastFeatureUsedAt   DateTime?
   csmStatus           String?
@@ -87,6 +88,8 @@ model Event {
   timestamp  BigInt
   createdAt  DateTime @default(now())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, timestamp])
 }
 
 model Playbook {

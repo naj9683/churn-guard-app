@@ -19,10 +19,15 @@ export async function GET(
     const user = await prisma.user.findFirst({ where: { clerkId: userId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+    const thirtyDaysAgo = BigInt(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
     const customer = await prisma.customer.findFirst({
       where: { id: params.customerId, userId: user.id },
       include: {
-        events: { orderBy: { timestamp: 'desc' }, take: 10 },
+        events: {
+          where: { timestamp: { gte: thirtyDaysAgo } },
+          orderBy: { timestamp: 'desc' },
+        },
         interventions: { where: { status: 'pending' } },
       },
     });
@@ -49,6 +54,7 @@ export async function GET(
       data: {
         riskScore: result.churnProbability,
         riskReason: result.summary,
+        activityDays30d: result.uniqueDaysLast30d,
       },
     });
 

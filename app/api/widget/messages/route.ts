@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     const relevant = messages.filter(msg => {
       if (msg.trigger === 'manual') return true;
-      if (msg.trigger === 'high_risk' && customer.riskScore >= 70) return true;
+      if (msg.trigger === 'high_risk' && customer.riskScore >= 50) return true;
       return false;
     });
 

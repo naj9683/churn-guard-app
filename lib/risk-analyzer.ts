@@ -5,6 +5,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface RiskAnalysisResult {
   churnProbability: number; // 0–100, always the deterministic formula score
+  uniqueDaysLast30d: number; // distinct active days in last 30d — stored for tuning
   riskFactors: string[];
   recommendedAction: string;
   summary: string;
@@ -31,6 +32,7 @@ export async function analyzeCustomerRisk(
     daysSinceLogin,
     failedPayments30d,
     hasEngagementData,
+    uniqueDaysLast30d,
   } = computeRiskScore({
     lastLoginAt: input.lastLoginAt,
     loginCountThisMonth: input.loginCountThisMonth,
@@ -42,7 +44,7 @@ export async function analyzeCustomerRisk(
     mrr_usd_per_month: input.mrr,
     plan: input.plan ?? 'unknown',
     days_since_last_login: hasEngagementData ? (daysSinceLogin ?? 'never logged in') : 'no widget data',
-    logins_this_month: hasEngagementData ? input.loginCountThisMonth : 'no widget data',
+    active_days_last_30d: hasEngagementData ? uniqueDaysLast30d : 'no widget data',
     failed_payments_last_30_days: failedPayments30d,
     features_used: input.featuresUsed.length ? input.featuresUsed : ['none recorded'],
     recent_events: input.recentEvents.slice(0, 10).map(e => e.event),
@@ -88,6 +90,7 @@ Return exactly this JSON shape (do NOT include a churnProbability field — the 
 
   return {
     churnProbability: baselineScore, // always the formula — never the AI's guess
+    uniqueDaysLast30d,
     riskFactors: qualitative.riskFactors ?? [],
     recommendedAction: qualitative.recommendedAction ?? 'Review customer',
     summary: qualitative.summary ?? `Risk: Score ${baselineScore}`,

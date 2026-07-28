@@ -66,10 +66,11 @@ export async function POST(req: NextRequest) {
 
     const updatedCustomer = await prisma.customer.update({
       where: { id: customer.id },
-      data: { 
-        riskScore: newRiskScore, 
+      data: {
+        riskScore: newRiskScore,
         updatedAt: new Date(),
-        mrr: metadata?.mrr || customer.mrr
+        mrr: metadata?.mrr || customer.mrr,
+        lastLoginAt: event === 'page_view' ? new Date() : undefined,
       }
     });
 

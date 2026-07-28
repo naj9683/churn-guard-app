@@ -38,12 +38,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const thirtyDaysAgo = BigInt(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
     // Fetch the most-recently-analyzed customers last (prioritise stale records)
     const customers = await prisma.customer.findMany({
       orderBy: { updatedAt: 'asc' },
       take: BATCH_SIZE,
       include: {
-        events: { orderBy: { timestamp: 'desc' }, take: 10 },
+        events: {
+          where: { timestamp: { gte: thirtyDaysAgo } },
+          orderBy: { timestamp: 'desc' },
+        },
         interventions: { where: { status: 'pending' } },
       },
     });
@@ -72,6 +77,7 @@ export async function GET(req: NextRequest) {
         data: {
           riskScore: result.churnProbability,
           riskReason: result.summary,
+          activityDays30d: result.uniqueDaysLast30d,
         },
       });
 
