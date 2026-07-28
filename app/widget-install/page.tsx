@@ -25,23 +25,17 @@ export default function WidgetInstallPage() {
   const htmlSnippet =
 `<script src="https://churnguardapp.com/widget.js"></script>
 <script>
-  ChurnGuard.init({
-    apiKey: '${apiKey}',
-    customerId: 'USER_ID_FROM_YOUR_APP'
-  });
+  ChurnGuard.init({ apiKey: '${apiKey}' });
 </script>`;
 
   const reactSnippet =
 `import { useEffect } from 'react';
 
 useEffect(() => {
-  if (window.ChurnGuard && currentUser?.id) {
-    window.ChurnGuard.init({
-      apiKey: '${apiKey}',
-      customerId: currentUser.id
-    });
+  if (window.ChurnGuard) {
+    window.ChurnGuard.init({ apiKey: '${apiKey}' });
   }
-}, [currentUser]);`;
+}, []);`;
 
   const npmSnippet =
 `npm install @churnguard/widget
@@ -49,10 +43,7 @@ useEffect(() => {
 // In your app entry point
 import { ChurnGuard } from '@churnguard/widget';
 
-ChurnGuard.init({
-  apiKey: '${apiKey}',
-  customerId: userId
-});`;
+ChurnGuard.init({ apiKey: '${apiKey}' });`;
 
   const codeByTab: Record<string, string> = { html: htmlSnippet, react: reactSnippet, npm: npmSnippet };
 
@@ -88,7 +79,7 @@ ChurnGuard.init({
   return (
     <Layout
       title="Install Widget"
-      subtitle="Add the ChurnGuard tracking script to your website in 30 seconds"
+      subtitle="Paste one line to start. Add your user ID when you want named customers and email outreach."
     >
       {/* Step 1 — Copy the code */}
       <div style={{
@@ -103,14 +94,14 @@ ChurnGuard.init({
           <StepBadge n={1} />
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-              Copy the snippet
+              Paste this snippet — works immediately
             </h3>
             <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
-              Paste before the{' '}
+              Paste before{' '}
               <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '4px', fontSize: '13px' }}>
-                {'</head>'}
+                {'</body>'}
               </code>{' '}
-              tag on every page of your website.
+              on every page. ChurnGuard starts scoring churn risk and showing in-app save-offers to at-risk customers. Nothing else required.
             </p>
 
             {/* Tab bar */}
@@ -197,7 +188,7 @@ ChurnGuard.init({
         </div>
       </div>
 
-      {/* Step 2 — Replace USER_ID */}
+      {/* Step 2 — Optional upgrade */}
       <div style={{
         background: '#fff',
         border: '1px solid #e5e7eb',
@@ -208,12 +199,32 @@ ChurnGuard.init({
       }}>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
           <StepBadge n={2} />
-          <div>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-              Replace <code style={{ background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', fontSize: '14px', color: '#92400e' }}>USER_ID_FROM_YOUR_APP</code>
-            </h3>
-            <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-              Swap it with your logged-in user&apos;s unique ID from your auth system (Clerk, Auth0, Supabase, etc.). This is how ChurnGuard links activity to a specific customer.
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                Optional: named customers + email outreach
+              </h3>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: '#6366f1', background: '#eef2ff', padding: '2px 8px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+                UPGRADE
+              </span>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: '14px', color: '#6b7280' }}>
+              Without this step, ChurnGuard tracks sessions anonymously — scoring and in-app save-offers still work. Add your logged-in user&apos;s ID to see real names in your dashboard and send retention emails to customers who&apos;ve gone quiet.
+            </p>
+            <pre style={{
+              margin: '0 0 10px',
+              padding: '14px 16px',
+              background: '#1e1e2e',
+              color: '#cdd6f4',
+              fontSize: '13px',
+              lineHeight: '1.7',
+              borderRadius: '8px',
+              fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+              overflowX: 'auto',
+              whiteSpace: 'pre',
+            }}>{`ChurnGuard.init({\n  apiKey: '${apiKey}',\n  customerId: currentUser.id  // your auth system's user ID\n});`}</pre>
+            <p style={{ margin: 0, fontSize: '13px', color: '#9ca3af' }}>
+              Pass your user&apos;s ID from Clerk, Auth0, Supabase, or any auth system. Works with any framework — see the HTML, React, or NPM tabs above for context.
             </p>
           </div>
         </div>
@@ -235,7 +246,7 @@ ChurnGuard.init({
               Create retention messages
             </h3>
             <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
-              When a customer&apos;s risk score hits 70%+, ChurnGuard automatically shows your in-app messages. Create offers and win-back campaigns below.
+              When a customer&apos;s risk score hits 50%+, ChurnGuard automatically shows your in-app save-offers. Create and manage them below.
             </p>
             <Link
               href="/widget-messages"

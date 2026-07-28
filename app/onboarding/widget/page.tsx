@@ -120,7 +120,7 @@ export default function WidgetOnboardingPage() {
             Paste one snippet into your app
           </h1>
           <p style={{ margin: '8px 0 0', fontSize: '15px', color: '#6b7280', lineHeight: '1.5' }}>
-            This tells ChurnGuard how often your customers log in and which features they use — the signals that predict churn.
+            Paste before <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px', fontSize: '13px' }}>{'</body>'}</code> on every page of your site. ChurnGuard scores churn risk and shows in-app save-offers when customers go quiet.
           </p>
         </div>
 
@@ -162,14 +162,19 @@ export default function WidgetOnboardingPage() {
           </button>
         </div>
 
-        {/* customerId note */}
-        <p style={{ margin: '0 0 28px', fontSize: '13px', color: '#9ca3af', lineHeight: '1.5' }}>
-          <strong style={{ color: '#6b7280' }}>Optional:</strong> add{' '}
-          <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>
-            customerId: 'your-user-id'
-          </code>{' '}
-          to tie events to named customers. Without it, ChurnGuard tracks anonymous sessions.
-        </p>
+        {/* Tier callout */}
+        <div style={{ margin: '0 0 28px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '14px 16px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
+            <strong>This snippet is enough.</strong> ChurnGuard scores churn risk and shows in-app save-offers to at-risk customers — no other code required.
+          </p>
+          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+            <strong style={{ color: '#374151' }}>Want named customers + email outreach?</strong> Add{' '}
+            <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '3px', fontSize: '12px' }}>
+              customerId: &apos;your-user-id&apos;
+            </code>{' '}
+            to see real names in your dashboard and reach customers by email. That step needs a small code change to pass your logged-in user&apos;s ID.
+          </p>
+        </div>
 
         {/* Step instructions */}
         <div style={{
