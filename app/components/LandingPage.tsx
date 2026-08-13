@@ -1,730 +1,851 @@
 'use client';
 
-import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import {
-  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, BORDER_MED,
-  TEXT, MUTED, FAINT, WHITE, PAGE_BG,
-  SUCCESS, SUCCESS_BG, SUCCESS_BORD,
-  DANGER, DANGER_BG, DANGER_BORD,
-  WARN, WARN_BG, WARN_BORD,
-  btnPrimary, btnOutline,
-} from '@/app/lib/design-tokens';
-import PublicShell from '@/app/components/ui/PublicShell';
+  Shield, TrendingUp, TrendingDown, Zap, CreditCard, Play, CheckCircle,
+  ArrowRight, BarChart3, Users, RefreshCw, Settings, Workflow,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+const RevenueChart = dynamic(() => import('@/app/components/RevenueChart'), {
+  ssr: false,
+  loading: () => <div className="h-[68px] animate-pulse bg-slate-800/60 rounded-lg" />,
+});
 
-function getPlan(mrr: number): { name: string; monthly: number | null } {
-  if (mrr <= 50000)   return { name: 'Seed',       monthly: 79 };
-  if (mrr <= 200000)  return { name: 'Growth',     monthly: 149 };
-  if (mrr <= 1000000) return { name: 'Scale',      monthly: 299 };
-  return                     { name: 'Enterprise', monthly: null };
+// ── Hooks ─────────────────────────────────────────────────────────────────────
+
+function useCountUp(target: number, durationMs: number, active: boolean): number {
+  const prefersReducedMotion = useReducedMotion();
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (prefersReducedMotion) { setVal(target); return; }
+    if (!active) return;
+    const t0 = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - t0) / durationMs, 1);
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, target, durationMs, prefersReducedMotion]);
+  return val;
 }
 
-// ─── Inline SVGs ─────────────────────────────────────────────────────────────
-function IconCheck({ color = SUCCESS }: { color?: string }) {
+function useScrollTrigger() {
+  const ref = useRef<HTMLDivElement>(null);
+  const active = useInView(ref, { once: true, margin: '-80px' as unknown as `${number}px` });
+  return { ref, active };
+}
+
+// ── Scroll-reveal wrapper ─────────────────────────────────────────────────────
+
+function FadeUp({
+  children,
+  delay = 0,
+  className = '',
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const prefersReducedMotion = useReducedMotion();
   return (
-    <svg width="14" height="14" fill="none" stroke={color} strokeWidth={2} viewBox="0 0 24 24"
-      aria-hidden="true" style={{ flexShrink: 0, marginTop: '2px' }}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    <motion.div
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.55, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ── Hero ──────────────────────────────────────────────────────────────────────
+
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+}
+
+function RiskGauge({ value, active }: { value: number; active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const cx = 60, cy = 60, r = 50;
+  const s = polar(cx, cy, r, 225);
+  const e = polar(cx, cy, r, 315);
+  const d = `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 1 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  const color = '#f59e0b';
+  const displayVal = useCountUp(value, 1200, active);
+  const shouldAnimate = active || prefersReducedMotion;
+  return (
+    <svg viewBox="0 0 120 120" width="108" height="108" aria-label={`Churn risk ${value}%`}>
+      <path d={d} fill="none" stroke="#1e293b" strokeWidth="9" strokeLinecap="round" />
+      <motion.path
+        d={d} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
+        initial={{ pathLength: prefersReducedMotion ? value / 100 : 0 }}
+        animate={{ pathLength: shouldAnimate ? value / 100 : 0 }}
+        transition={prefersReducedMotion ? { duration: 0 } : { duration: 1.3, ease: 'easeOut', delay: 0.35 }}
+        style={{ filter: `drop-shadow(0 0 5px ${color}80)` }}
+      />
+      <text x="60" y="56" textAnchor="middle" fill="white" fontSize="20" fontWeight="700" fontFamily="Inter,sans-serif">
+        {displayVal}%
+      </text>
+      <text x="60" y="72" textAnchor="middle" fill="#475569" fontSize="9" fontFamily="Inter,sans-serif" letterSpacing="1.5">
+        CHURN RISK
+      </text>
     </svg>
   );
 }
 
-function IconChevron({ className }: { className?: string }) {
+const CUSTOMERS = [
+  { name: 'Acme Corp',  risk: 89, signal: 'Payment failed',     high: true  },
+  { name: 'DesignHub',  risk: 74, signal: 'Usage drop',         high: true  },
+  { name: 'ByteFlow',   risk: 62, signal: 'No login 5d',        high: false },
+  { name: 'DevStack',   risk: 45, signal: 'Onboarding stalled', high: false },
+];
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.13, delayChildren: 0.85 } },
+};
+const rowVariants = {
+  hidden: { opacity: 0, x: 14 },
+  show:   { opacity: 1, x: 0, transition: { duration: 0.38, ease: 'easeOut' as const } },
+};
+
+function HeroDashboard() {
+  const [active, setActive] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  useEffect(() => {
+    const t = setTimeout(() => setActive(true), 350);
+    return () => clearTimeout(t);
+  }, []);
+  const mrr   = useCountUp(4820, 1400, active);
+  const count = useCountUp(12,   1000, active);
+  const animState = prefersReducedMotion || active ? 'show' : 'hidden';
   return (
-    <svg className={className} width="15" height="15" fill="none" stroke="currentColor"
-      strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0, color: FAINT }}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
-}
-
-// ─── Calculator ───────────────────────────────────────────────────────────────
-function ChurnCalculator() {
-  const [mrr, setMrr]             = useState(25000);
-  const [churnRate, setChurnRate] = useState(3);
-
-  const lostPerYear    = Math.round(mrr * (churnRate / 100) * 12);
-  const recoverable    = Math.round(lostPerYear * 0.35);
-  const plan           = getPlan(mrr);
-  const planCostAnnual = plan.monthly ? plan.monthly * 12 : null;
-  const churnColor     = churnRate > 5 ? DANGER : churnRate > 2 ? WARN : SUCCESS;
-
-  return (
-    <div style={{ background: WHITE, border: `1px solid ${BORDER_MED}`, borderRadius: '12px', padding: '28px 32px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginBottom: '28px' }}>
-
-        {/* MRR slider */}
+    <div className="relative">
+      <div className="absolute inset-0 -z-10 bg-indigo-500/10 blur-3xl rounded-full scale-75 translate-x-8 pointer-events-none" />
+      <div className="bg-slate-900/90 border border-slate-700/40 rounded-2xl p-4 shadow-2xl shadow-black/60 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-indigo-400" />
+            <span className="text-sm font-semibold text-slate-100 tracking-tight">ChurnGuard</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-[11px] text-green-400 font-medium">Live</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="bg-slate-800/60 rounded-xl p-3 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">MRR at Risk</p>
+            <p className="text-lg font-bold text-white leading-none">${mrr.toLocaleString()}</p>
+            <div className="flex items-center justify-center gap-0.5 mt-1">
+              <TrendingUp className="w-3 h-3 text-red-400" />
+              <span className="text-[11px] text-red-400 font-medium">+12%</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-center">
+            <RiskGauge value={68} active={active} />
+          </div>
+          <div className="bg-slate-800/60 rounded-xl p-3 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">At Risk</p>
+            <p className="text-lg font-bold text-white leading-none">{count}</p>
+            <p className="text-[11px] text-amber-400 font-medium mt-1">customers</p>
+          </div>
+        </div>
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-            <label htmlFor="mrr-slider" style={{ fontSize: '14px', color: TEXT, fontWeight: 500 }}>
-              Monthly recurring revenue
-            </label>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: ACCENT }}>{fmt(mrr)}</span>
-          </div>
-          <input
-            id="mrr-slider"
-            type="range"
-            min={1000}
-            max={500000}
-            step={1000}
-            value={mrr}
-            onChange={e => setMrr(Number(e.target.value))}
-            aria-valuetext={fmt(mrr)}
-            className="cg-range"
-            style={{ width: '100%' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: FAINT, marginTop: '5px' }}>
-            <span>$1k</span><span>$500k</span>
-          </div>
-        </div>
-
-        {/* Churn rate slider */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-            <label htmlFor="churn-slider" style={{ fontSize: '14px', color: TEXT, fontWeight: 500 }}>
-              Monthly churn rate
-            </label>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: churnColor }}>{churnRate}%</span>
-          </div>
-          <input
-            id="churn-slider"
-            type="range"
-            min={0.5}
-            max={15}
-            step={0.5}
-            value={churnRate}
-            onChange={e => setChurnRate(Number(e.target.value))}
-            aria-valuetext={`${churnRate} percent monthly churn`}
-            className="cg-range"
-            style={{ width: '100%' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: FAINT, marginTop: '5px' }}>
-            <span>0.5%</span><span>15%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Output row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" style={{ marginBottom: '20px' }}>
-        <div style={{ padding: '18px', background: DANGER_BG, border: `1px solid ${DANGER_BORD}`, borderRadius: '10px' }}>
-          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>Lost per year</div>
-          <div style={{ fontSize: '22px', fontWeight: 500, color: DANGER }}>{fmt(lostPerYear)}</div>
-        </div>
-        <div style={{ padding: '18px', background: SUCCESS_BG, border: `1px solid ${SUCCESS_BORD}`, borderRadius: '10px' }}>
-          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>Recoverable at 35%</div>
-          <div style={{ fontSize: '22px', fontWeight: 500, color: SUCCESS }}>{fmt(recoverable)}</div>
-        </div>
-        <div style={{ padding: '18px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '10px' }}>
-          <div style={{ fontSize: '12px', color: MUTED, marginBottom: '6px' }}>
-            ChurnGuard ({plan.name})
-          </div>
-          <div style={{ fontSize: '22px', fontWeight: 500, color: ACCENT }}>
-            {planCostAnnual ? `${fmt(planCostAnnual)}/yr` : 'Custom'}
-          </div>
-        </div>
-      </div>
-
-      <p style={{ fontSize: '14px', color: MUTED, textAlign: 'center' }}>
-        See your real numbers —{' '}
-        <Link href="/signup" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-          connect Stripe free
-        </Link>
-      </p>
-    </div>
-  );
-}
-
-// ─── Dashboard showcase ───────────────────────────────────────────────────────
-function DashboardShowcase() {
-  const rows = [
-    { name: 'CloudBase',    signal: 'No login in 14 days',       mrr: '$2,400', score: 85, level: 'danger' as const },
-    { name: 'Acme Corp',    signal: 'Payment failed twice',       mrr: '$1,200', score: 92, level: 'danger' as const },
-    { name: 'DataFlow Inc', signal: 'Reports usage down 60%',     mrr: '$890',   score: 78, level: 'warn'   as const },
-  ];
-
-  return (
-    <div>
-      {/* Browser chrome frame */}
-      <div style={{ border: `1px solid ${BORDER_MED}`, borderRadius: '12px', overflow: 'hidden', background: WHITE }}>
-        {/* Chrome bar */}
-        <div style={{ background: PAGE_BG, borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: BORDER_MED }} />
-            ))}
-          </div>
-          <div style={{ flex: 1, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '4px', padding: '4px 12px', fontSize: '12px', color: FAINT, fontFamily: 'monospace' }}>
-            app.churnguardapp.com
-          </div>
-        </div>
-
-        {/* Dashboard content */}
-        <div style={{ padding: '24px' }}>
-          {/* Metric cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" style={{ marginBottom: '20px' }}>
-            <div style={{ padding: '16px', border: `1px solid ${DANGER_BORD}`, borderRadius: '10px', background: DANGER_BG }}>
-              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Revenue at risk</div>
-              <div style={{ fontSize: '22px', fontWeight: 500, color: DANGER }}>$4,940</div>
-            </div>
-            <div style={{ padding: '16px', border: `1px solid ${SUCCESS_BORD}`, borderRadius: '10px', background: SUCCESS_BG }}>
-              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Recovered this month</div>
-              <div style={{ fontSize: '22px', fontWeight: 500, color: SUCCESS }}>$1,830</div>
-            </div>
-            <div style={{ padding: '16px', border: `1px solid ${BORDER}`, borderRadius: '10px', background: PAGE_BG }}>
-              <div style={{ fontSize: '12px', color: MUTED, marginBottom: '4px' }}>Accounts flagged</div>
-              <div style={{ fontSize: '22px', fontWeight: 500, color: TEXT }}>7</div>
-            </div>
-          </div>
-
-          {/* At-risk accounts table */}
-          <div style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', overflow: 'hidden' }}>
-            <div style={{ padding: '11px 16px', borderBottom: `1px solid ${BORDER}`, background: PAGE_BG, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>At-risk accounts</span>
-              <span style={{ fontSize: '12px', color: FAINT }}>sorted by MRR</span>
-            </div>
-            <div className="cg-risk-header" style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 72px', padding: '8px 16px', background: PAGE_BG, borderBottom: `1px solid ${BORDER}` }}>
-              {['Account', 'Signal', 'MRR', 'Score'].map(h => (
-                <span key={h} style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</span>
-              ))}
-            </div>
-            {rows.map((row, i) => (
-              <div key={row.name} className="cg-risk-row"
-                style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 72px', padding: '12px 16px', alignItems: 'center', borderBottom: i < rows.length - 1 ? `1px solid ${BORDER}` : 'none', background: WHITE }}>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>{row.name}</span>
-                <span style={{ fontSize: '13px', color: MUTED }}>{row.signal}</span>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: TEXT }}>{row.mrr}</span>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    background: row.level === 'danger' ? DANGER_BG : WARN_BG,
-                    color: row.level === 'danger' ? DANGER : WARN,
-                    border: `1px solid ${row.level === 'danger' ? DANGER_BORD : WARN_BORD}`,
-                  }}>
-                    {row.score}
+          <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-2">Flagged Accounts</p>
+          <motion.div variants={listVariants} initial="hidden" animate={animState} className="space-y-1.5">
+            {CUSTOMERS.map((c) => (
+              <motion.div key={c.name} variants={rowVariants}
+                className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600/30 flex items-center justify-center text-[11px] text-indigo-300 font-semibold shrink-0">
+                    {c.name[0]}
+                  </div>
+                  <span className="text-sm text-slate-200 font-medium">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-500 hidden sm:block">{c.signal}</span>
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${c.high ? 'text-red-300 bg-red-500/15 border border-red-500/20' : 'text-amber-300 bg-amber-500/10 border border-amber-500/20'}`}>
+                    {c.risk}%
                   </span>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
+        <p className="text-center text-[10px] text-slate-700 mt-3 tracking-widest uppercase">Illustrative data</p>
       </div>
-      <p style={{ textAlign: 'center', fontSize: '12px', color: FAINT, marginTop: '10px' }}>
-        Example dashboard with sample data.
-      </p>
     </div>
   );
 }
 
-// ─── FAQ data ─────────────────────────────────────────────────────────────────
-const FAQS = [
-  {
-    q: 'How long does setup take?',
-    a: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.',
-  },
-  {
-    q: 'Is our customer data secure?',
-    a: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned. Stripe access is read-only by default — we never write to your Stripe account.',
-  },
-  {
-    q: 'What if I exceed my MRR band?',
-    a: 'We move you up automatically — no service interruption, no surprise bills. You will receive an email notice 7 days before the change.',
-  },
-  {
-    q: 'Does it work with HubSpot?',
-    a: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.',
-  },
-  {
-    q: 'Do I need to send messages manually?',
-    a: 'No. ChurnGuard automatically emails at-risk customers and recovers failed payments on its own. Slack alerts and SMS (when phone numbers are available) are also supported. Retention emails are personalized using AI. You review results.',
-  },
-  {
-    q: 'Do I need Stripe to use ChurnGuard?',
-    a: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.',
-  },
-];
+// ── Stats strip ───────────────────────────────────────────────────────────────
 
-// ─── Pricing tiers ────────────────────────────────────────────────────────────
-const PLANS = [
-  {
-    name: 'Seed',
-    price: '$79',
-    band: 'Up to $50K MRR',
-    features: ['100 customers tracked', 'Email + Slack alerts', 'Basic playbooks (3 active)', 'Payment dunning sequences', '7-day data retention'],
-    popular: false,
-    href: '/signup?plan=seed',
-    cta: 'Get started',
-  },
-  {
-    name: 'Growth',
-    price: '$149',
-    band: '$50K – $200K MRR',
-    features: ['Unlimited customers tracked', 'SMS outreach (when phone numbers available)', 'Advanced playbooks (10 active)', 'VIP account alerts', 'AI-written retention emails', '90-day data retention'],
-    popular: true,
-    href: '/signup?plan=growth',
-    cta: 'Get started',
-  },
-  {
-    name: 'Scale',
-    price: '$299',
-    band: '$200K – $1M MRR',
-    features: ['Unlimited everything', 'Custom risk scoring models', 'API access + webhooks', 'Team collaboration (10 seats)', '1-year data retention'],
-    popular: false,
-    href: '/signup?plan=scale',
-    cta: 'Get started',
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    band: '$1M+ MRR',
-    features: ['Dedicated success manager', 'White-glove onboarding', 'SSO + advanced security', 'Custom SLA guarantees', 'Unlimited seats'],
-    popular: false,
-    href: 'mailto:admin@churnguardapp.com?subject=Enterprise inquiry',
-    cta: 'Contact us',
-  },
-];
+function StatTile({ value, suffix, label }: { value: number; suffix: string; label: string }) {
+  const { ref, active } = useScrollTrigger();
+  const displayed = useCountUp(value, 900, active);
+  return (
+    <div ref={ref} className="text-center px-6 py-2">
+      <p className="text-5xl font-bold text-white tabular-nums">
+        {displayed}
+        <span className="text-indigo-400">{suffix}</span>
+      </p>
+      <p className="text-slate-400 text-sm mt-2 leading-snug">{label}</p>
+    </div>
+  );
+}
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ── Feature card visuals ──────────────────────────────────────────────────────
+
+function PlaybookToggles({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const items = ['Onboarding Rescue', 'Silent Quitter', 'Payment Saver'];
+  return (
+    <div className="space-y-2.5">
+      {items.map((name, i) => (
+        <motion.div
+          key={name}
+          initial={prefersReducedMotion ? false : { opacity: 0, x: -8 }}
+          animate={show ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }}
+          transition={{ duration: 0.4, delay: i * 0.12, ease: 'easeOut' }}
+          className="flex items-center justify-between bg-slate-900/60 rounded-lg px-3 py-2"
+        >
+          <span className="text-xs text-slate-300 font-medium">{name}</span>
+          <div className="flex items-center gap-1.5">
+            <motion.div
+              className="w-8 h-4 rounded-full relative"
+              animate={show ? { backgroundColor: '#22c55e' } : { backgroundColor: '#334155' }}
+              transition={{ duration: 0.3, delay: 0.4 + i * 0.12 }}
+            >
+              <motion.div
+                className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow"
+                animate={show ? { left: '18px' } : { left: '2px' }}
+                transition={{ duration: 0.3, delay: 0.4 + i * 0.12 }}
+              />
+            </motion.div>
+            <span className="text-[10px] text-green-400 font-medium w-5">ON</span>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function SegmentBars({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const bars = [
+    { label: 'Trial accounts',  pct: 45, color: '#818cf8' },
+    { label: 'Annual accounts', pct: 78, color: '#6366f1' },
+  ];
+  return (
+    <div className="space-y-3">
+      {bars.map(({ label, pct, color }, i) => (
+        <div key={label}>
+          <div className="flex justify-between text-[11px] mb-1.5">
+            <span className="text-slate-400">{label}</span>
+            <span className="text-slate-300 font-medium">{pct}% threshold</span>
+          </div>
+          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: color, transformOrigin: 'left' }}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: show ? pct / 100 : 0 }}
+              transition={{ duration: 0.9, delay: i * 0.15, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-[10px] text-slate-600 mt-1">Trigger thresholds differ per segment</p>
+    </div>
+  );
+}
+
+function SetupSteps({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const steps = ['Connect Stripe', 'Toggle playbooks', 'Automations running'];
+  return (
+    <div className="space-y-0">
+      {steps.map((step, i) => (
+        <div key={step} className="flex items-start gap-3">
+          <div className="flex flex-col items-center">
+            <motion.div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 shrink-0"
+              animate={show
+                ? { borderColor: '#6366f1', backgroundColor: '#312e81', color: '#a5b4fc' }
+                : { borderColor: '#334155', backgroundColor: 'transparent', color: '#475569' }}
+              transition={{ duration: 0.3, delay: 0.3 + i * 0.2 }}
+            >
+              {i + 1}
+            </motion.div>
+            {i < steps.length - 1 && (
+              <motion.div
+                className="w-px mt-0.5" style={{ height: '20px' }}
+                animate={show ? { backgroundColor: '#4338ca' } : { backgroundColor: '#1e293b' }}
+                transition={{ duration: 0.3, delay: 0.5 + i * 0.2 }}
+              />
+            )}
+          </div>
+          <motion.p
+            className="text-sm pb-3"
+            animate={show ? { color: '#e2e8f0' } : { color: '#475569' }}
+            transition={{ duration: 0.3, delay: 0.35 + i * 0.2 }}
+          >
+            {step}
+          </motion.p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RevenueSavedVisual({ active }: { active: boolean }) {
+  const mrr = useCountUp(4820, 1200, active);
+  return (
+    <div>
+      <div className="flex items-end justify-between mb-2">
+        <div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">MRR recovered</p>
+          <p className="text-2xl font-bold text-green-400">
+            ${mrr.toLocaleString()}
+            <span className="text-slate-500 text-sm font-normal">/mo</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1 text-[11px] text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">
+          <TrendingUp className="w-3 h-3" /><span>+34%</span>
+        </div>
+      </div>
+      {active ? <RevenueChart /> : <div className="h-[68px] bg-slate-800/40 rounded-lg" />}
+      <p className="text-[10px] text-slate-600 mt-1 text-right">Illustrative example</p>
+    </div>
+  );
+}
+
+// ── Feature card components (each owns its scroll trigger) ────────────────────
+
+function FeatureCardPlaybooks() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0}>
+      <div ref={ref} className="h-full bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Workflow className="w-5 h-5 text-indigo-400" /></div>
+          <div>
+            <h3 className="font-semibold mb-1">Pre-Built Playbooks</h3>
+            <p className="text-slate-400 text-sm">Toggle on workflows that actually work. No empty dashboards to configure.</p>
+          </div>
+        </div>
+        <div className="border-t border-slate-700/40 pt-4"><PlaybookToggles active={active} /></div>
+      </div>
+    </FadeUp>
+  );
+}
+
+function FeatureCardSegmentation() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0.08}>
+      <div ref={ref} className="h-full bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Settings className="w-5 h-5 text-indigo-400" /></div>
+          <div>
+            <h3 className="font-semibold mb-1">Smart Segmentation</h3>
+            <p className="text-slate-400 text-sm">Different thresholds for trials vs annual contracts, SMB vs mid-market.</p>
+          </div>
+        </div>
+        <div className="border-t border-slate-700/40 pt-4"><SegmentBars active={active} /></div>
+      </div>
+    </FadeUp>
+  );
+}
+
+function FeatureCardSetup() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0.16}>
+      <div ref={ref} className="h-full bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Zap className="w-5 h-5 text-indigo-400" /></div>
+          <div>
+            <h3 className="font-semibold mb-1">5-Minute Setup</h3>
+            <p className="text-slate-400 text-sm">Connect Stripe. Toggle playbooks. Done. No engineering required.</p>
+          </div>
+        </div>
+        <div className="border-t border-slate-700/40 pt-4"><SetupSteps active={active} /></div>
+      </div>
+    </FadeUp>
+  );
+}
+
+function FeatureCardRevenue() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0.24}>
+      <div ref={ref} className="h-full bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><RefreshCw className="w-5 h-5 text-indigo-400" /></div>
+          <div>
+            <h3 className="font-semibold mb-1">Revenue Saved Dashboard</h3>
+            <p className="text-slate-400 text-sm">See exactly how much money the playbooks recovered each month.</p>
+          </div>
+        </div>
+        <div className="border-t border-slate-700/40 pt-4"><RevenueSavedVisual active={active} /></div>
+      </div>
+    </FadeUp>
+  );
+}
+
+// ── Signal card mini-charts ───────────────────────────────────────────────────
+
+function PaymentBars({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const vals = [90, 88, 84, 76, 60, 42, 28];
+  const maxV = 90, h = 44, bw = 14, gap = 5;
+  return (
+    <svg width={(bw + gap) * vals.length - gap} height={h} aria-hidden="true">
+      {vals.map((v, i) => {
+        const barH = (v / maxV) * h;
+        return (
+          <motion.rect key={i} x={i * (bw + gap)} width={bw} rx="3"
+            fill={i >= 4 ? '#ef4444' : '#334155'}
+            initial={{ y: h, height: 0 }}
+            animate={show ? { y: h - barH, height: barH } : { y: h, height: 0 }}
+            transition={{ duration: 0.45, delay: i * 0.07, ease: 'easeOut' }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function UsageDropLine({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const vals = [88, 84, 80, 72, 60, 44, 32, 20, 14, 10];
+  const w = 130, h = 44, minV = 8, maxV = 90;
+  const xS = (i: number) => ((i / (vals.length - 1)) * w).toFixed(1);
+  const yS = (v: number) => (h - ((v - minV) / (maxV - minV)) * (h - 4)).toFixed(1);
+  const linePath = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xS(i)},${yS(v)}`).join(' ');
+  return (
+    <svg width={w} height={h} aria-hidden="true">
+      <motion.path
+        d={linePath} fill="none" stroke="#60a5fa" strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round"
+        initial={{ pathLength: prefersReducedMotion ? 1 : 0 }}
+        animate={{ pathLength: show ? 1 : 0 }}
+        transition={prefersReducedMotion ? { duration: 0 } : { duration: 1.4, ease: 'easeOut' }}
+      />
+      {show && (
+        <motion.circle
+          cx={xS(vals.length - 1)} cy={yS(vals[vals.length - 1])} r="4" fill="#ef4444"
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ delay: 1.2, duration: 0.3 }}
+        />
+      )}
+    </svg>
+  );
+}
+
+function DowngradeBars({ active }: { active: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const show = prefersReducedMotion || active;
+  const vals = [80, 72, 70, 65, 58, 46, 38];
+  const maxV = 80, h = 44, bw = 14, gap = 5;
+  return (
+    <svg width={(bw + gap) * vals.length - gap} height={h} aria-hidden="true">
+      {vals.map((v, i) => {
+        const barH = (v / maxV) * h;
+        return (
+          <motion.rect key={i} x={i * (bw + gap)} width={bw} rx="3"
+            fill={i >= 5 ? '#f97316' : '#334155'}
+            initial={{ y: h, height: 0 }}
+            animate={show ? { y: h - barH, height: barH } : { y: h, height: 0 }}
+            transition={{ duration: 0.45, delay: i * 0.07, ease: 'easeOut' }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Signal card components ────────────────────────────────────────────────────
+
+function SignalPayment() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0}>
+      <div ref={ref} className="h-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 hover:border-amber-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="mb-4 flex items-end justify-between min-h-[52px]">
+          <PaymentBars active={active} />
+          <span className="text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-full ml-2 shrink-0">Real-time</span>
+        </div>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-amber-500/10 w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+            <CreditCard className="w-5 h-5 text-amber-400" />
+          </div>
+          <h3 className="font-semibold">Payment Failures</h3>
+        </div>
+        <p className="text-slate-400 text-sm">Failed charges, expired cards, and dunning risk before they become cancellations.</p>
+      </div>
+    </FadeUp>
+  );
+}
+
+function SignalUsage() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0.1}>
+      <div ref={ref} className="h-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 hover:border-blue-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="mb-4 flex items-end justify-between min-h-[52px]">
+          <UsageDropLine active={active} />
+          <span className="text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full ml-2 shrink-0">Auto-detected</span>
+        </div>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-blue-500/10 w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+            <TrendingDown className="w-5 h-5 text-blue-400" />
+          </div>
+          <h3 className="font-semibold">Usage Drops</h3>
+        </div>
+        <p className="text-slate-400 text-sm">When customers stop logging in or abandon key features.</p>
+      </div>
+    </FadeUp>
+  );
+}
+
+function SignalDowngrade() {
+  const { ref, active } = useScrollTrigger();
+  return (
+    <FadeUp delay={0.2}>
+      <div ref={ref} className="h-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 hover:border-red-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30 transition-all duration-200">
+        <div className="mb-4 flex items-end justify-between min-h-[52px]">
+          <DowngradeBars active={active} />
+          <span className="text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full ml-2 shrink-0">Auto-detected</span>
+        </div>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-red-500/10 w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+            <BarChart3 className="w-5 h-5 text-red-400" />
+          </div>
+          <h3 className="font-semibold">Downgrade Intent</h3>
+        </div>
+        <p className="text-slate-400 text-sm">Plan changes, negative support sentiment, and expansion stalls.</p>
+      </div>
+    </FadeUp>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function LandingPage() {
   return (
-    <PublicShell>
+    <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          HERO
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px 64px' }}>
-        <div style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center' }}>
-
-          {/* Pill */}
-          <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '999px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT, fontSize: '13px', fontWeight: 500, marginBottom: '24px' }}>
-            Now live · founding pricing open
-          </div>
-
-          <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: TEXT, lineHeight: 1.15, marginBottom: '18px', letterSpacing: '-0.02em' }}>
-            Stop losing customers you didn't know were leaving.
-          </h1>
-
-          <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
-            ChurnGuard spots the customers drifting toward cancellation and automatically reaches out to keep them — by email, on its own. One line to paste on your site. No developer needed.
-          </p>
-
-          {/* CTAs */}
-          <div className="cg-cta-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginBottom: '14px' }}>
-            <Link href="/signup" style={btnPrimary}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-              See your churn risk free
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <Shield className="w-7 h-7 text-indigo-500" />
+              <span className="text-lg font-bold tracking-tight">ChurnGuard</span>
             </Link>
-            <a href="/audit" className="cg-outline-btn" style={btnOutline}>
-              Run your free churn audit →
-            </a>
-            <a href="/book-demo" className="cg-outline-btn" style={btnOutline}>
-              Book a churn demo
-            </a>
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-slate-400 hover:text-white text-sm transition-colors">Features</a>
+              <a href="#pricing" className="text-slate-400 hover:text-white text-sm transition-colors">Pricing</a>
+              <Link href="/pricing"
+                className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/20">
+                Get Started
+              </Link>
+            </div>
           </div>
-          <p style={{ fontSize: '13px', color: FAINT }}>
-            Paste one line · works in minutes · no engineering queue required
-          </p>
         </div>
-      </section>
+      </nav>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          PROBLEM
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '0 24px 48px' }}>
-        <div style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '18px', color: MUTED, lineHeight: 1.7 }}>
-            By the time a customer cancels, they'd already checked out weeks ago. You just couldn't see it happening.
-          </p>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          DASHBOARD SHOWCASE
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '0 24px 80px', maxWidth: '960px', margin: '0 auto' }}>
-        <DashboardShowcase />
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          CHURN CALCULATOR
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section id="calculator" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
-        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            What is churn costing you?
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '28px' }}>
-            Adjust the sliders to your numbers. No email needed.
-          </p>
-          <ChurnCalculator />
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          HOW THE SCORING WORKS
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section id="features" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            How it works
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '48px', maxWidth: '500px' }}>
-            Three things happen after you paste one line.
-          </p>
-
-          {/* Three steps */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '40px' }}>
-            {[
-              {
-                n: '01',
-                title: 'Paste one line',
-                body: 'Drop a single line into your site, the same way you\'d add Google Analytics. No developer, no code project, no waiting. That\'s the whole setup.',
-              },
-              {
-                n: '02',
-                title: 'ChurnGuard watches for drift',
-                body: 'It tracks how your customers actually behave — who\'s logging in, who\'s gone quiet, who\'s slipping away — and scores the risk for each one.',
-              },
-              {
-                n: '03',
-                title: 'It acts before they leave',
-                body: 'When someone\'s drifting, ChurnGuard automatically emails them to pull them back, and recovers failed payments before they become cancellations. On its own.',
-              },
-            ].map(step => (
-              <div key={step.n} style={{ padding: '24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '12px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 500, color: ACCENT, marginBottom: '12px', letterSpacing: '0.04em' }}>
-                  {step.n}
-                </div>
-                <h3 style={{ fontSize: '16px', fontWeight: 500, color: TEXT, marginBottom: '8px' }}>{step.title}</h3>
-                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>{step.body}</p>
+      {/* Hero */}
+      <section className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[700px] h-[500px] bg-indigo-600/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-indigo-900/8 blur-3xl pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 xl:gap-20 items-center">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }}>
+              <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-1.5 mb-6">
+                <span className="text-indigo-400 text-sm font-medium">3 Playbooks. Zero Setup. Saved Revenue.</span>
               </div>
-            ))}
-          </div>
-
-          {/* Expandable scoring model — content always in DOM for crawlers */}
-          <details style={{ border: `1px solid ${BORDER}`, borderRadius: '12px', background: WHITE, overflow: 'hidden' }}>
-            <summary style={{ padding: '18px 24px', fontSize: '14px', fontWeight: 500, color: TEXT, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', userSelect: 'none' }}>
-              <span>See the actual scoring model</span>
-              <IconChevron className="cg-chevron" />
-            </summary>
-            <div style={{ borderTop: `1px solid ${BORDER}`, padding: '24px' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: 500, color: TEXT, marginBottom: '12px' }}>No black box</h4>
-              <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, marginBottom: '20px' }}>
-                Every score is the sum of weighted signals. Open any customer record to see exactly which signals are firing and how many points each contributed.
+              <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-br from-white via-slate-100 to-slate-400 bg-clip-text text-transparent leading-[1.05]">
+                Automated Retention<br />That Actually Runs
+              </h1>
+              <p className="text-xl text-slate-400 mb-8 max-w-xl leading-relaxed">
+                Stop staring at churn dashboards. Start running pre-built playbooks that rescue at-risk customers automatically—while you focus on building.
               </p>
-              <div style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', background: PAGE_BG, padding: '10px 16px', borderBottom: `1px solid ${BORDER}` }}>
-                  <span style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Signal</span>
-                  <span style={{ fontSize: '11px', fontWeight: 500, color: FAINT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Weight</span>
-                </div>
-                {[
-                  { signal: 'Payment failures',                      weight: '30 pts' },
-                  { signal: 'Login gap (14+ days without activity)',  weight: '25 pts' },
-                  { signal: 'Feature usage drop (>50% decline)',      weight: '20 pts' },
-                  { signal: 'Seat reductions',                        weight: '15 pts' },
-                  { signal: 'Support ticket volume spike',             weight: '10 pts' },
-                ].map((row, i, arr) => (
-                  <div key={row.signal} style={{ display: 'grid', gridTemplateColumns: '1fr auto', padding: '12px 16px', alignItems: 'center', borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none', background: WHITE, gap: '16px' }}>
-                    <span style={{ fontSize: '14px', color: TEXT }}>{row.signal}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 500, color: ACCENT, whiteSpace: 'nowrap' }}>{row.weight}</span>
-                  </div>
-                ))}
+              <div className="flex flex-col sm:flex-row items-start gap-4 mb-10">
+                <Link href="/signup"
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 hover:scale-[1.03] hover:shadow-lg hover:shadow-indigo-500/25">
+                  Start Free Trial <ArrowRight className="w-4 h-4" />
+                </Link>
+                <a href="#playbooks"
+                  className="inline-flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-white px-7 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200">
+                  See the Playbooks
+                </a>
               </div>
-              <p style={{ fontSize: '13px', color: FAINT, marginTop: '14px', lineHeight: 1.6 }}>
-                Scores 75 and above are danger. Scores 50–74 are watch. Scores below 50 are healthy.
-                Read more about churn signals on our{' '}
-                <Link href="/blog" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>blog</Link>.
-              </p>
-            </div>
-          </details>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          CONNECTED IN MINUTES
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            From audit to action — no engineering queue required.
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '40px', maxWidth: '560px' }}>
-            ChurnGuard is built for operators who'd rather fix churn than file a ticket. Paste one line and it starts working — no APIs to wire up, no sprint to schedule.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '24px' }}>
-
-            {/* Card 1 — Stripe */}
-            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.07em', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, padding: '2px 8px', borderRadius: '4px' }}>
-                  No code
-                </span>
-                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                </svg>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
+                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> 3 Playbooks Ready</span>
+                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> 5-Minute Setup</span>
+                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Stripe Connected</span>
               </div>
-              <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Connect Stripe</h3>
-                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
-                  One OAuth click. Read-only. Pulls customers, MRR, and payment history.
-                </p>
-              </div>
-              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Scores within the hour</p>
-            </div>
-
-            {/* Card 2 — HubSpot */}
-            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.07em', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, padding: '2px 8px', borderRadius: '4px' }}>
-                  No code
-                </span>
-                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Sync HubSpot</h3>
-                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
-                  OAuth both ways. Contacts pull in, risk scores push back as properties.
-                </p>
-              </div>
-              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Re-syncs hourly</p>
-            </div>
-
-            {/* Card 3 — Widget */}
-            <div style={{ padding: '24px', background: PAGE_BG, border: `1px solid ${BORDER}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: SUCCESS, textTransform: 'uppercase', letterSpacing: '0.07em', background: SUCCESS_BG, border: `1px solid ${SUCCESS_BORD}`, padding: '2px 8px', borderRadius: '4px' }}>
-                  One line
-                </span>
-                <svg width="20" height="20" fill="none" stroke={ACCENT} strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '6px' }}>Drop in the widget</h3>
-                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>
-                  One script tag with your API key. Tracks page views and sessions. No backend changes.
-                </p>
-              </div>
-              <p style={{ fontSize: '13px', color: FAINT, margin: 0 }}>Tracking starts immediately</p>
-            </div>
-
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.65, ease: 'easeOut', delay: 0.15 }}>
+              <HeroDashboard />
+            </motion.div>
           </div>
-
-          <p style={{ fontSize: '13px', color: FAINT }}>
-            Also connects with Slack, Postmark, and Twilio (for SMS when customer phone numbers are available).
-          </p>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          WHAT IT DOES
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '32px', letterSpacing: '-0.01em' }}>
-            What it does
-          </h2>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {[
-              'Sees which customers are drifting, before they cancel',
-              'Automatically emails at-risk customers to keep them',
-              'Recovers failed payments within the hour',
-              'Texts at-risk customers too, when you have their phone number',
-              'Sends a Slack ping when a customer needs your attention',
-              'Shows you exactly who\'s at risk and why — scoring you can audit, with plain-English summaries',
-              'Works with Stripe and HubSpot out of the box',
-            ].map(item => (
-              <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '16px', color: MUTED, lineHeight: 1.6 }}>
-                <IconCheck color={ACCENT} />
-                {item}
-              </li>
-            ))}
-          </ul>
+      {/* Stats strip */}
+      <div className="border-y border-slate-800/60 bg-slate-900/30">
+        <div className="max-w-3xl mx-auto px-4 py-10">
+          <div className="grid grid-cols-3 divide-x divide-slate-800/60">
+            <StatTile value={3}  suffix=""     label="Playbooks ready out of the box" />
+            <StatTile value={5}  suffix=" min" label="From Stripe connect to first automation" />
+            <StatTile value={0}  suffix=" code" label="No engineering work required" />
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          PRICING
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section id="pricing" style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.01em' }}>
-            Simple, predictable pricing
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, marginBottom: '40px' }}>
-            Four plans based on your MRR. No metered billing, no surprise overages.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ alignItems: 'start', marginBottom: '20px' }}>
-            {PLANS.map(tier => (
-              <div key={tier.name} style={{
-                padding: '24px',
-                background: WHITE,
-                border: tier.popular ? `2px solid ${ACCENT}` : `1px solid ${BORDER}`,
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-              }}>
-                {tier.popular && (
-                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: WHITE, fontSize: '11px', fontWeight: 500, padding: '3px 12px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
-                    Most popular
-                  </div>
-                )}
-                <div style={{ marginBottom: '18px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 500, color: TEXT, marginBottom: '4px' }}>{tier.name}</h3>
-                  <p style={{ fontSize: '13px', color: FAINT }}>{tier.band}</p>
+      {/* Problem */}
+      <section className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-5">
+              Analytics Don&apos;t Save Customers.<br />
+              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Actions Do.</span>
+            </h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              Most churn tools give you a &quot;risk score&quot; and call it a day.
+              ChurnGuard gives you <span className="text-white font-semibold">pre-built workflows</span> that run automatically.
+            </p>
+          </FadeUp>
+          <div className="grid md:grid-cols-2 gap-6">
+            <FadeUp delay={0.05}>
+              <div className="h-full bg-slate-900/60 border border-red-500/20 rounded-2xl p-8 shadow-lg shadow-red-500/5">
+                <div className="flex items-center gap-2 mb-6">
+                  <BarChart3 className="w-5 h-5 text-red-400" />
+                  <h3 className="font-semibold text-red-400">Other Churn Tools</h3>
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <span style={{ fontSize: '26px', fontWeight: 500, color: TEXT }}>{tier.price}</span>
-                  {tier.price !== 'Custom' && (
-                    <span style={{ fontSize: '13px', color: FAINT, marginLeft: '4px' }}>/mo</span>
-                  )}
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: '9px', flex: 1 }}>
-                  {tier.features.map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: MUTED }}>
-                      <IconCheck />
-                      {f}
+                <ul className="space-y-4 text-slate-400">
+                  {[
+                    '"User has 73% churn risk" (Now what?)',
+                    'Empty dashboard you have to configure for weeks',
+                    'Generic "health scores" that don\'t fit your business',
+                    'Another analytics tool to check',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <span className="text-red-500 mt-0.5 shrink-0">×</span>
+                      <span className="text-sm">{t}</span>
                     </li>
                   ))}
                 </ul>
-                <Link href={tier.href} style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  textDecoration: 'none',
-                  transition: 'opacity 150ms',
-                  ...(tier.popular
-                    ? { background: ACCENT, color: WHITE }
-                    : { background: 'transparent', color: TEXT, border: `1px solid ${BORDER_MED}` }),
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-                  {tier.cta}
-                </Link>
               </div>
-            ))}
-          </div>
-
-          <p style={{ fontSize: '13px', color: FAINT, textAlign: 'center' }}>
-            30-day free trial · cancel any time · no setup fees
-          </p>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          SECURITY AND SETUP
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: WHITE }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '40px', letterSpacing: '-0.01em' }}>
-            Built for trust
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                title: 'No black box',
-                body: 'Open any risk score and see the exact signals and weights that produced it. Every number is explainable to your team and your customers.',
-              },
-              {
-                title: 'Read-only by default',
-                body: 'Stripe access is read-only. Customer data is AES-256 encrypted at rest. GDPR compliant. We never write to your Stripe account.',
-              },
-              {
-                title: '15 minutes to first score',
-                body: 'One OAuth click for Stripe, or one script tag for the widget. No backend changes required, no engineering sprint.',
-              },
-            ].map(col => (
-              <div key={col.title} style={{ padding: '24px', border: `1px solid ${BORDER}`, borderRadius: '12px', background: PAGE_BG }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 500, color: TEXT, marginBottom: '10px' }}>{col.title}</h3>
-                <p style={{ fontSize: '14px', color: MUTED, lineHeight: 1.7, margin: 0 }}>{col.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          FAQ
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '32px', letterSpacing: '-0.01em' }}>
-            Common questions
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {FAQS.map(({ q, a }) => (
-              <details key={q} style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', background: WHITE, overflow: 'hidden' }}>
-                <summary style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 500, color: TEXT, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', userSelect: 'none' }}>
-                  <span>{q}</span>
-                  <IconChevron className="cg-chevron" />
-                </summary>
-                <div style={{ borderTop: `1px solid ${BORDER}`, padding: '16px 20px', fontSize: '14px', color: MUTED, lineHeight: 1.7 }}>
-                  {a}
+            </FadeUp>
+            <FadeUp delay={0.12}>
+              <div className="h-full bg-slate-800/80 border border-green-500/30 rounded-2xl p-8 relative shadow-xl shadow-green-500/5">
+                <div className="absolute -top-3.5 right-5 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                  CHURNGUARD
                 </div>
-              </details>
+                <div className="flex items-center gap-2 mb-6">
+                  <Play className="w-5 h-5 text-green-400" />
+                  <h3 className="font-semibold text-green-400">Automated Playbooks</h3>
+                </div>
+                <ul className="space-y-4 text-slate-300">
+                  {[
+                    '"User stalled onboarding → Sent sequence #1 automatically"',
+                    '3 workflows ready out of the box, toggle on in 5 minutes',
+                    'Segment-specific triggers (Trial vs Annual, SMB vs Enterprise)',
+                    'Set it and actually forget it',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                      <span className="text-sm">{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </FadeUp>
+          </div>
+        </div>
+      </section>
+
+      {/* Playbooks */}
+      <section id="playbooks" className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-slate-900/40 border-y border-slate-800/40">
+        <div className="max-w-7xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">3 Playbooks. Zero Configuration.</h2>
+            <p className="text-slate-400 text-lg max-w-xl mx-auto">Toggle on the workflows that fit your business. We handle the logic.</p>
+          </FadeUp>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: <Zap className="w-5 h-5 text-indigo-400" />, title: 'The Onboarding Rescue', desc: 'Catch users before they churn in the first week.', trigger: 'Signed up 3 days ago, never used core feature', action: 'In-app tour + founder email sequence', delay: 0 },
+              { icon: <Users className="w-5 h-5 text-indigo-400" />, title: 'The Silent Quitter', desc: 'Re-engage power users before they disappear.', trigger: "Daily user hasn't logged in for 5 days", action: 'Slack alert to team + personal outreach email', delay: 0.1 },
+              { icon: <CreditCard className="w-5 h-5 text-indigo-400" />, title: 'The Payment Saver', desc: 'Stop cancellations at the payment failure moment.', trigger: 'Failed payment + recent login drop', action: 'Offer "Pause subscription" instead of cancel', delay: 0.2 },
+            ].map(({ icon, title, desc, trigger, action, delay }) => (
+              <FadeUp key={title} delay={delay}>
+                <div className="group h-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-200">
+                  <div className="bg-indigo-500/10 w-10 h-10 rounded-xl flex items-center justify-center mb-4">{icon}</div>
+                  <h3 className="text-lg font-semibold mb-2">{title}</h3>
+                  <p className="text-slate-400 text-sm mb-5">{desc}</p>
+                  <div className="bg-slate-900/70 border border-slate-700/40 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex flex-wrap items-start gap-1.5">
+                      <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-wide shrink-0 mt-0.5">Trigger</span>
+                      <span className="text-xs text-slate-300">{trigger}</span>
+                    </div>
+                    <div className="h-px bg-slate-700/40" />
+                    <div className="flex flex-wrap items-start gap-1.5">
+                      <span className="text-[11px] font-semibold text-green-400 uppercase tracking-wide shrink-0 mt-0.5">Action</span>
+                      <span className="text-xs text-slate-300">{action}</span>
+                    </div>
+                  </div>
+                </div>
+              </FadeUp>
             ))}
           </div>
+          <FadeUp delay={0.3} className="mt-10 text-center">
+            <p className="text-slate-500 text-sm">+ Custom playbooks for your specific signals. Webhook support for any tool.</p>
+          </FadeUp>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          FOUNDING OFFER
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 24px', borderTop: `1px solid ${BORDER}`, background: ACCENT_BG }}>
-        <div style={{ maxWidth: '580px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '16px', letterSpacing: '-0.01em' }}>
-            Founding accounts — early adopters get lifetime pricing
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '32px' }}>
-            ChurnGuard is new. Rather than pad the page with logos we don't have, the first 25 accounts get lifetime pricing, a direct line to the founder, and real influence over what gets built. No fake scarcity — this offer closes when 25 accounts are in.
-          </p>
-          <div className="cg-cta-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-            <Link href="/signup" style={btnPrimary}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-              Claim a founding spot
-            </Link>
-            <a href="/audit" className="cg-outline-btn" style={btnOutline}>
-              Run your free churn audit →
-            </a>
+      {/* Features */}
+      <section id="features" className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Built for Small Teams Who Can&apos;t Hire<br className="hidden md:block" />
+              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent"> Customer Success Yet</span>
+            </h2>
+          </FadeUp>
+          <div className="grid md:grid-cols-2 gap-6">
+            <FeatureCardPlaybooks />
+            <FeatureCardSegmentation />
+            <FeatureCardSetup />
+            <FeatureCardRevenue />
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          HONEST CLOSE
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '64px 24px', borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: '480px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 500, color: TEXT, marginBottom: '12px', letterSpacing: '-0.01em' }}>
-            See your churn risk free
-          </h2>
-          <p style={{ fontSize: '16px', color: MUTED, lineHeight: 1.7, marginBottom: '28px' }}>
-            Paste the line, see your own churn risk, and decide for yourself.
-          </p>
-          <Link href="/signup" style={btnPrimary}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.82')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-            See your churn risk free
-          </Link>
+      {/* Pricing */}
+      <section id="pricing" className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-slate-900/40 border-y border-slate-800/40">
+        <div className="max-w-7xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Fair Pricing That Scales With You</h2>
+            <p className="text-slate-400">Start free for 30 days. No credit card required.</p>
+          </FadeUp>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {([
+              { label: 'Free Trial', sublabel: '30 days full access', price: '$0', period: '/30 days', badge: 'NO CREDIT CARD', href: '/signup?plan=trial', features: ['100 customers tracked','Basic automation rules','Slack alerts','Email sequences','CRM sync'], cta: 'Start Free Trial →', ctaClass: 'bg-green-500 hover:bg-green-600 text-white', cardBorder: 'border-2 border-green-500/50', labelClass: 'text-green-400', delay: 0 },
+              { label: 'Seed', sublabel: 'For MRR $0 – $50K', price: '$79', period: '/month', badge: '', href: '/signup?plan=seed', features: ['Up to 100 customers','Slack risk alerts (3 channels)','Basic playbooks (3 active)','Email support','7-day data retention'], cta: 'Get Started →', ctaClass: 'bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white', cardBorder: 'border border-slate-700', labelClass: 'text-white', delay: 0.06 },
+              { label: 'Growth', sublabel: 'For MRR $50K – $200K', price: '$149', period: '/month', badge: 'Most Popular', href: '/signup?plan=growth', features: ['Everything in Seed, plus:','Unlimited customers','Advanced playbooks (10 active)','30-day risk forecasting','Priority support'], cta: 'Get Started →', ctaClass: 'bg-indigo-600 hover:bg-indigo-700 text-white', cardBorder: 'border-2 border-indigo-500 shadow-xl shadow-indigo-500/10', labelClass: 'text-indigo-400', delay: 0.12 },
+              { label: 'Scale', sublabel: 'For MRR $200K – $1M', price: '$299', period: '/month', badge: '', href: '/signup?plan=scale', features: ['Everything in Growth, plus:','Custom risk scoring','Team collaboration (10 seats)','API access','1-year data retention'], cta: 'Get Started →', ctaClass: 'bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white', cardBorder: 'border border-slate-700', labelClass: 'text-white', delay: 0.18 },
+            ] as const).map(({ label, sublabel, price, period, badge, href, features, cta, ctaClass, cardBorder, labelClass, delay }) => (
+              <FadeUp key={label} delay={delay}>
+                <div className={`h-full bg-slate-800/60 ${cardBorder} rounded-2xl p-6 flex flex-col relative hover:-translate-y-1 hover:shadow-2xl transition-all duration-200`}>
+                  {badge && (
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${label === 'Free Trial' ? 'bg-green-500' : 'bg-indigo-500'} text-white text-[11px] font-bold px-3 py-1 rounded-full whitespace-nowrap`}>
+                      {badge}
+                    </div>
+                  )}
+                  <h3 className={`text-lg font-semibold mb-0.5 ${badge ? 'mt-2' : ''} ${labelClass}`}>{label}</h3>
+                  <p className="text-slate-500 text-xs mb-4">{sublabel}</p>
+                  <div className="mb-5">
+                    <span className="text-4xl font-bold">{price}</span>
+                    <span className="text-slate-400 text-sm ml-1">{period}</span>
+                  </div>
+                  <ul className="space-y-2 text-sm text-slate-300 mb-6 flex-1">
+                    {features.map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <CheckCircle className={`w-3.5 h-3.5 shrink-0 ${label === 'Free Trial' ? 'text-green-500' : 'text-indigo-500'}`} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={href}
+                    className={`block w-full ${ctaClass} text-center py-2.5 rounded-xl font-semibold text-sm transition-all duration-200`}>
+                    {cta}
+                  </Link>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+          <FadeUp delay={0.25} className="text-center mt-10 text-slate-500 text-sm">
+            30-day free trial · Cancel anytime · No contracts · No setup fees
+          </FadeUp>
         </div>
       </section>
 
-    </PublicShell>
+      {/* Churn signals */}
+      <section className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Churn signals we catch automatically</h2>
+            <p className="text-slate-400 text-lg max-w-xl mx-auto">No dashboards to check. Signals fire the playbook the moment something&apos;s off.</p>
+          </FadeUp>
+          <div className="grid md:grid-cols-3 gap-6">
+            <SignalPayment />
+            <SignalUsage />
+            <SignalDowngrade />
+          </div>
+          <FadeUp delay={0.3} className="mt-14 text-center">
+            <div className="text-slate-500 text-sm mb-4">Works seamlessly with</div>
+            <div className="flex items-center justify-center gap-8 text-slate-400 font-semibold text-sm">
+              <span>Stripe</span><span className="text-slate-700">•</span>
+              <span>Slack</span><span className="text-slate-700">•</span>
+              <span>Intercom</span><span className="text-slate-700">•</span>
+              <span>Zapier</span>
+            </div>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="signup" className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-indigo-600/8 blur-3xl rounded-full pointer-events-none" />
+        <div className="relative max-w-3xl mx-auto text-center">
+          <FadeUp>
+            <h2 className="text-3xl md:text-5xl font-bold mb-5 leading-tight">Stop Losing Customers<br />to Silence</h2>
+            <p className="text-xl text-slate-400 mb-10">Get the first 3 playbooks running in under 5 minutes.</p>
+            <div className="max-w-xs mx-auto">
+              <Link href="/signup"
+                className="block w-full bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-semibold text-lg text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-500/30">
+                Start Free Trial
+              </Link>
+            </div>
+            <p className="text-sm text-slate-600 mt-5">30-day free trial · No credit card required · Cancel anytime</p>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-10 px-4 sm:px-6 lg:px-8 border-t border-slate-800/60">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-indigo-500" />
+            <span className="font-bold">ChurnGuard</span>
+          </div>
+          <p className="text-slate-600 text-sm">© 2026 ChurnGuard. Automated retention for SaaS teams.</p>
+        </div>
+      </footer>
+
+    </div>
   );
 }
