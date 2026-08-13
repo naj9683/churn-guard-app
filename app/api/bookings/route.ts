@@ -9,7 +9,7 @@ const VALID_SLOTS = new Set([
   '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM',
 ]);
 
-const OWNER_EMAIL = 'najwasaadi1@gmail.com';
+const OWNER_EMAIL = 'admin@churnguardapp.com';
 
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
