@@ -3,11 +3,23 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
-  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, BORDER_MED,
-  TEXT, MUTED, FAINT, WHITE, PAGE_BG,
-  SUCCESS, DANGER, DANGER_BG, DANGER_BORD, WARN_BG, WARN_BORD,
-} from '@/app/lib/design-tokens';
+// Dark-theme color values for the audit standalone flow
+const ACCENT       = '#6366f1';
+const ACCENT_BG    = 'rgba(99,102,241,0.12)';
+const ACCENT_BORDER= 'rgba(99,102,241,0.25)';
+const BORDER       = 'rgba(51,65,85,0.5)';
+const BORDER_MED   = 'rgba(71,85,105,0.6)';
+const TEXT         = '#f1f5f9';
+const MUTED        = '#94a3b8';
+const FAINT        = '#64748b';
+const WHITE        = '#0f172a';
+const PAGE_BG      = '#020617';
+const SUCCESS      = '#22c55e';
+const DANGER       = '#ef4444';
+const DANGER_BG    = 'rgba(239,68,68,0.1)';
+const DANGER_BORD  = 'rgba(239,68,68,0.25)';
+const WARN_BG      = 'rgba(245,158,11,0.1)';
+const WARN_BORD    = 'rgba(245,158,11,0.25)';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,7 +138,7 @@ function BenchmarkBar({ churnRate }: { churnRate: number }) {
       <div className="relative h-5 rounded-full overflow-visible mb-2" style={{ background: 'linear-gradient(90deg,#22c55e,#f59e0b 50%,#ef4444)' }}>
         <div
           className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 shadow-lg transition-all duration-1000"
-          style={{ left: `calc(${position}% - 8px)`, background: WHITE, borderColor: '#374151' }}
+          style={{ left: `calc(${position}% - 8px)`, background: '#ffffff', borderColor: '#374151' }}
         />
       </div>
       <div className="flex justify-between text-xs" style={{ color: MUTED }}>
@@ -222,7 +234,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
       {/* Nav */}
       <header
         className="sticky top-0 z-50 px-5 h-14 flex items-center justify-between"
-        style={{ background: WHITE, borderBottom: `1px solid ${BORDER_MED}` }}
+        style={{ background: '#0f172a', borderBottom: `1px solid ${BORDER_MED}` }}
       >
         <Link href="/" className="flex items-center gap-2 font-bold text-base" style={{ color: TEXT, textDecoration: 'none' }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛡️</div>
@@ -259,7 +271,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         {/* HubSpot form card */}
         <div
           className="w-full max-w-md rounded-2xl border p-8"
-          style={{ background: WHITE, borderColor: BORDER_MED }}
+          style={{ background: '#0f172a', borderColor: BORDER_MED }}
         >
           <div className="flex justify-center mb-5">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
@@ -315,7 +327,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         </div>
       </main>
 
-      {/* HubSpot form — light-theme overrides */}
+      {/* HubSpot form — dark-theme overrides */}
       <style>{`
         .cg-hs-wrapper .hs-form {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
@@ -325,14 +337,14 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         }
         .cg-hs-wrapper .hs-form-field > label {
           display: block !important;
-          color: #111827 !important;
+          color: #f1f5f9 !important;
           font-size: 14px !important;
           font-weight: 500 !important;
           margin-bottom: 6px !important;
           line-height: 1.4 !important;
         }
         .cg-hs-wrapper .hs-form-required {
-          color: #dc2626 !important;
+          color: #ef4444 !important;
           margin-left: 2px;
         }
         .cg-hs-wrapper .hs-input,
@@ -344,10 +356,10 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         .cg-hs-wrapper select.hs-input {
           width: 100% !important;
           box-sizing: border-box !important;
-          background: #ffffff !important;
-          background-color: #ffffff !important;
-          color: #111827 !important;
-          border: 1px solid rgba(0,0,0,0.13) !important;
+          background: #1e293b !important;
+          background-color: #1e293b !important;
+          color: #f1f5f9 !important;
+          border: 1px solid rgba(71,85,105,0.6) !important;
           border-radius: 6px !important;
           padding: 10px 12px !important;
           font-size: 15px !important;
@@ -359,12 +371,12 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           appearance: none !important;
         }
         .cg-hs-wrapper .hs-input::placeholder {
-          color: #9ca3af !important;
+          color: #64748b !important;
           opacity: 1 !important;
         }
         .cg-hs-wrapper .hs-input:focus {
-          border-color: #6d28d9 !important;
-          box-shadow: 0 0 0 3px rgba(109,40,217,0.12) !important;
+          border-color: #6366f1 !important;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
         }
         .cg-hs-wrapper .hs-input[type="checkbox"],
         .cg-hs-wrapper .hs-input[type="radio"] {
@@ -382,7 +394,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         .cg-hs-wrapper .hs-error-msg,
         .cg-hs-wrapper ul.hs-error-msgs,
         .cg-hs-wrapper ul.hs-error-msgs li {
-          color: #dc2626 !important;
+          color: #ef4444 !important;
           font-size: 13px !important;
           margin-top: 4px !important;
           padding-left: 0 !important;
@@ -392,8 +404,8 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
         .cg-hs-wrapper input[type="submit"],
         .cg-hs-wrapper .hs-button.primary {
           width: 100% !important;
-          background: #6d28d9 !important;
-          background-color: #6d28d9 !important;
+          background: #6366f1 !important;
+          background-color: #6366f1 !important;
           color: #ffffff !important;
           border: none !important;
           border-radius: 6px !important;
@@ -411,7 +423,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
           opacity: 0.85 !important;
         }
         .cg-hs-wrapper .submitted-message {
-          color: #111827 !important;
+          color: #f1f5f9 !important;
           font-size: 15px !important;
           text-align: center !important;
           padding: 16px 0 !important;
@@ -656,8 +668,8 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
           <div
             className="rounded-2xl p-5 text-center border"
             style={{
-              background: churnBad ? DANGER_BG : '#ecfdf5',
-              borderColor: churnBad ? DANGER_BORD : 'rgba(5,150,105,0.2)',
+              background: churnBad ? DANGER_BG : 'rgba(34,197,94,0.1)',
+              borderColor: churnBad ? DANGER_BORD : 'rgba(34,197,94,0.2)',
             }}
           >
             <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: MUTED }}>Monthly Churn</p>
@@ -685,7 +697,7 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
         </div>
 
         {/* Benchmark */}
-        <div className="rounded-2xl p-5 border" style={{ background: WHITE, borderColor: BORDER }}>
+        <div className="rounded-2xl p-5 border" style={{ background: '#0f172a', borderColor: BORDER }}>
           <div className="flex items-start justify-between mb-4 gap-4">
             <div>
               <h3 className="font-semibold text-sm mb-0.5" style={{ color: TEXT }}>Industry Benchmark</h3>
@@ -723,7 +735,7 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
               <h3 className="font-semibold text-sm" style={{ color: TEXT }}>Your Highest-Risk Customers</h3>
               <p className="text-xs mt-0.5" style={{ color: FAINT }}>Act on these within 48 hours or they&apos;re gone</p>
             </div>
-            <div style={{ background: WHITE }}>
+            <div style={{ background: '#0f172a' }}>
               {results.atRiskCustomers.map((c, i) => {
                 const isHigh = c.urgency === 'high';
                 return (
@@ -917,7 +929,7 @@ function AuditPageInner() {
       {/* Nav */}
       <header
         className="sticky top-0 z-50 px-5 h-14 flex items-center justify-between"
-        style={{ background: WHITE, borderBottom: `1px solid ${BORDER_MED}` }}
+        style={{ background: '#0f172a', borderBottom: `1px solid ${BORDER_MED}` }}
       >
         <Link href="/" className="flex items-center gap-2 font-bold text-base" style={{ color: TEXT, textDecoration: 'none' }}>
           <div
@@ -959,7 +971,7 @@ function AuditPageInner() {
           id="calculator-section"
           onSubmit={handleSubmit}
           className="w-full max-w-md rounded-2xl border p-7"
-          style={{ background: WHITE, borderColor: BORDER_MED }}
+          style={{ background: '#0f172a', borderColor: BORDER_MED }}
         >
           {/* Method toggle */}
           <div className="mb-5">

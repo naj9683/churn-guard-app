@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import DarkShell from '@/app/components/ui/DarkShell';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import {
   Shield, TrendingUp, TrendingDown, Zap, CreditCard, Play, CheckCircle,
@@ -550,27 +551,7 @@ function SignalDowngrade() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
-
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <Shield className="w-7 h-7 text-indigo-500" />
-              <span className="text-lg font-bold tracking-tight">ChurnGuard</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-slate-400 hover:text-white text-sm transition-colors">Features</a>
-              <a href="#pricing" className="text-slate-400 hover:text-white text-sm transition-colors">Pricing</a>
-              <Link href="/pricing"
-                className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/20">
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <DarkShell>
 
       {/* Hero */}
       <section className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -835,17 +816,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 px-4 sm:px-6 lg:px-8 border-t border-slate-800/60">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-indigo-500" />
-            <span className="font-bold">ChurnGuard</span>
-          </div>
-          <p className="text-slate-600 text-sm">© 2026 ChurnGuard. Automated retention for SaaS teams.</p>
-        </div>
-      </footer>
-
-    </div>
+    </DarkShell>
   );
 }

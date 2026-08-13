@@ -1,26 +1,31 @@
 'use client';
 
-import PublicShell from '@/app/components/ui/PublicShell';
-import {
-  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, TEXT, MUTED, WHITE,
-} from '@/app/lib/design-tokens';
+import DarkShell from '@/app/components/ui/DarkShell';
+
+const DK_CARD      = '#0f172a';
+const DK_TEXT      = '#f1f5f9';
+const DK_MUTED     = '#94a3b8';
+const DK_BORDER    = 'rgba(51,65,85,0.5)';
+const DK_ACCENT    = '#6366f1';
+const DK_ACCENT_BG = 'rgba(99,102,241,0.12)';
+const DK_ACCENT_BR = 'rgba(99,102,241,0.25)';
 
 export default function DocsPage() {
   return (
-    <PublicShell activeHref="/docs">
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '64px 24px 96px' }}>
+    <DarkShell>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '80px 24px 96px' }}>
 
-        <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', fontWeight: 500, color: TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', fontWeight: 500, color: DK_TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
           📚 Integration Guide
         </h1>
-        <p style={{ color: MUTED, fontSize: '16px', marginBottom: '40px', lineHeight: 1.6 }}>
+        <p style={{ color: DK_MUTED, fontSize: '16px', marginBottom: '40px', lineHeight: 1.6 }}>
           Track your users and reduce churn automatically
         </p>
 
         {/* Step 1 */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
-          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 1: Add the Script</h2>
-          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: DK_ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 1: Add the Script</h2>
+          <p style={{ color: DK_MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Add this to your website&apos;s &lt;head&gt; or before closing &lt;/body&gt; tag:
           </p>
           <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
@@ -33,9 +38,9 @@ export default function DocsPage() {
         </div>
 
         {/* Step 2 */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
-          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 2: Track Login</h2>
-          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: DK_ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 2: Track Login</h2>
+          <p style={{ color: DK_MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             When user logs in, tell ChurnGuard:
           </p>
           <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
@@ -51,9 +56,9 @@ ChurnGuard.trackLogin({
         </div>
 
         {/* Step 3 */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
-          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 3: Track Important Actions</h2>
-          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: DK_ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 3: Track Important Actions</h2>
+          <p style={{ color: DK_MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Track when users complete key actions (onboarding, purchase, etc.):
           </p>
           <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
@@ -74,9 +79,9 @@ ChurnGuard.trackFeature('exported_report');`}
         </div>
 
         {/* Step 4 */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
-          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 4: Track Payment Failures</h2>
-          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '16px' }}>
+          <h2 style={{ color: DK_ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 4: Track Payment Failures</h2>
+          <p style={{ color: DK_MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             When payment fails, trigger retention playbook:
           </p>
           <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
@@ -92,9 +97,9 @@ ChurnGuard.trackPaymentFailed({
         </div>
 
         {/* Step 5 */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
-          <h2 style={{ color: ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 5: Track Churn Signals</h2>
-          <p style={{ color: MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
+          <h2 style={{ color: DK_ACCENT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>Step 5: Track Churn Signals</h2>
+          <p style={{ color: DK_MUTED, marginBottom: '16px', fontSize: '14px', lineHeight: 1.7 }}>
             Detect when users show intent to leave:
           </p>
           <pre style={{ background: '#1e1e2e', padding: '16px', borderRadius: '6px', overflow: 'auto', margin: 0 }}>
@@ -112,24 +117,24 @@ ChurnGuard.trackChurnSignal('viewed_cancellation_help');`}
         </div>
 
         {/* What Happens Automatically */}
-        <div style={{ background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
-          <h2 style={{ color: TEXT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>What Happens Automatically</h2>
-          <ul style={{ lineHeight: 2, margin: 0, paddingLeft: '20px', color: MUTED, fontSize: '14px' }}>
-            <li><strong style={{ color: TEXT }}>Day 3 No Login:</strong> Onboarding rescue email sent</li>
-            <li><strong style={{ color: TEXT }}>5 Days Absent:</strong> &quot;We miss you&quot; email + Slack alert</li>
-            <li><strong style={{ color: TEXT }}>Payment Failed:</strong> 30% discount offer sent</li>
-            <li><strong style={{ color: TEXT }}>High Risk Score:</strong> Automatic retention campaign</li>
-            <li><strong style={{ color: TEXT }}>Churn Signal:</strong> Immediate intervention email</li>
+        <div style={{ background: DK_ACCENT_BG, border: `1px solid ${DK_ACCENT_BR}`, borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
+          <h2 style={{ color: DK_TEXT, marginTop: 0, fontSize: '16px', fontWeight: 500 }}>What Happens Automatically</h2>
+          <ul style={{ lineHeight: 2, margin: 0, paddingLeft: '20px', color: DK_MUTED, fontSize: '14px' }}>
+            <li><strong style={{ color: DK_TEXT }}>Day 3 No Login:</strong> Onboarding rescue email sent</li>
+            <li><strong style={{ color: DK_TEXT }}>5 Days Absent:</strong> &quot;We miss you&quot; email + Slack alert</li>
+            <li><strong style={{ color: DK_TEXT }}>Payment Failed:</strong> 30% discount offer sent</li>
+            <li><strong style={{ color: DK_TEXT }}>High Risk Score:</strong> Automatic retention campaign</li>
+            <li><strong style={{ color: DK_TEXT }}>Churn Signal:</strong> Immediate intervention email</li>
           </ul>
         </div>
 
         <div style={{ textAlign: 'center' }}>
-          <a href="/dashboard" style={{ display: 'inline-block', background: ACCENT, color: WHITE, padding: '11px 26px', borderRadius: '6px', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
+          <a href="/dashboard" style={{ display: 'inline-block', background: DK_ACCENT, color: '#fff', padding: '11px 26px', borderRadius: '6px', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
             ← Back to Dashboard
           </a>
         </div>
 
       </div>
-    </PublicShell>
+    </DarkShell>
   );
 }

@@ -2,12 +2,22 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import PublicShell from '@/app/components/ui/PublicShell';
-import {
-  ACCENT, ACCENT_BG, ACCENT_BORDER, BORDER, BORDER_MED,
-  TEXT, MUTED, FAINT, WHITE, PAGE_BG,
-  SUCCESS, SUCCESS_BG, SUCCESS_BORD,
-} from '@/app/lib/design-tokens';
+import DarkShell from '@/app/components/ui/DarkShell';
+import { SUCCESS } from '@/app/lib/design-tokens';
+
+const DK_BG        = '#020617';
+const DK_CARD      = '#0f172a';
+const DK_TEXT      = '#f1f5f9';
+const DK_MUTED     = '#94a3b8';
+const DK_FAINT     = '#64748b';
+const DK_BORDER    = 'rgba(51,65,85,0.5)';
+const DK_BORDER_MD = 'rgba(71,85,105,0.6)';
+const DK_ACCENT    = '#6366f1';
+const DK_ACCENT_BG = 'rgba(99,102,241,0.12)';
+const DK_ACCENT_BR = 'rgba(99,102,241,0.25)';
+const DK_SUCCESS   = '#22c55e';
+const DK_SUCC_BG   = 'rgba(34,197,94,0.1)';
+const DK_SUCC_BR   = 'rgba(34,197,94,0.25)';
 
 interface PricingTier {
   name: string;
@@ -131,41 +141,41 @@ export default function PricingPage() {
   };
 
   const checkColor = (tier: PricingTier) =>
-    tier.freeTrial ? SUCCESS : tier.popular ? ACCENT : ACCENT;
+    tier.freeTrial ? DK_SUCCESS : DK_ACCENT;
 
   return (
-    <PublicShell activeHref="/pricing">
+    <DarkShell>
 
       {/* ── Hero ── */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '64px 24px 32px', textAlign: 'center' }}>
-        <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '999px', background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT, fontSize: '13px', fontWeight: 500, marginBottom: '24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 24px 32px', textAlign: 'center' }}>
+        <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '999px', background: DK_ACCENT_BG, border: `1px solid ${DK_ACCENT_BR}`, color: DK_ACCENT, fontSize: '13px', fontWeight: 500, marginBottom: '24px' }}>
           Guaranteed ROI — save 10× your subscription or money back
         </div>
 
-        <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: TEXT, lineHeight: 1.15, marginBottom: '16px', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: DK_TEXT, lineHeight: 1.15, marginBottom: '16px', letterSpacing: '-0.02em' }}>
           Protect your revenue. Not your wallet.
         </h1>
 
-        <p style={{ color: MUTED, fontSize: '18px', maxWidth: '600px', margin: '0 auto 40px', lineHeight: 1.6 }}>
+        <p style={{ color: DK_MUTED, fontSize: '18px', maxWidth: '600px', margin: '0 auto 40px', lineHeight: 1.6 }}>
           Flat-rate pricing based on your MRR bands. No surprise bills.
           No meter anxiety. Just predictable protection.
         </p>
 
         {/* ROI Calculator */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER_MED}`, borderRadius: '12px', padding: '24px', maxWidth: '500px', margin: '0 auto 64px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ color: MUTED, fontSize: '14px' }}>If we prevent just 1 churn of</span>
+        <div style={{ background: DK_CARD, border: `1px solid ${DK_BORDER_MD}`, borderRadius: '12px', padding: '24px', maxWidth: '500px', margin: '0 auto 64px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ color: DK_MUTED, fontSize: '14px' }}>If we prevent just 1 churn of</span>
           <select
             value={selectedMrr}
             onChange={e => setSelectedMrr(Number(e.target.value))}
-            style={{ background: PAGE_BG, border: `1px solid ${BORDER_MED}`, color: SUCCESS, padding: '8px 14px', borderRadius: '6px', fontWeight: 500, fontSize: '14px', cursor: 'pointer' }}
+            style={{ background: DK_BG, border: `1px solid ${DK_BORDER_MD}`, color: DK_SUCCESS, padding: '8px 14px', borderRadius: '6px', fontWeight: 500, fontSize: '14px', cursor: 'pointer' }}
           >
             <option value={500}>$500/mo customer</option>
             <option value={1000}>$1,000/mo customer</option>
             <option value={2000}>$2,000/mo customer</option>
             <option value={5000}>$5,000/mo customer</option>
           </select>
-          <span style={{ color: MUTED, fontSize: '14px' }}>you save</span>
-          <span style={{ color: SUCCESS, fontWeight: 500, fontSize: '16px' }}>
+          <span style={{ color: DK_MUTED, fontSize: '14px' }}>you save</span>
+          <span style={{ color: DK_SUCCESS, fontWeight: 500, fontSize: '16px' }}>
             ${calculateSavings(selectedMrr)}/yr
           </span>
         </div>
@@ -179,13 +189,13 @@ export default function PricingPage() {
             onMouseEnter={() => setHoveredTier(tier.name)}
             onMouseLeave={() => setHoveredTier(null)}
             style={{
-              background: WHITE,
+              background: DK_CARD,
               borderRadius: '12px',
               border: tier.freeTrial
-                ? `2px solid ${SUCCESS}`
+                ? `2px solid ${DK_SUCCESS}`
                 : tier.popular
-                  ? `2px solid ${ACCENT}`
-                  : `1px solid ${BORDER}`,
+                  ? `2px solid ${DK_ACCENT}`
+                  : `1px solid ${DK_BORDER}`,
               padding: '28px',
               position: 'relative',
               transform: hoveredTier === tier.name ? 'translateY(-4px)' : 'translateY(0)',
@@ -195,21 +205,21 @@ export default function PricingPage() {
             }}
           >
             {tier.freeTrial && (
-              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: SUCCESS, color: WHITE, padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: DK_SUCCESS, color: '#fff', padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 No credit card
               </div>
             )}
             {tier.popular && (
-              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: WHITE, padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: DK_ACCENT, color: '#fff', padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 Most popular
               </div>
             )}
 
             <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 500, color: tier.freeTrial ? SUCCESS : tier.popular ? ACCENT : TEXT, marginBottom: '4px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 500, color: tier.freeTrial ? DK_SUCCESS : tier.popular ? DK_ACCENT : DK_TEXT, marginBottom: '4px' }}>
                 {tier.name}
               </h3>
-              <p style={{ color: FAINT, fontSize: '13px' }}>
+              <p style={{ color: DK_FAINT, fontSize: '13px' }}>
                 {tier.freeTrial ? tier.mrrRange : `For MRR ${tier.mrrRange}`}
               </p>
             </div>
@@ -217,29 +227,29 @@ export default function PricingPage() {
             <div style={{ marginBottom: '20px' }}>
               {tier.freeTrial ? (
                 <>
-                  <span style={{ fontSize: '28px', fontWeight: 500, color: TEXT }}>$0</span>
-                  <span style={{ color: FAINT, fontSize: '13px', marginLeft: '4px' }}>/30 days</span>
+                  <span style={{ fontSize: '28px', fontWeight: 500, color: DK_TEXT }}>$0</span>
+                  <span style={{ color: DK_FAINT, fontSize: '13px', marginLeft: '4px' }}>/30 days</span>
                   {tier.priceNote && (
-                    <p style={{ color: FAINT, fontSize: '12px', margin: '6px 0 0' }}>{tier.priceNote}</p>
+                    <p style={{ color: DK_FAINT, fontSize: '12px', margin: '6px 0 0' }}>{tier.priceNote}</p>
                   )}
                 </>
               ) : tier.price > 0 ? (
                 <>
-                  <span style={{ fontSize: '28px', fontWeight: 500, color: TEXT }}>${tier.price}</span>
-                  <span style={{ color: FAINT, fontSize: '13px', marginLeft: '4px' }}>/month</span>
+                  <span style={{ fontSize: '28px', fontWeight: 500, color: DK_TEXT }}>${tier.price}</span>
+                  <span style={{ color: DK_FAINT, fontSize: '13px', marginLeft: '4px' }}>/month</span>
                   {tier.trialNote && (
                     <p style={{ fontSize: '12px', margin: '6px 0 0' }}>
-                      <Link href="/signup?plan=trial" style={{ color: SUCCESS, textDecoration: 'none' }}>
+                      <Link href="/signup?plan=trial" style={{ color: DK_SUCCESS, textDecoration: 'none' }}>
                         {tier.trialNote}
                       </Link>
                     </p>
                   )}
                 </>
               ) : (
-                <span style={{ fontSize: '22px', fontWeight: 500, color: MUTED }}>Custom</span>
+                <span style={{ fontSize: '22px', fontWeight: 500, color: DK_MUTED }}>Custom</span>
               )}
 
-              <div style={{ marginTop: '10px', display: 'inline-block', background: tier.freeTrial ? SUCCESS_BG : ACCENT_BG, color: tier.freeTrial ? SUCCESS : ACCENT, padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, border: `1px solid ${tier.freeTrial ? SUCCESS_BORD : ACCENT_BORDER}` }}>
+              <div style={{ marginTop: '10px', display: 'inline-block', background: tier.freeTrial ? DK_SUCC_BG : DK_ACCENT_BG, color: tier.freeTrial ? DK_SUCCESS : DK_ACCENT, padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, border: `1px solid ${tier.freeTrial ? DK_SUCC_BR : DK_ACCENT_BR}` }}>
                 {tier.roiText}
               </div>
             </div>
@@ -252,9 +262,9 @@ export default function PricingPage() {
                 marginBottom: '24px',
                 fontSize: '14px',
                 fontWeight: 500,
-                background: tier.freeTrial ? SUCCESS : tier.popular ? ACCENT : 'transparent',
-                color: (tier.freeTrial || tier.popular) ? WHITE : TEXT,
-                border: (tier.freeTrial || tier.popular) ? 'none' : `1px solid ${BORDER_MED}`,
+                background: tier.freeTrial ? DK_SUCCESS : tier.popular ? DK_ACCENT : 'transparent',
+                color: (tier.freeTrial || tier.popular) ? '#fff' : DK_TEXT,
+                border: (tier.freeTrial || tier.popular) ? 'none' : `1px solid ${DK_BORDER_MD}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'opacity 150ms',
@@ -266,12 +276,12 @@ export default function PricingPage() {
             </button>
 
             <div style={{ flex: 1 }}>
-              <p style={{ color: FAINT, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', fontWeight: 500 }}>
+              <p style={{ color: DK_FAINT, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', fontWeight: 500 }}>
                 Features included:
               </p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 {tier.features.map((feature, idx) => (
-                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: feature.startsWith('Everything') ? FAINT : MUTED }}>
+                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: feature.startsWith('Everything') ? DK_FAINT : DK_MUTED }}>
                     <svg width="14" height="14" fill="none" stroke={checkColor(tier)} strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
@@ -286,18 +296,18 @@ export default function PricingPage() {
 
       {/* ── Guarantee ── */}
       <div style={{ maxWidth: '800px', margin: '0 auto 64px', padding: '0 24px', textAlign: 'center' }}>
-        <div style={{ background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}`, borderRadius: '12px', padding: '36px 32px' }}>
-          <h3 style={{ marginBottom: '12px', color: TEXT, fontSize: '18px', fontWeight: 500 }}>
+        <div style={{ background: DK_ACCENT_BG, border: `1px solid ${DK_ACCENT_BR}`, borderRadius: '12px', padding: '36px 32px' }}>
+          <h3 style={{ marginBottom: '12px', color: DK_TEXT, fontSize: '18px', fontWeight: 500 }}>
             The ChurnGuard Guarantee
           </h3>
-          <p style={{ color: MUTED, fontSize: '16px', lineHeight: 1.7, marginBottom: '24px' }}>
-            We guarantee you'll save <strong style={{ color: TEXT }}>10× your subscription</strong> in prevented churn,
+          <p style={{ color: DK_MUTED, fontSize: '16px', lineHeight: 1.7, marginBottom: '24px' }}>
+            We guarantee you'll save <strong style={{ color: DK_TEXT }}>10× your subscription</strong> in prevented churn,
             or we'll refund every penny. No questions asked.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', fontSize: '13px', color: MUTED }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', fontSize: '13px', color: DK_MUTED }}>
             {['30-day free trial', 'Cancel anytime', 'No contracts', 'No setup fees'].map(item => (
               <span key={item} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <svg width="13" height="13" fill="none" stroke={SUCCESS} strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
+                <svg width="13" height="13" fill="none" stroke={DK_SUCCESS} strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 {item}
@@ -308,10 +318,10 @@ export default function PricingPage() {
       </div>
 
       {/* ── FAQ teaser ── */}
-      <div style={{ maxWidth: '600px', margin: '0 auto 64px', padding: '0 24px', textAlign: 'center', fontSize: '14px', color: FAINT }}>
-        <p>Questions? <a href="mailto:admin@churnguardapp.com" style={{ color: ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>Contact our team</a></p>
+      <div style={{ maxWidth: '600px', margin: '0 auto 64px', padding: '0 24px', textAlign: 'center', fontSize: '14px', color: DK_FAINT }}>
+        <p>Questions? <a href="mailto:admin@churnguardapp.com" style={{ color: DK_ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>Contact our team</a></p>
       </div>
 
-    </PublicShell>
+    </DarkShell>
   );
 }
