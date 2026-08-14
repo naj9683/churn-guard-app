@@ -170,7 +170,6 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
-  const [submitted, setSubmitted]       = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
@@ -205,8 +204,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
       } catch { /* private browsing may block sessionStorage */ }
 
       clearTimeout(fallbackTimer);
-      setSubmitted(true);
-      setTimeout(() => onDoneRef.current(email), 600);
+      onDoneRef.current(email);
     }
 
     window.addEventListener('message', onMessage);
@@ -215,19 +213,6 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
       clearTimeout(fallbackTimer);
     };
   }, []);
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: PAGE_BG }}>
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} style={{ color: WHITE }}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <p className="font-semibold text-lg" style={{ color: TEXT }}>Loading your audit tool…</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: PAGE_BG }}>
@@ -264,7 +249,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
             </span>
           </h1>
           <p className="text-lg" style={{ color: MUTED }}>
-            Upload a CSV or connect Stripe (read-only). We&apos;ll email you your churn rate vs. benchmark and revenue at risk.
+            Connect Stripe or upload a CSV — see your churn rate, revenue at risk, and highest-risk customers instantly.
           </p>
         </div>
 
@@ -316,7 +301,7 @@ function HubSpotGateScreen({ onDone }: { onDone: (email: string) => void }) {
 
         {/* Social proof */}
         <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs" style={{ color: MUTED }}>
-          {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
+          {['Stripe key never stored', 'Results shown instantly', 'No credit card needed'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" style={{ color: SUCCESS }}>
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -656,9 +641,6 @@ function ResultsScreen({ results, email }: { results: AuditResult; email: string
         <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 leading-tight" style={{ color: TEXT }}>
           The Brutal Truth About Your Churn
         </h1>
-        <p className="text-sm" style={{ color: MUTED }}>
-          Report sent to <span style={{ color: TEXT }}>{email}</span>
-        </p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-10 space-y-5">
@@ -962,7 +944,7 @@ function AuditPageInner() {
             </span>
           </h1>
           <p className="text-lg" style={{ color: MUTED }}>
-            Upload a CSV or connect Stripe (read-only). We&apos;ll email you your churn rate vs. benchmark and revenue at risk.
+            Connect Stripe or upload a CSV — see your churn rate, revenue at risk, and highest-risk customers instantly.
           </p>
         </div>
 
@@ -1068,13 +1050,13 @@ function AuditPageInner() {
             Show Me My Churn Numbers →
           </button>
           <p className="text-xs text-center mt-4" style={{ color: FAINT }}>
-            Free · Results emailed to you · Stripe key never stored
+            Free · Results shown instantly · Stripe key never stored
           </p>
         </form>
 
         {/* Social proof */}
         <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs" style={{ color: MUTED }}>
-          {['Used by 200+ SaaS founders', 'Stripe key never stored', 'Results emailed to you'].map(t => (
+          {['Stripe key never stored', 'Results shown instantly', 'No credit card needed'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" style={{ color: SUCCESS }}>
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
