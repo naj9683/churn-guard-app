@@ -35,16 +35,22 @@ interface CustomerRow {
   cancelAtPeriodEnd: boolean;
   daysSinceLastPayment: number | null;
   mrr: number;
+  factors: string[];
 }
 
 const APP_URL = 'https://churnguardapp.com';
 
 const DEMO_ROWS: CustomerRow[] = [
-  { id: 'demo-1', name: 'Emily Zhao',      email: 'emily@launchpad.dev',  riskScore: 92, riskLevel: 'high',   subscriptionStatus: 'past_due', cancelAtPeriodEnd: false, daysSinceLastPayment: 67, mrr: 299 },
-  { id: 'demo-2', name: 'Sarah Mitchell',  email: 'sarah@acme.io',        riskScore: 87, riskLevel: 'high',   subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 45, mrr: 199 },
-  { id: 'demo-3', name: 'Priya Nair',      email: 'priya@scalehq.com',    riskScore: 61, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: true,  daysSinceLastPayment: 28, mrr: 79  },
-  { id: 'demo-4', name: 'James Okafor',    email: 'james@buildco.com',    riskScore: 45, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 12, mrr: 99  },
-  { id: 'demo-5', name: 'Carlos Rivera',   email: 'carlos@growthops.io',  riskScore: 23, riskLevel: 'low',    subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 3,  mrr: 149 },
+  { id: 'demo-1', name: 'Emily Zhao',     email: 'emily@launchpad.dev',  riskScore: 92, riskLevel: 'high',   subscriptionStatus: 'past_due', cancelAtPeriodEnd: false, daysSinceLastPayment: 67, mrr: 299,
+    factors: ['Subscription is past due', 'No successful payment in the past 30 days'] },
+  { id: 'demo-2', name: 'Sarah Mitchell', email: 'sarah@acme.io',        riskScore: 87, riskLevel: 'high',   subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 45, mrr: 199,
+    factors: ['No successful payment in the past 30 days', '3 failed payment attempts'] },
+  { id: 'demo-3', name: 'Priya Nair',     email: 'priya@scalehq.com',    riskScore: 61, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: true,  daysSinceLastPayment: 28, mrr: 79,
+    factors: ['Cancellation scheduled at period end', '1 failed payment attempt'] },
+  { id: 'demo-4', name: 'James Okafor',   email: 'james@buildco.com',    riskScore: 45, riskLevel: 'medium', subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 12, mrr: 99,
+    factors: ['2 failed payment attempts', 'No successful payment in the past 30 days'] },
+  { id: 'demo-5', name: 'Carlos Rivera',  email: 'carlos@growthops.io',  riskScore: 23, riskLevel: 'low',    subscriptionStatus: 'active',   cancelAtPeriodEnd: false, daysSinceLastPayment: 3,  mrr: 149,
+    factors: ['No churn signals detected'] },
 ];
 
 // Truncate long strings so they don't overflow the narrow drawer
@@ -59,6 +65,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
   const [showingAll, setShowingAll] = useState(false);
   const [churnGuardLinked, setChurnGuardLinked] = useState(false);
   const [forceDemoMode, setForceDemoMode] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<CustomerRow | null>(null);
 
   const accountId = userContext?.account?.id ?? '';
   const apiBase = (environment?.constants as Record<string, string> | undefined)?.API_BASE
@@ -138,6 +145,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
           cancelAtPeriodEnd: sub.cancel_at_period_end,
           daysSinceLastPayment: daysSince,
           mrr: risk.mrr,
+          factors: risk.factors,
         });
       }
 
@@ -198,11 +206,101 @@ export default function App({ userContext, environment }: ExtensionContextValue)
       <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
         <Banner
           type="caution"
-          title="Could not load Stripe data"
-          description={error}
-          onDismiss={() => setError(null)}
+          title="Could not load customer data"
+          description="Stripe returned an error loading your subscriptions. Check that ChurnGuard has the required permissions, then retry."
         />
         <Button onPress={load}>Retry</Button>
+      </Box>
+    );
+  }
+
+  // ── In-panel customer detail ───────────────────────────────────────────────
+  if (selectedRow !== null) {
+    const row = selectedRow;
+    const detailSignupUrl = `${APP_URL}/signup?${new URLSearchParams({
+      stripe_account_id: accountId,
+      customer_id: row.id,
+      source: 'stripe_app_customer',
+    })}`;
+    return (
+      <Box css={{ stack: 'y', gap: 'medium', padding: 'medium' }}>
+        <Box>
+          <Button type="secondary" size="small" onPress={() => setSelectedRow(null)}>
+            ← Back
+          </Button>
+        </Box>
+        <Box css={{ stack: 'y', gap: 'xxsmall' }}>
+          <Box css={{ font: 'subheading' }}>{trunc(row.name, 30)}</Box>
+          <Box css={{ font: 'caption' }}>{trunc(row.email, 36)}</Box>
+        </Box>
+        <Box>
+          <Badge type={riskBadgeType(row.riskLevel)}>
+            {row.riskScore}/100 —{' '}
+            {row.riskLevel === 'high' ? 'High' : row.riskLevel === 'medium' ? 'Medium' : 'Low'} Risk
+          </Badge>
+        </Box>
+        <Box css={{ stack: 'x', gap: 'small' }}>
+          <Box css={{
+            stack: 'y', gap: 'xxsmall', padding: 'small',
+            backgroundColor: 'container', borderRadius: 'medium', width: 'fill',
+          }}>
+            <Box css={{ font: 'caption' }}>Subscription</Box>
+            <Badge type={subscriptionBadgeType(row.subscriptionStatus, row.cancelAtPeriodEnd)}>
+              {subscriptionLabel(row.subscriptionStatus, row.cancelAtPeriodEnd)}
+            </Badge>
+          </Box>
+          <Box css={{
+            stack: 'y', gap: 'xxsmall', padding: 'small',
+            backgroundColor: 'container', borderRadius: 'medium', width: 'fill',
+          }}>
+            <Box css={{ font: 'caption' }}>MRR</Box>
+            <Box css={{ font: 'bodyEmphasized' }}>
+              {fmtMrr(row.mrr)}
+            </Box>
+          </Box>
+          <Box css={{
+            stack: 'y', gap: 'xxsmall', padding: 'small',
+            backgroundColor: 'container', borderRadius: 'medium', width: 'fill',
+          }}>
+            <Box css={{ font: 'caption' }}>Last Payment</Box>
+            <Box css={{ font: 'bodyEmphasized' }}>
+              {row.daysSinceLastPayment !== null ? `${row.daysSinceLastPayment}d ago` : '—'}
+            </Box>
+          </Box>
+        </Box>
+        <Divider />
+        <Box css={{ stack: 'y', gap: 'xsmall' }}>
+          <Box css={{ font: 'subheading' }}>Risk Factors</Box>
+          {row.factors.map((factor, i) => (
+            <Box
+              key={i}
+              css={{
+                stack: 'x', gap: 'small', padding: 'xsmall',
+                backgroundColor: 'container', borderRadius: 'small', alignY: 'center',
+              }}
+            >
+              <Badge type={riskBadgeType(row.riskLevel)}>{i + 1}</Badge>
+              <Box css={{ font: 'body', width: 'fill' }}>{factor}</Box>
+            </Box>
+          ))}
+        </Box>
+        <Divider />
+        <Box css={{ stack: 'y', gap: 'small' }}>
+          <Box css={{ font: 'body' }}>
+            Prevent {row.name.split(' ')[0]} from churning — ChurnGuard sends automated
+            retention messages the moment risk signals appear.
+          </Box>
+          <Inline>
+            <Button type="primary" href={detailSignupUrl} target="_blank">
+              Prevent Churn — Start Free Trial
+            </Button>
+          </Inline>
+          <Inline>
+            <Link href={`${APP_URL}/pricing?source=stripe_app`} external>
+              See all ChurnGuard plans →
+            </Link>
+          </Inline>
+        </Box>
       </Box>
     );
   }
@@ -274,7 +372,7 @@ export default function App({ userContext, environment }: ExtensionContextValue)
           ? <Badge type="warning">Demo data</Badge>
           : <Badge type="neutral">{rows.length}</Badge>
         }
-        <Box css={{ width: 'fill' }} />
+        <Box css={{ width: 'fill' }}>{null}</Box>
         <Button
           type="secondary"
           size="small"
@@ -286,41 +384,39 @@ export default function App({ userContext, environment }: ExtensionContextValue)
 
       <Box css={{ stack: 'y', gap: 'xsmall' }}>
         {displayRows.map(row => (
-          <Box
+          <Button
             key={row.id}
-            css={{
-              stack: 'y',
-              gap: 'xxsmall',
-              padding: 'small',
-              backgroundColor: 'container',
-              borderRadius: 'medium',
-            }}
+            type="secondary"
+            onPress={() => setSelectedRow(row)}
+            css={{ width: 'fill' }}
           >
-            {/* Row 1: name + email on left, risk badge on right */}
-            <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
-              <Box css={{ stack: 'y', gap: 'xxsmall', width: 'fill' }}>
-                <Box css={{ font: 'bodyEmphasized' }}>{trunc(row.name, 24)}</Box>
-                <Box css={{ font: 'caption' }}>{trunc(row.email, 30)}</Box>
+            <Box css={{ stack: 'y', gap: 'xxsmall', width: 'fill' }}>
+              {/* Row 1: name + email on left, risk badge + arrow on right */}
+              <Box css={{ stack: 'x', gap: 'small', alignY: 'center' }}>
+                <Box css={{ stack: 'y', gap: 'xxsmall', width: 'fill' }}>
+                  <Box css={{ font: 'bodyEmphasized' }}>{trunc(row.name, 20)}</Box>
+                  <Box css={{ font: 'caption' }}>{trunc(row.email, 22)}</Box>
+                </Box>
+                <Badge type={riskBadgeType(row.riskLevel)}>
+                  {row.riskScore}{' '}
+                  {row.riskLevel === 'high' ? 'High' : row.riskLevel === 'medium' ? 'Med' : 'Low'}
+                </Badge>
+                <Box css={{ font: 'caption' }}>›</Box>
               </Box>
-              <Badge type={riskBadgeType(row.riskLevel)}>
-                {row.riskScore}{' '}
-                {row.riskLevel === 'high' ? 'High' : row.riskLevel === 'medium' ? 'Med' : 'Low'}
-              </Badge>
-            </Box>
-
-            {/* Row 2: status badge + MRR + last payment (all small) */}
-            <Box css={{ stack: 'x', gap: 'xsmall', alignY: 'center' }}>
-              <Badge type={subscriptionBadgeType(row.subscriptionStatus, row.cancelAtPeriodEnd)}>
-                {subscriptionLabel(row.subscriptionStatus, row.cancelAtPeriodEnd)}
-              </Badge>
-              <Box css={{ font: 'caption' }}>
-                {fmtMrr(row.mrr)}/mo
-                {row.daysSinceLastPayment !== null
-                  ? ` · ${row.daysSinceLastPayment}d ago`
-                  : ''}
+              {/* Row 2: status badge + MRR + last payment (all small) */}
+              <Box css={{ stack: 'x', gap: 'xsmall', alignY: 'center' }}>
+                <Badge type={subscriptionBadgeType(row.subscriptionStatus, row.cancelAtPeriodEnd)}>
+                  {subscriptionLabel(row.subscriptionStatus, row.cancelAtPeriodEnd)}
+                </Badge>
+                <Box css={{ font: 'caption' }}>
+                  {fmtMrr(row.mrr)}/mo
+                  {row.daysSinceLastPayment !== null
+                    ? ` · ${row.daysSinceLastPayment}d ago`
+                    : ''}
+                </Box>
               </Box>
             </Box>
-          </Box>
+          </Button>
         ))}
 
         {rows.length > 8 && (

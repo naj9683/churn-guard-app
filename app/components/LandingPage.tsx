@@ -547,6 +547,138 @@ function SignalDowngrade() {
   );
 }
 
+// ── Churn cost calculator ─────────────────────────────────────────────────────
+
+function getPlan(mrr: number): { name: string; monthly: number | null } {
+  if (mrr <= 50_000)   return { name: 'Seed',       monthly: 79  };
+  if (mrr <= 200_000)  return { name: 'Growth',     monthly: 149 };
+  if (mrr <= 1_000_000) return { name: 'Scale',     monthly: 299 };
+  return                      { name: 'Enterprise', monthly: null };
+}
+
+const fmt = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M`
+  : n >= 1_000   ? `$${Math.round(n / 1_000)}K`
+  : `$${n}`;
+
+function ChurnCalculator() {
+  const [mrr,       setMrr]       = useState(25_000);
+  const [churnRate, setChurnRate] = useState(3);
+
+  const lostPerYear    = Math.round(mrr * (churnRate / 100) * 12);
+  const recoverable    = Math.round(lostPerYear * 0.35);
+  const plan           = getPlan(mrr);
+  const planCostAnnual = plan.monthly ? plan.monthly * 12 : null;
+  const rateColor      = churnRate > 5 ? '#f87171' : churnRate > 2 ? '#fb923c' : '#4ade80';
+
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-7 sm:p-9">
+      <div className="space-y-7 mb-8">
+
+        {/* MRR slider */}
+        <div>
+          <div className="flex justify-between items-baseline mb-3">
+            <label htmlFor="cg-mrr" className="text-sm font-medium text-slate-200">
+              Monthly recurring revenue
+            </label>
+            <span className="text-base font-semibold text-indigo-400">{fmt(mrr)}</span>
+          </div>
+          <input
+            id="cg-mrr"
+            type="range"
+            min={1_000} max={500_000} step={1_000}
+            value={mrr}
+            onChange={e => setMrr(Number(e.target.value))}
+            className="cg-calc-range"
+            style={{ width: '100%' }}
+          />
+          <div className="flex justify-between text-xs text-slate-600 mt-1.5">
+            <span>$1K</span><span>$500K</span>
+          </div>
+        </div>
+
+        {/* Churn rate slider */}
+        <div>
+          <div className="flex justify-between items-baseline mb-3">
+            <label htmlFor="cg-churn" className="text-sm font-medium text-slate-200">
+              Monthly churn rate
+            </label>
+            <span className="text-base font-semibold" style={{ color: rateColor }}>{churnRate}%</span>
+          </div>
+          <input
+            id="cg-churn"
+            type="range"
+            min={0.5} max={15} step={0.5}
+            value={churnRate}
+            onChange={e => setChurnRate(Number(e.target.value))}
+            className="cg-calc-range"
+            style={{ width: '100%' }}
+          />
+          <div className="flex justify-between text-xs text-slate-600 mt-1.5">
+            <span>0.5%</span><span>15%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Output cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="rounded-xl p-4 bg-red-500/10 border border-red-500/20">
+          <p className="text-xs text-slate-400 mb-1.5">Lost per year</p>
+          <p className="text-2xl font-bold text-red-400">{fmt(lostPerYear)}</p>
+        </div>
+        <div className="rounded-xl p-4 bg-green-500/10 border border-green-500/20">
+          <p className="text-xs text-slate-400 mb-1.5">Recoverable at 35%</p>
+          <p className="text-2xl font-bold text-green-400">{fmt(recoverable)}</p>
+        </div>
+        <div className="rounded-xl p-4 bg-indigo-500/10 border border-indigo-500/20">
+          <p className="text-xs text-slate-400 mb-1.5">ChurnGuard ({plan.name})</p>
+          <p className="text-2xl font-bold text-indigo-400">
+            {planCostAnnual ? `${fmt(planCostAnnual)}/yr` : 'Custom'}
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-slate-500 text-center">
+        See your exact numbers —{' '}
+        <Link href="/audit" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
+          run your free churn audit
+        </Link>
+      </p>
+
+      <style>{`
+        .cg-calc-range {
+          -webkit-appearance: none;
+          appearance: none;
+          height: 4px;
+          border-radius: 2px;
+          background: #1e293b;
+          outline: none;
+          cursor: pointer;
+        }
+        .cg-calc-range::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #6366f1;
+          border: 2px solid #fff;
+          cursor: pointer;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+        }
+        .cg-calc-range::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #6366f1;
+          border: 2px solid #fff;
+          cursor: pointer;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -664,6 +796,22 @@ export default function LandingPage() {
               </div>
             </FadeUp>
           </div>
+        </div>
+      </section>
+
+      {/* Churn cost calculator */}
+      <section className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <FadeUp className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              What Is Churn Actually<br className="hidden sm:block" />
+              <span className="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent"> Costing You?</span>
+            </h2>
+            <p className="text-slate-400 text-lg">Drag the sliders. No email required.</p>
+          </FadeUp>
+          <FadeUp delay={0.08}>
+            <ChurnCalculator />
+          </FadeUp>
         </div>
       </section>
 

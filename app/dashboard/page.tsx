@@ -1,5 +1,7 @@
 'use client';
 
+declare global { interface Window { dataLayer: unknown[] } }
+
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -92,6 +94,24 @@ export default function Dashboard() {
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
+  // Fire trial_started once when user arrives at dashboard after signup
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('cg_trial_start_pending');
+      if (!pending) return;
+      sessionStorage.removeItem('cg_trial_start_pending');
+      const { plan } = JSON.parse(pending) as { plan?: string };
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'trial_started',
+        product: 'churnguard',
+        plan_intent: plan ?? 'trial',
+        trial_days: 30,
+        signup_method: 'email',
+      });
+    } catch { /* ignore */ }
+  }, []);
+
   // Sync demo mode with localStorage
   useEffect(() => {
     setDemoMode(localStorage.getItem('cg_demo_mode') === 'true');
@@ -162,10 +182,6 @@ export default function Dashboard() {
       const res = await fetch('/api/onboarding/status');
       if (res.ok) {
         const data = await res.json();
-        if (!data.onboardingComplete) {
-          router.push('/onboarding');
-          return;
-        }
         setWidgetInstalled(data.widgetInstalled ?? false);
       }
     } catch (error) {

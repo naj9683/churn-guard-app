@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { sendGA4Event } from '@/lib/analytics/ga4';
 
 // GET — check whether a Stripe API key is stored for this user
 export async function GET() {
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await prisma.user.findFirst({ where: { clerkId }, select: { id: true } });
+  const user = await prisma.user.findFirst({ where: { clerkId }, select: { id: true, gaClientId: true } });
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
   const { apiKey } = await req.json().catch(() => ({}));
@@ -103,6 +104,11 @@ export async function POST(req: NextRequest) {
   } catch {
     // Non-fatal — key was saved; webhook secret will be null until backfill is run
   }
+
+  sendGA4Event(user.id, user.gaClientId ?? null, 'activated', {
+    product: 'churnguard',
+    activation_type: 'stripe_connected',
+  });
 
   return NextResponse.json({ connected: true, keyPrefix: apiKey.slice(0, 8) + '…' });
 }

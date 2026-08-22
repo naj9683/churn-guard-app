@@ -2,8 +2,8 @@
   "name": "churnguard-stripe-app",
   "version": "0.0.1",
   "scripts": {
-    "build": "stripe-app build",
-    "start": "stripe-app start"
+    "build": "stripe apps build",
+    "start": "stripe apps start"
   },
   "dependencies": {
     "@stripe/ui-extension-sdk": "file:../../../AppData/Local/Temp/stripe-ui-extension-sdk-fixed.tgz",

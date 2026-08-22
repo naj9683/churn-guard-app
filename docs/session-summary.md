@@ -43,6 +43,56 @@ Real live-mode checkout for najwasaadi1@gmail.com (Seed plan), 2026-07-25 13:49:
 
 ---
 
+---
+
+## Session 2026-07-27/28 — What Was Done
+
+### Landing page copy rewrite
+Replaced all marketing claims with audited-honest versions. Removed unconditional SMS claims, removed fabricated statistics, removed "AI predicts churn" framing. Copy now reflects what the product actually does today. Deployed.
+
+### Batch integrity fixes (5 findings)
+Applied to `app/api/webhooks/stripe/route.ts` and `prisma/schema.prisma`. See `docs/batch-fixes.md`. Deployed as commit `76ec1e7`.
+
+### Widget onboarding — new first-run page
+New users now land at `/onboarding/widget` instead of `/onboarding`. The page shows the no-code snippet (apiKey only, customerId optional), auto-polls for detection, and has a manual Verify button. Skip sets `cg_widget_skipped` in localStorage; the page bounces returning skipped users. `widgetInstalled Boolean @default(false)` added to schema; `/api/track` flips it on first call. Deployed as commit `241f040`.
+
+### Audits written (docs/)
+- `docs/product-reality.md` — what ChurnGuard actually does today
+- `docs/twilio-status.md` — Twilio credentials ARE in Vercel production; blocker is `customer.phone = null` for all 348 customers
+- `docs/slack-status.md` — 4/5 fire paths work; monthly digest broken (cron sends GET, route exports POST)
+- `docs/widget-pages-audit.md` — full map of widget-related pages; found that `/api/track` does not write `lastLoginAt`, so widget-only customers never get behavioral risk scores
+- `docs/widget-fix-scope.md` — scope and decision support for making the widget actually feed the score
+
+---
+
+## Next Build — Path A (widget actually feeds the score)
+
+**Decision made:** rolling 30-day window (not counter-only), popup threshold 50.
+
+Rationale: the counter-only approach has a calendar-month boundary artifact that fires the popup on healthy customers with 3-week visit cadences. The rolling window eliminates this cleanly. The data already exists — every `page_view` is in the `Event` table with a BigInt timestamp. No new storage needed. Full analysis in `docs/widget-fix-scope.md`.
+
+**Five files to change** (scored small in `docs/widget-fix-scope.md`):
+
+| File | Change |
+|---|---|
+| `app/api/track/route.ts` | On `page_view`: write `lastLoginAt = now`, increment daily session counter, reset monthly |
+| `lib/risk-formula.ts` | Replace `loginCountThisMonth` with distinct-day count from `page_view` events in last 30 days |
+| `app/api/cron/risk-analysis/route.ts` | Fetch 30-day events per customer instead of last 10 |
+| `app/api/widget/messages/route.ts` | Change `>= 70` to `>= 50` |
+| `prisma/schema.prisma` | Add `@@index([customerId, timestamp])` to Event model + db push |
+
+**Build protocol — scoring-engine change, treat carefully:**
+1. Show full diff before applying — one reviewed diff, no piecemeal edits
+2. Deploy on explicit confirm only
+3. After deploy: **test live** — paste widget on a scratch page, wait for behavioral score to appear in the dashboard (up to 6 hours for cron, or trigger manually via `/api/risk/analyze/batch`), confirm in-app popup fires at the new threshold
+4. Verify existing named/Segment customers are unaffected (their scores should not regress)
+
+**After the build — two follow-on tasks:**
+1. Reconcile `/onboarding/widget` and `/widget-install` — these two pages currently give contradictory instructions on whether `customerId` is required. After this build, the honest story is: omit `customerId` for anonymous engagement tracking + in-app popups; add it for named customers and email. Both pages need to say that.
+2. Landing page copy — currently promises "no code" in a way that is only fully true after this build ships. After the build, that claim is honest. Update copy accordingly.
+
+---
+
 ## Still Deferred
 
 ### externalId dunning matching — bulk backfill for imported customers

@@ -372,3 +372,8 @@ export const TRIAL_DEFAULTS: Record<TrialKey, Omit<TrialTemplate, 'key'>> = {
 export function getDefaultTemplate(key: TrialKey): TrialTemplate {
   return { key, ...TRIAL_DEFAULTS[key] };
 }
+
+// Exported shell wrapper used by AI sequence generator
+export function trialEmailShell(body: string): string {
+  return shell(body);
+}

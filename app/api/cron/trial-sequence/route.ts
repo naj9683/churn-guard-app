@@ -8,10 +8,10 @@ import {
   renderTemplate,
   type TrialKey,
 } from '@/lib/email/trial-sequence';
+import { generateTrialEmail, type TrialEmailCtx } from '@/lib/ai/generate-sequence-email';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://churnguardapp.com';
 
-// Load DB template override or fall back to code default
 async function getTemplate(key: TrialKey) {
   const dbTpl = await prisma.emailTemplate.findFirst({ where: { key } });
   const defaults = TRIAL_DEFAULTS[key];
@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
 
   const now = new Date();
 
-  // Find users due for their next trial email
   const users = await prisma.user.findMany({
     where: {
       trialEmailStep: { lt: TRIAL_KEYS.length },
@@ -57,14 +56,10 @@ export async function GET(req: NextRequest) {
 
     const firstName = user.name?.split(' ')[0] || user.email.split('@')[0];
 
-    // Build per-step variables
-    let vars: Record<string, string> = {
-      firstName,
-      appUrl: APP_URL,
-    };
+    let vars: Record<string, string> = { firstName, appUrl: APP_URL };
+    const trialCtx: TrialEmailCtx = { firstName };
 
     if (stepKey === 'trial_day_10') {
-      // Pull real revenue at risk if Stripe connected, else use benchmark
       const stripeInt = await prisma.crmIntegration.findUnique({
         where: { userId_type: { userId: user.id, type: 'stripe' } },
         select: { enabled: true, accessToken: true },
@@ -78,10 +73,9 @@ export async function GET(req: NextRequest) {
           _sum: { mrr: true },
         });
         revenueAtRisk = agg._sum?.mrr ?? 0;
-        // Fall back to benchmark if no customers yet
         if (revenueAtRisk === 0) revenueAtRisk = 2400;
       } else {
-        revenueAtRisk = 2400; // industry benchmark
+        revenueAtRisk = 2400;
       }
 
       vars = {
@@ -93,6 +87,10 @@ export async function GET(req: NextRequest) {
           ? 'based on your connected Stripe account,'
           : 'based on industry benchmarks for SaaS companies at your stage,',
       };
+      trialCtx.revenueAtRisk    = revenueAtRisk;
+      trialCtx.annualizedLoss   = revenueAtRisk * 12;
+      trialCtx.recoveryEstimate = Math.round(revenueAtRisk * 0.35);
+      trialCtx.stripeConnected  = stripeConnected;
     }
 
     if (stepKey === 'trial_day_13') {
@@ -107,6 +105,9 @@ export async function GET(req: NextRequest) {
         playbooks: playbookCount.toString(),
         avgRisk:   Math.round(riskAgg._avg?.riskScore ?? 0).toString(),
       };
+      trialCtx.customers = customerCount;
+      trialCtx.playbooks = playbookCount;
+      trialCtx.avgRisk   = Math.round(riskAgg._avg?.riskScore ?? 0);
     }
 
     if (stepKey === 'trial_day_17') {
@@ -121,6 +122,9 @@ export async function GET(req: NextRequest) {
         playbooks:        playbookCount.toString(),
         revenueMonitored: (revenueAgg._sum?.mrr ?? 0).toLocaleString(),
       };
+      trialCtx.customers        = customerCount;
+      trialCtx.playbooks        = playbookCount;
+      trialCtx.revenueMonitored = revenueAgg._sum?.mrr ?? 0;
     }
 
     if (stepKey === 'trial_day_21') {
@@ -128,6 +132,7 @@ export async function GET(req: NextRequest) {
         where: { userId: user.id, isActive: false },
       });
       vars = { ...vars, inactivePlaybooks: inactivePlaybooks.toString() };
+      trialCtx.inactivePlaybooks = inactivePlaybooks;
     }
 
     if (stepKey === 'trial_day_25') {
@@ -144,14 +149,29 @@ export async function GET(req: NextRequest) {
         avgRisk:          Math.round(riskAgg._avg?.riskScore ?? 0).toString(),
         revenueMonitored: (revenueAgg._sum?.mrr ?? 0).toLocaleString(),
       };
+      trialCtx.customers        = customerCount;
+      trialCtx.playbooks        = playbookCount;
+      trialCtx.avgRisk          = Math.round(riskAgg._avg?.riskScore ?? 0);
+      trialCtx.revenueMonitored = revenueAgg._sum?.mrr ?? 0;
     }
 
-    // Load template and render
-    const tpl     = await getTemplate(stepKey);
-    const subject = renderTemplate(tpl.subject, vars);
-    const html    = renderTemplate(tpl.bodyHtml, vars);
+    // Try AI first; fall back to static template in the same request
+    const aiEmail = await generateTrialEmail(trialCtx, stepKey);
+    const emailSource: 'ai' | 'fallback' = aiEmail ? 'ai' : 'fallback';
 
-    const result = await sendEmail(user.email, subject, html, user.id);
+    let subject: string;
+    let html: string;
+
+    if (aiEmail) {
+      subject = aiEmail.subject;
+      html    = aiEmail.html;
+    } else {
+      const tpl = await getTemplate(stepKey);
+      subject   = renderTemplate(tpl.subject, vars);
+      html      = renderTemplate(tpl.bodyHtml, vars);
+    }
+
+    const result = await sendEmail(user.email, subject, html, user.id, emailSource);
 
     if (result.success) {
       const nextStep    = step + 1;
@@ -167,7 +187,7 @@ export async function GET(req: NextRequest) {
       });
       sent++;
     } else {
-      console.error(`[trial-sequence] failed step=${step} user=${user.email}`);
+      console.error(`[trial-sequence] failed step=${step} user=${user.email} source=${emailSource}`);
       failed++;
     }
   }

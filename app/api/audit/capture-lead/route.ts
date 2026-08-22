@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail } from '@/lib/email/resend';
-import { email1, daysUntilNextEmail } from '@/lib/email/audit-sequence';
+import { daysUntilNextEmail } from '@/lib/email/audit-sequence';
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -60,12 +59,6 @@ export async function POST(request: NextRequest) {
     console.error('[capture-lead] DB write failed:', dbErr);
     // Don't return an error — let the user through regardless
   }
-
-  // Send welcome email (non-blocking)
-  const e1 = email1({ id: 'pending', email, ...safeResult });
-  sendEmail(email, e1.subject, e1.html).catch(e =>
-    console.error('[capture-lead] email1 failed:', e)
-  );
 
   return NextResponse.json({ ok: true });
 }

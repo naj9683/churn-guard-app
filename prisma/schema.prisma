@@ -35,6 +35,7 @@ model User {
   trialEmailStep     Int              @default(0)
   nextTrialEmailAt   DateTime?
   aiEmailEnabled     Boolean          @default(true)
+  gaClientId         String?
   automationRules    AutomationRule[]
   customers          Customer[]
   emailCampaigns     EmailCampaign[]

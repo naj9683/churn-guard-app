@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import SegmentScript from '@/app/components/SegmentScript';
 import MixpanelInit from '@/app/components/MixpanelInit';
 import { Analytics } from '@vercel/analytics/next';
+import Script from 'next/script';
 import "./globals.css";
 
 const inter = Inter({
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
     apple: '/logo-purple.png',
   },
   title: {
-    default: 'ChurnGuard — Churn Prevention Software for SaaS',
+    default: 'ChurnGuard — Stop Churn Before It Happens',
     template: '%s | ChurnGuard',
   },
   description:
@@ -64,6 +65,20 @@ export const metadata: Metadata = {
   },
 };
 
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://churnguardapp.com/#organization',
+  name: 'ChurnGuard',
+  url: 'https://churnguardapp.com',
+  logo: 'https://churnguardapp.com/og-default.png',
+  description: 'Automated retention playbooks that act before customers cancel. Built for founder-led, Stripe-billing SaaS teams.',
+  sameAs: [
+    'https://marketplace.stripe.com/apps/churnguard',
+    'https://alternativeto.net/software/churnguard/',
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -73,9 +88,17 @@ export default function RootLayout({
     <ClerkProvider afterSignInUrl="/dashboard" afterSignUpUrl="/dashboard">
       <html lang="en">
         <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          />
+          {/* Google Tag Manager */}
+          <Script id="gtm-head" strategy="afterInteractive">{`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PFKGBVVW');`}</Script>
           <script dangerouslySetInnerHTML={{ __html: `function initApollo(){var n=Math.random().toString(36).substring(7),o=document.createElement("script");o.src="https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache="+n,o.async=!0,o.defer=!0,o.onload=function(){window.trackingFunctions.onLoad({appId:"69cd6d96e58c5900110a11b2"})},document.head.appendChild(o)}initApollo();` }} />
         </head>
         <body className={`${inter.variable} font-sans antialiased`}>
+          {/* Google Tag Manager (noscript) */}
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PFKGBVVW" height="0" width="0" style={{display:'none',visibility:'hidden'}}></iframe></noscript>
           {children}
           <SegmentScript />
           <MixpanelInit />

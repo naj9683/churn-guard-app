@@ -186,11 +186,11 @@ export function email4(lead: AuditLeadData): { subject: string; html: string } {
   const content = `
     <p style="color:#94a3b8;font-size:13px;margin:0 0 16px;">This is my last email about your audit.</p>
     <h1 style="color:#fff;font-size:21px;font-weight:800;margin:0 0 16px;line-height:1.3;">
-      Last call — your audit data will be deleted in 24 hours.
+      Last call — one final look at your numbers.
     </h1>
 
     <p style="color:#cbd5e1;font-size:14px;line-height:1.7;margin:0 0 16px;">
-      We automatically delete audit data after 7 days for privacy. After tonight, your churn report and at-risk customer list will be gone.
+      I'm wrapping up this sequence. Your audit results are below — if you haven't acted on them yet, this is the nudge.
     </p>
 
     <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
@@ -215,7 +215,7 @@ export function email4(lead: AuditLeadData): { subject: string; html: string } {
   `;
 
   return {
-    subject: `Last call — your audit expires in 24 hours`,
+    subject: `Last call — your churn audit results`,
     html: shell(content, lead.id),
   };
 }
@@ -230,6 +230,11 @@ export function getEmailForStep(step: number, lead: AuditLeadData): { subject: s
     case 4: return email4(lead);
     default: return null;
   }
+}
+
+// Exported shell wrapper used by AI sequence generator
+export function auditEmailShell(content: string, leadId: string): string {
+  return shell(content, leadId);
 }
 
 // Days until next email after sending the given step

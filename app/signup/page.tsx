@@ -1,5 +1,7 @@
 'use client';
 
+declare global { interface Window { dataLayer: unknown[] } }
+
 import { useSignUp, useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
@@ -106,6 +108,25 @@ function SignupForm() {
       const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+
+        // Set flag so dashboard fires trial_started after navigation (avoids losing the
+        // push to a hard redirect when the user selects a paid plan and goes to Stripe)
+        try {
+          sessionStorage.setItem('cg_trial_start_pending', JSON.stringify({ plan: planSlug }));
+        } catch { /* private browsing */ }
+
+        // Capture GA4 client ID from _ga cookie; retry once after 1 s if missing
+        let gaClientId = (document.cookie.match(/_ga=GA1\.\d\.(\d+\.\d+)/) || [])[1] || null;
+        if (!gaClientId) {
+          await new Promise(r => setTimeout(r, 1000));
+          gaClientId = (document.cookie.match(/_ga=GA1\.\d\.(\d+\.\d+)/) || [])[1] || null;
+        }
+        fetch('/api/user/ga-client-id', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gaClientId }),
+        }).catch(() => {});
+
         if (tierName) await redirectToStripe(tierName);
         else router.push('/dashboard');
       } else {

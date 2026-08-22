@@ -3,6 +3,18 @@ import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 import { runAutomationEngine } from '@/lib/automation-engine';
 import { enrollInSequence } from '@/lib/sequences';
+import { sendGA4Event } from '@/lib/analytics/ga4';
+
+// Maps Stripe price IDs (from env) to GA4 event parameters
+const PRICE_TO_TIER: Record<string, { name: string; value: number; mrr_band: string }> = Object.fromEntries(
+  (
+    [
+      [process.env.STRIPE_SEED_PRICE_ID,   { name: 'seed',   value: 79,  mrr_band: '0_50k'    }],
+      [process.env.STRIPE_GROWTH_PRICE_ID, { name: 'growth', value: 149, mrr_band: '50_200k'  }],
+      [process.env.STRIPE_SCALE_PRICE_ID,  { name: 'scale',  value: 299, mrr_band: '200k_plus'}],
+    ] as [string | undefined, { name: string; value: number; mrr_band: string }][]
+  ).filter(([k]) => k),
+);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -95,6 +107,30 @@ export async function POST(req: Request) {
 
       if (clerkUserId && session.mode === 'subscription') {
         await provisionSubscription(clerkUserId, stripeCustomerId, session.subscription as string | null);
+
+        // Fire subscribed GA4 event for platform billing only
+        if (!verifiedUserId && session.subscription) {
+          try {
+            const subUser = await prisma.user.findFirst({
+              where: { clerkId: clerkUserId },
+              select: { id: true, gaClientId: true },
+            });
+            const stripeSub = await stripe.subscriptions.retrieve(session.subscription as string);
+            const priceId = stripeSub.items.data[0]?.price?.id;
+            const tier = priceId ? PRICE_TO_TIER[priceId] : null;
+            if (subUser && tier) {
+              sendGA4Event(subUser.id, subUser.gaClientId ?? null, 'subscribed', {
+                product: 'churnguard',
+                plan_tier: tier.name,
+                value: tier.value,
+                currency: 'USD',
+                mrr_band: tier.mrr_band,
+              });
+            }
+          } catch (err) {
+            console.error('[ga4] subscribed event failed:', err);
+          }
+        }
       }
     }
 
@@ -104,6 +140,7 @@ export async function POST(req: Request) {
       const prev = event.data.previous_attributes as Record<string, unknown> | undefined;
       await syncSubscriptionStatus(sub);
       if (prev) await maybeRecordDowngrade(sub, prev, verifiedUserId);
+      if (prev && !verifiedUserId) await maybeFirePlanUpgrade(sub, prev);
     }
 
     // Handle payment failure — record event + fire automation rules
@@ -143,6 +180,39 @@ export async function POST(req: Request) {
       // Pass the full sub object so cancelPlatformSubscription can record current_period_end,
       // allowing access to continue until the end of the paid period.
       await cancelPlatformSubscription(stripeCustomerId, sub);
+
+      // Fire churned GA4 event for platform billing only
+      if (!verifiedUserId) {
+        try {
+          const churnedUser = await prisma.user.findFirst({
+            where: { stripeCustomerId },
+            select: { id: true, gaClientId: true },
+          });
+          if (churnedUser) {
+            const churnedSub = await prisma.subscription.findFirst({
+              where: { userId: churnedUser.id },
+              orderBy: { createdAt: 'asc' },
+              select: { priceId: true, createdAt: true },
+            });
+            if (churnedSub) {
+              const tier = PRICE_TO_TIER[churnedSub.priceId] ?? null;
+              const lifetimeMonths = Math.round(
+                (Date.now() - churnedSub.createdAt.getTime()) / (30 * 24 * 60 * 60 * 1000),
+              );
+              if (tier) {
+                sendGA4Event(churnedUser.id, churnedUser.gaClientId ?? null, 'churned', {
+                  product: 'churnguard',
+                  plan_tier: tier.name,
+                  value: tier.value,
+                  lifetime_months: lifetimeMonths,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[ga4] churned event failed:', err);
+        }
+      }
 
       // Also mark any ChurnGuard-tracked customers as cancelled
       await cancelCustomer(stripeCustomerId, verifiedUserId);
@@ -353,6 +423,45 @@ async function maybeRecordDowngrade(
     console.log(`✅ downgrade_detected recorded for customer ${customer.id}`);
   } catch (error) {
     console.error('Error recording downgrade:', error);
+  }
+}
+
+// ── Detect plan upgrades and fire GA4 plan_upgraded event ────────────────────
+
+async function maybeFirePlanUpgrade(
+  sub: Stripe.Subscription,
+  prev: Record<string, unknown>,
+) {
+  try {
+    const prevItems = (prev.items as any)?.data;
+    const prevAmount: number | undefined = (prev.plan as any)?.amount ?? prevItems?.[0]?.plan?.amount;
+    const newAmount = sub.items.data[0]?.price?.unit_amount ?? null;
+
+    const isUpgrade =
+      typeof prevAmount === 'number' && typeof newAmount === 'number' && newAmount > prevAmount;
+    if (!isUpgrade) return;
+
+    const stripeCustomerId = sub.customer as string;
+    const user = await prisma.user.findFirst({
+      where: { stripeCustomerId },
+      select: { id: true, gaClientId: true },
+    });
+    if (!user) return;
+
+    const newPriceId = sub.items.data[0]?.price?.id;
+    const prevPriceId = prevItems?.[0]?.price?.id ?? prevItems?.[0]?.plan?.id;
+
+    const fromTier = prevPriceId ? (PRICE_TO_TIER[prevPriceId]?.name ?? null) : null;
+    const toTier   = newPriceId  ? (PRICE_TO_TIER[newPriceId]?.name ?? null)  : null;
+
+    sendGA4Event(user.id, user.gaClientId ?? null, 'plan_upgraded', {
+      product: 'churnguard',
+      from_tier: fromTier,
+      to_tier: toTier,
+      value_delta: Math.round((newAmount - (prevAmount ?? 0)) / 100),
+    });
+  } catch (err) {
+    console.error('[ga4] plan_upgraded event failed:', err);
   }
 }
 

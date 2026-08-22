@@ -28,6 +28,11 @@ const stripe = new Stripe(STRIPE_API_KEY, {
 
 const APP_URL = 'https://churnguardapp.com';
 
+function fmtMrr(n: number): string {
+  if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
+  return `$${n}`;
+}
+
 export default function CustomerDetailView({ userContext, environment }: ExtensionContextValue) {
   const customerId = environment?.objectContext?.id ?? '';
   const accountId = userContext?.account?.id ?? '';
@@ -133,9 +138,8 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
       <Box css={{ padding: 'medium', stack: 'y', gap: 'medium' }}>
         <Banner
           type="caution"
-          title="Error"
-          description={error}
-          onDismiss={() => setError(null)}
+          title="Could not load customer data"
+          description="Stripe returned an error. Check that ChurnGuard has the required permissions, then retry."
         />
         <Button onPress={load}>Retry</Button>
       </Box>
@@ -174,8 +178,8 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
           backgroundColor: 'container', borderRadius: 'medium', width: '1/3',
         }}>
           <Box css={{ font: 'caption' }}>MRR</Box>
-          <Box css={{ font: 'heading' }}>
-            ${risk.mrr.toLocaleString('en-US', { maximumFractionDigits: 0 })}/mo
+          <Box css={{ font: 'bodyEmphasized' }}>
+            {fmtMrr(risk.mrr)}
           </Box>
         </Box>
 
@@ -184,7 +188,7 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
           backgroundColor: 'container', borderRadius: 'medium', width: '1/3',
         }}>
           <Box css={{ font: 'caption' }}>Last Payment</Box>
-          <Box css={{ font: 'heading' }}>
+          <Box css={{ font: 'bodyEmphasized' }}>
             {daysSince !== null ? `${daysSince}d ago` : '—'}
           </Box>
         </Box>
@@ -207,7 +211,7 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
                 <Badge type={risk.level === 'high' ? 'negative' : risk.level === 'medium' ? 'warning' : 'positive'}>
                   {i + 1}
                 </Badge>
-                <Box css={{ font: 'body' }}>{factor}</Box>
+                <Box css={{ font: 'body', width: 'fill' }}>{factor}</Box>
               </Box>
             ))}
           </Box>
@@ -219,7 +223,7 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
       {/* CTA */}
       <Box css={{ stack: 'y', gap: 'small' }}>
         <Box css={{ font: 'body' }}>
-          Prevent {customerName} from churning — ChurnGuard sends automated retention
+          Prevent {customerName.split(' ')[0]} from churning — ChurnGuard sends automated retention
           messages the moment risk signals appear.
         </Box>
         <Inline>
