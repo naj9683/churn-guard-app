@@ -149,13 +149,16 @@ export default function PricingPage() {
       {/* ── Hero ── */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 24px 32px', textAlign: 'center' }}>
         <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '999px', background: DK_ACCENT_BG, border: `1px solid ${DK_ACCENT_BR}`, color: DK_ACCENT, fontSize: '13px', fontWeight: 500, marginBottom: '24px' }}>
-          Guaranteed ROI — save 10× your subscription or money back
+          30-day free trial
         </div>
 
         <h1 style={{ fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', fontWeight: 500, color: DK_TEXT, lineHeight: 1.15, marginBottom: '16px', letterSpacing: '-0.02em' }}>
           Protect your revenue. Not your wallet.
         </h1>
 
+        <p style={{ color: DK_MUTED, fontSize: '16px', maxWidth: '560px', margin: '0 auto 12px', lineHeight: 1.6 }}>
+          Every plan includes all 3 playbooks and the Stripe integration. Start with a 30-day free trial — no card required.
+        </p>
         <p style={{ color: DK_MUTED, fontSize: '18px', maxWidth: '600px', margin: '0 auto 40px', lineHeight: 1.6 }}>
           Flat-rate pricing based on your MRR bands. No surprise bills.
           No meter anxiety. Just predictable protection.
@@ -180,6 +183,11 @@ export default function PricingPage() {
           </span>
         </div>
       </div>
+
+      {/* ── Trust strip ── */}
+      <p style={{ textAlign: 'center', color: DK_MUTED, fontSize: '13px', marginBottom: '24px' }}>
+        ✓ Live in 5 minutes · ✓ No CS hire needed · ✓ Cancel anytime
+      </p>
 
       {/* ── Pricing grid ── */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 64px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
@@ -301,8 +309,7 @@ export default function PricingPage() {
             The ChurnGuard Guarantee
           </h3>
           <p style={{ color: DK_MUTED, fontSize: '16px', lineHeight: 1.7, marginBottom: '24px' }}>
-            We guarantee you'll save <strong style={{ color: DK_TEXT }}>10× your subscription</strong> in prevented churn,
-            or we'll refund every penny. No questions asked.
+            Start with a 30-day free trial — full access, no card required. Cancel anytime from your billing page, no questions asked.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', fontSize: '13px', color: DK_MUTED }}>
             {['30-day free trial', 'Cancel anytime', 'No contracts', 'No setup fees'].map(item => (
