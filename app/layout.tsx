@@ -75,7 +75,7 @@ const orgJsonLd = {
   description: 'Automated retention playbooks that act before customers cancel. Built for founder-led, Stripe-billing SaaS teams.',
   sameAs: [
     'https://marketplace.stripe.com/apps/churnguard',
-    'https://alternativeto.net/software/churnguard/',
+    'https://alternativeto.net/software/churnguardapp/',
   ],
 };
 

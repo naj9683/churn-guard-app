@@ -108,7 +108,7 @@ export default function DarkShell({ children }: DarkShellProps) {
             <a href="/terms"      className="hover:text-slate-300 transition-colors no-underline">Terms</a>
             <a href="mailto:admin@churnguardapp.com" className="hover:text-slate-300 transition-colors no-underline">Contact</a>
             <a href="https://marketplace.stripe.com/apps/churnguard" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors no-underline">Stripe Marketplace</a>
-            <a href="https://alternativeto.net/software/churnguard/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors no-underline">AlternativeTo</a>
+            <a href="https://alternativeto.net/software/churnguardapp/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors no-underline">AlternativeTo</a>
           </div>
 
           <p className="text-slate-600 text-sm">© 2026 ChurnGuard</p>

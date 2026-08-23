@@ -28,7 +28,7 @@ const FOOTER_COMPANY: [string, string][] = [
   ['/terms',     'Terms'],
   ['/book-demo', 'Book a call'],
   ['https://marketplace.stripe.com/apps/churnguard', 'Stripe Marketplace'],
-  ['https://alternativeto.net/software/churnguard/',  'AlternativeTo'],
+  ['https://alternativeto.net/software/churnguardapp/',  'AlternativeTo'],
 ];
 
 function globalCSS() {
