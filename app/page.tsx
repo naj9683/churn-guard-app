@@ -24,12 +24,14 @@ export const metadata: Metadata = {
     url: 'https://churnguardapp.com',
     siteName: 'ChurnGuard',
     type: 'website',
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'ChurnGuard — automated churn prevention' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'ChurnGuard — stop losing customers you didn\'t know were leaving',
     description:
       'Paste one line on your site and ChurnGuard scores every customer for churn risk, then automatically emails at-risk customers to keep them. From $79/mo.',
+    images: ['/og-default.png'],
   },
   robots: {
     index: true,
@@ -41,23 +43,6 @@ export const metadata: Metadata = {
 };
 
 const BASE = 'https://churnguardapp.com';
-
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  '@id': `${BASE}/#organization`,
-  name: 'ChurnGuard',
-  url: BASE,
-  logo: `${BASE}/logo-purple.png`,
-  description:
-    'ChurnGuard is a customer retention platform for SaaS businesses. It monitors engagement, payment health, and feature usage to score every customer for churn risk, then automatically fires targeted retention emails when a customer drifts toward cancellation, and recovers failed payments before they become cancellations.',
-  foundingDate: '2026',
-  contactPoint: {
-    '@type': 'ContactPoint',
-    contactType: 'customer support',
-    email: 'admin@churnguardapp.com',
-  },
-};
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -152,7 +137,7 @@ const faqSchema = {
   ],
 };
 
-const schemas = [organizationSchema, websiteSchema, softwareSchema, faqSchema];
+const schemas = [websiteSchema, softwareSchema, faqSchema];
 
 export default function Home() {
   return (

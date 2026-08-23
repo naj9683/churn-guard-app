@@ -324,6 +324,24 @@ export default function PricingPage() {
         </div>
       </div>
 
+      {/* ── Pricing FAQ ── */}
+      <div style={{ maxWidth: '680px', margin: '0 auto 48px', padding: '0 24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 500, color: DK_TEXT, marginBottom: '24px', textAlign: 'center' }}>Pricing questions</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {[
+            { q: 'What counts as recovered revenue?', a: 'Only revenue we can prove: saved cancellations, recovered failed payments, and win-backs — each tied to a playbook action in your dashboard.' },
+            { q: 'Can I switch plans later?', a: 'Yes — upgrade, downgrade, or cancel anytime from your billing page. Changes apply immediately and we prorate fairly.' },
+            { q: 'Is there a free plan?', a: "There's a free 30-day trial of any plan, plus a permanently free churn audit. Pick the plan that matches your MRR — you can change it as you grow." },
+          ].map(({ q, a }, i) => (
+            <div key={i} style={{ borderTop: `1px solid ${DK_BORDER}`, padding: '20px 0' }}>
+              <p style={{ color: DK_TEXT, fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>{q}</p>
+              <p style={{ color: DK_MUTED, fontSize: '14px', lineHeight: 1.6 }}>{a}</p>
+            </div>
+          ))}
+          <div style={{ borderTop: `1px solid ${DK_BORDER}` }} />
+        </div>
+      </div>
+
       {/* ── FAQ teaser ── */}
       <div style={{ maxWidth: '600px', margin: '0 auto 64px', padding: '0 24px', textAlign: 'center', fontSize: '14px', color: DK_FAINT }}>
         <p>Questions? <a href="mailto:admin@churnguardapp.com" style={{ color: DK_ACCENT, textDecoration: 'underline', textUnderlineOffset: '2px' }}>Contact our team</a></p>
