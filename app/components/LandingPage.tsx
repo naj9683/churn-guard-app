@@ -345,7 +345,7 @@ function FeatureCardPlaybooks() {
           <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Workflow className="w-5 h-5 text-indigo-400" /></div>
           <div>
             <h3 className="font-semibold mb-1">Pre-Built Playbooks</h3>
-            <p className="text-slate-400 text-sm">Toggle on workflows that actually work. No empty dashboards to configure.</p>
+            <p className="text-slate-400 text-sm">Ready-made save sequences, live on day one. No flowcharts to build.</p>
           </div>
         </div>
         <div className="border-t border-slate-700/40 pt-4"><PlaybookToggles active={active} /></div>
@@ -363,7 +363,7 @@ function FeatureCardSegmentation() {
           <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Settings className="w-5 h-5 text-indigo-400" /></div>
           <div>
             <h3 className="font-semibold mb-1">Smart Segmentation</h3>
-            <p className="text-slate-400 text-sm">Different thresholds for trials vs annual contracts, SMB vs mid-market.</p>
+            <p className="text-slate-400 text-sm">Different plays for new trials, loyal customers, and big accounts.</p>
           </div>
         </div>
         <div className="border-t border-slate-700/40 pt-4"><SegmentBars active={active} /></div>
@@ -381,7 +381,7 @@ function FeatureCardSetup() {
           <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><Zap className="w-5 h-5 text-indigo-400" /></div>
           <div>
             <h3 className="font-semibold mb-1">5-Minute Setup</h3>
-            <p className="text-slate-400 text-sm">Connect Stripe. Toggle playbooks. Done. No engineering required.</p>
+            <p className="text-slate-400 text-sm">Connect Stripe, paste one line on your site, done.</p>
           </div>
         </div>
         <div className="border-t border-slate-700/40 pt-4"><SetupSteps active={active} /></div>
@@ -399,7 +399,7 @@ function FeatureCardRevenue() {
           <div className="bg-slate-700/60 p-2.5 rounded-xl shrink-0"><RefreshCw className="w-5 h-5 text-indigo-400" /></div>
           <div>
             <h3 className="font-semibold mb-1">Revenue Saved Dashboard</h3>
-            <p className="text-slate-400 text-sm">See exactly how much money the playbooks recovered each month.</p>
+            <p className="text-slate-400 text-sm">See exactly what each playbook recovered, in dollars.</p>
           </div>
         </div>
         <div className="border-t border-slate-700/40 pt-4"><RevenueSavedVisual active={active} /></div>
@@ -696,26 +696,22 @@ export default function LandingPage() {
                 <span className="text-indigo-400 text-sm font-medium">3 Playbooks. Zero Setup. Saved Revenue.</span>
               </div>
               <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-br from-white via-slate-100 to-slate-400 bg-clip-text text-transparent leading-[1.05]">
-                Automated Retention<br />That Actually Runs
+                Stop Churn Before Customers Decide to Leave
               </h1>
               <p className="text-xl text-slate-400 mb-8 max-w-xl leading-relaxed">
-                Stop staring at churn dashboards. Start running pre-built playbooks that rescue at-risk customers automatically—while you focus on building.
+                ChurnGuard watches your Stripe billing — and your product usage, once you paste one line of code — spots at-risk customers while there&apos;s still time to act, and automatically runs the save: retention emails, dunning, and win-backs. Built for small SaaS teams — no Customer Success hire needed.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-4 mb-10">
-                <Link href="/signup"
+                <Link href="/audit"
                   className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 hover:scale-[1.03] hover:shadow-lg hover:shadow-indigo-500/25">
-                  Start Free Trial <ArrowRight className="w-4 h-4" />
+                  Run Your Free Churn Audit <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a href="#playbooks"
                   className="inline-flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-white px-7 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200">
                   See the Playbooks
                 </a>
               </div>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> 3 Playbooks Ready</span>
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> 5-Minute Setup</span>
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Stripe Connected</span>
-              </div>
+              <p className="text-sm text-slate-500">5-minute setup · Works with Stripe · Cancel anytime</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.65, ease: 'easeOut', delay: 0.15 }}>
@@ -758,10 +754,10 @@ export default function LandingPage() {
                 </div>
                 <ul className="space-y-4 text-slate-400">
                   {[
-                    '"User has 73% churn risk" (Now what?)',
-                    'Empty dashboard you have to configure for weeks',
-                    'Generic "health scores" that don\'t fit your business',
-                    'Another analytics tool to check',
+                    'Dashboards you have to remember to check',
+                    'Health scores that tell you who is leaving — after it\'s obvious',
+                    'Insights that still require you to do something',
+                    'Built for teams with a CS department',
                   ].map((t) => (
                     <li key={t} className="flex items-start gap-3">
                       <span className="text-red-500 mt-0.5 shrink-0">×</span>
@@ -782,10 +778,10 @@ export default function LandingPage() {
                 </div>
                 <ul className="space-y-4 text-slate-300">
                   {[
-                    '"User stalled onboarding → Sent sequence #1 automatically"',
-                    '3 workflows ready out of the box, toggle on in 5 minutes',
-                    'Segment-specific triggers (Trial vs Annual, SMB vs Enterprise)',
-                    'Set it and actually forget it',
+                    'Detects churn risk automatically from Stripe + usage signals',
+                    'Runs the save play for you — retention emails, dunning, win-backs',
+                    'Fires automatically when a signal appears — not when you check a dashboard',
+                    'Built for founders doing support, sales, and product at once',
                   ].map((t) => (
                     <li key={t} className="flex items-start gap-3">
                       <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
@@ -807,7 +803,8 @@ export default function LandingPage() {
               What Is Churn Actually<br className="hidden sm:block" />
               <span className="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent"> Costing You?</span>
             </h2>
-            <p className="text-slate-400 text-lg">Drag the sliders. No email required.</p>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">Most founders find out a customer was unhappy the day the cancellation email arrives. By then, the decision was made weeks ago. ChurnGuard catches the signal while there&apos;s still time to act.</p>
+            <p className="text-slate-500 text-sm mt-3">Drag the sliders — no email required.</p>
           </FadeUp>
           <FadeUp delay={0.08}>
             <ChurnCalculator />
@@ -824,9 +821,9 @@ export default function LandingPage() {
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: <Zap className="w-5 h-5 text-indigo-400" />, title: 'The Onboarding Rescue', desc: 'Catch users before they churn in the first week.', trigger: 'Signed up 3 days ago, never used core feature', action: 'In-app tour + founder email sequence', delay: 0 },
-              { icon: <Users className="w-5 h-5 text-indigo-400" />, title: 'The Silent Quitter', desc: 'Re-engage power users before they disappear.', trigger: "Daily user hasn't logged in for 5 days", action: 'Slack alert to team + personal outreach email', delay: 0.1 },
-              { icon: <CreditCard className="w-5 h-5 text-indigo-400" />, title: 'The Payment Saver', desc: 'Stop cancellations at the payment failure moment.', trigger: 'Failed payment + recent login drop', action: 'Offer "Pause subscription" instead of cancel', delay: 0.2 },
+              { icon: <Zap className="w-5 h-5 text-indigo-400" />, title: 'The Onboarding Rescue', desc: "New customer signed up but never got going? ChurnGuard spots stalled onboarding and automatically sends the right nudge at the right time — before ‘I’ll set it up later’ becomes ‘cancel.’", trigger: 'Signed up 3 days ago, never used core feature', action: 'In-app tour + founder email sequence', delay: 0 },
+              { icon: <Users className="w-5 h-5 text-indigo-400" />, title: 'The Silent Quitter', desc: "Usage dropping? Logins fading? Silent churn is the biggest killer of small SaaS — customers drift away without a word. ChurnGuard detects the fade and re-engages them while they still remember your name.", trigger: "Daily user hasn't logged in for 5 days", action: 'Slack alert to team + personal outreach email', delay: 0.1 },
+              { icon: <CreditCard className="w-5 h-5 text-indigo-400" />, title: 'The Payment Saver', desc: "Industry-wide, failed payments drive 20–40% of all churn. ChurnGuard catches declined charges the moment they happen and runs a 3-step recovery sequence — email, reminder, escalation — until the payment is recovered.", trigger: 'Failed payment + recent login drop', action: 'Offer "Pause subscription" instead of cancel', delay: 0.2 },
             ].map(({ icon, title, desc, trigger, action, delay }) => (
               <FadeUp key={title} delay={delay}>
                 <div className="group h-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 hover:border-indigo-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-200">
@@ -862,6 +859,7 @@ export default function LandingPage() {
               Built for Small Teams Who Can&apos;t Hire<br className="hidden md:block" />
               <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent"> Customer Success Yet</span>
             </h2>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto mt-4">You&apos;re the founder, the support team, and the retention department — all before lunch. ChurnGuard connects to your Stripe account in 5 minutes and becomes the CS hire you can&apos;t afford yet: watching every customer, catching every signal, running every save.</p>
           </FadeUp>
           <div className="grid md:grid-cols-2 gap-6">
             <FeatureCardPlaybooks />
@@ -952,11 +950,11 @@ export default function LandingPage() {
         <div className="relative max-w-3xl mx-auto text-center">
           <FadeUp>
             <h2 className="text-3xl md:text-5xl font-bold mb-5 leading-tight">Stop Losing Customers<br />to Silence</h2>
-            <p className="text-xl text-slate-400 mb-10">Get the first 3 playbooks running in under 5 minutes.</p>
+            <p className="text-xl text-slate-400 mb-10">Every week without playbooks, more customers quietly drift away. Find out who&apos;s at risk right now — free.</p>
             <div className="max-w-xs mx-auto">
-              <Link href="/signup"
+              <Link href="/audit"
                 className="block w-full bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-semibold text-lg text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-500/30">
-                Start Free Trial
+                Run Your Free Churn Audit
               </Link>
             </div>
             <p className="text-sm text-slate-600 mt-5">30-day free trial · No credit card required · Cancel anytime</p>
