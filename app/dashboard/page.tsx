@@ -91,6 +91,7 @@ export default function Dashboard() {
   const [graceDaysLeft, setGraceDaysLeft] = useState<number | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [widgetInstalled, setWidgetInstalled] = useState<boolean | null>(null);
+  const [stripeBannerDismissed, setStripeBannerDismissed] = useState(false);
 
   const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
 
@@ -115,6 +116,10 @@ export default function Dashboard() {
   // Sync demo mode with localStorage
   useEffect(() => {
     setDemoMode(localStorage.getItem('cg_demo_mode') === 'true');
+  }, []);
+
+  useEffect(() => {
+    setStripeBannerDismissed(localStorage.getItem('cg_stripe_banner_dismissed') === '1');
   }, []);
   useEffect(() => {
     localStorage.setItem('cg_demo_mode', demoMode ? 'true' : 'false');
@@ -464,6 +469,35 @@ export default function Dashboard() {
             }}>
               Install widget →
             </a>
+          </div>
+        )}
+
+        {!demoMode && !stripeConnected && !stripeBannerDismissed && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 20px', borderRadius: '10px', marginBottom: '24px',
+            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)',
+          }}>
+            <span style={{ fontSize: '14px', color: '#4f46e5', fontWeight: '500' }}>
+              Connect Stripe to see real churn data — MRR, at-risk subscriptions, and revenue at risk.
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px', flexShrink: 0 }}>
+              <a href="/integrations" style={{
+                fontSize: '13px', fontWeight: '600', color: '#fff', background: '#6366f1',
+                padding: '6px 14px', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap',
+              }}>
+                Connect Stripe →
+              </a>
+              <button
+                onClick={() => {
+                  localStorage.setItem('cg_stripe_banner_dismissed', '1');
+                  setStripeBannerDismissed(true);
+                }}
+                style={{ background: 'none', border: 'none', color: '#9ca3af',
+                  cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '2px 4px' }}
+                aria-label="Dismiss"
+              >×</button>
+            </div>
           </div>
         )}
 
