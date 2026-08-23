@@ -111,42 +111,10 @@ const faqSchema = {
   mainEntity: [
     {
       '@type': 'Question',
-      name: 'How long does setup take?',
+      name: 'How is ChurnGuard different from Baremetrics or ChartMogul?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Install the widget on your app or connect Stripe in under 10 minutes. First risk scores appear within 6 hours. You can also add customers manually or sync from HubSpot.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Is our customer data secure?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'AES-256 encryption at rest, GDPR compliant, SOC2 Type II aligned. Stripe access is read-only by default — we never write to your Stripe account.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What if I exceed my MRR band?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We move you up automatically — no service interruption, no surprise bills. You will receive an email notice 7 days before the change.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Does it work with HubSpot?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes — native two-way sync. Contacts pull from HubSpot into ChurnGuard, and risk scores push back to HubSpot contact properties every 6 hours.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Do I need to send messages manually?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'No. ChurnGuard automatically emails at-risk customers and recovers failed payments on its own. You can also configure Slack alerts and, when customer phone numbers are available, SMS outreach. Retention emails are personalized using AI. You review results.',
+        text: 'They show you churn analytics. ChurnGuard acts on them — automatically running retention playbooks the moment a customer shows risk signals. Analytics tell you what happened. Playbooks change what happens next.',
       },
     },
     {
@@ -154,7 +122,31 @@ const faqSchema = {
       name: 'Do I need Stripe to use ChurnGuard?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'No. Stripe is one of several data sources. You can install the widget for engagement tracking, sync from HubSpot, or add customers manually. Stripe is optional.',
+        text: 'Stripe is where ChurnGuard is deepest today — failed-payment recovery, subscription signals, one-click setup. More billing integrations are on the roadmap.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How long does setup take?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'About 5 minutes. Connect Stripe, paste one line of code on your site (or skip it for billing-only signals), pick your playbooks. No developers, no flowcharts, no CS degree.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What does the free churn audit include?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: "Connect your Stripe (read-only) and we'll show your at-risk customers, failed-payment losses, and exactly which playbooks would recover them. Free, no card required, 48-hour turnaround — most finish in minutes.",
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does ChurnGuard email my customers without my say?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No. Nothing sends until you activate a playbook, and every email template is yours to edit before it ever goes out. You stay in control of what your customers see.',
       },
     },
   ],

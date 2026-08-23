@@ -679,6 +679,54 @@ function ChurnCalculator() {
   );
 }
 
+// ── FAQ accordion ─────────────────────────────────────────────────────────────
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  const items = [
+    {
+      q: 'How is ChurnGuard different from Baremetrics or ChartMogul?',
+      a: 'They show you churn analytics. ChurnGuard acts on them — automatically running retention playbooks the moment a customer shows risk signals. Analytics tell you what happened. Playbooks change what happens next.',
+    },
+    {
+      q: 'Do I need Stripe to use ChurnGuard?',
+      a: 'Stripe is where ChurnGuard is deepest today — failed-payment recovery, subscription signals, one-click setup. More billing integrations are on the roadmap.',
+    },
+    {
+      q: 'How long does setup take?',
+      a: 'About 5 minutes. Connect Stripe, paste one line of code on your site (or skip it for billing-only signals), pick your playbooks. No developers, no flowcharts, no CS degree.',
+    },
+    {
+      q: 'What does the free churn audit include?',
+      a: "Connect your Stripe (read-only) and we'll show your at-risk customers, failed-payment losses, and exactly which playbooks would recover them. Free, no card required, 48-hour turnaround — most finish in minutes.",
+    },
+    {
+      q: 'Does ChurnGuard email my customers without my say?',
+      a: 'No. Nothing sends until you activate a playbook, and every email template is yours to edit before it ever goes out. You stay in control of what your customers see.',
+    },
+  ];
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="border border-slate-700/60 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-center justify-between px-6 py-5 text-left bg-slate-800/60 hover:bg-slate-800 transition-colors duration-150"
+          >
+            <span className="font-medium text-slate-100 pr-4">{item.q}</span>
+            <span className="shrink-0 text-slate-400 text-xl leading-none">{open === i ? '−' : '+'}</span>
+          </button>
+          {open === i && (
+            <div className="px-6 py-5 bg-slate-900/50 border-t border-slate-700/40 text-slate-400 text-sm leading-relaxed">
+              {item.a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -939,6 +987,28 @@ export default function LandingPage() {
               <span>Intercom</span><span className="text-slate-700">•</span>
               <span>Zapier</span>
             </div>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <div className="border-y border-slate-800/60 bg-slate-900/30">
+        <div className="max-w-2xl mx-auto px-4 py-14 text-center">
+          <FadeUp>
+            <h2 className="text-xl font-semibold text-slate-200 mb-3">Trusted by founder-led SaaS teams</h2>
+            <p className="text-slate-400 text-base">ChurnGuard is new — and we&apos;re early. Run the free audit and judge us on your own numbers.</p>
+          </FadeUp>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <section className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-slate-900/40 border-y border-slate-800/40">
+        <div className="max-w-3xl mx-auto">
+          <FadeUp className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Questions Founders Ask</h2>
+          </FadeUp>
+          <FadeUp delay={0.08}>
+            <FaqAccordion />
           </FadeUp>
         </div>
       </section>
