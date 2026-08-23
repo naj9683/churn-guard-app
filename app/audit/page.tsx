@@ -111,6 +111,51 @@ export default function AuditPage() {
           </p>
         </div>
 
+        {/* What's in your audit + How it works */}
+        <div className="w-full max-w-md mb-8 space-y-6">
+          {/* Block A */}
+          <div className="rounded-xl border p-6" style={{ background: '#0f172a', borderColor: BORDER_MED }}>
+            <h2 className="text-sm font-semibold mb-4 uppercase tracking-wide" style={{ color: ACCENT }}>
+              What&apos;s in your free audit
+            </h2>
+            <ul className="space-y-3">
+              {[
+                'Your at-risk customers — who\'s showing churn signals right now',
+                'Your failed-payment losses — how much revenue declined cards cost you last month',
+                'Your recovery plan — the exact playbooks that would win that revenue back',
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm" style={{ color: MUTED }}>
+                  <svg className="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" style={{ color: SUCCESS }}>
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Block B */}
+          <div className="rounded-xl border p-6" style={{ background: '#0f172a', borderColor: BORDER_MED }}>
+            <h2 className="text-sm font-semibold mb-4 uppercase tracking-wide" style={{ color: ACCENT }}>
+              How it works
+            </h2>
+            <ol className="space-y-3">
+              {[
+                'Enter your details below (30 seconds)',
+                'Connect Stripe read-only — we never touch your money or your customers',
+                'Get your audit — most complete in minutes, all within 48 hours',
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm" style={{ color: MUTED }}>
+                  <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: ACCENT_BG, color: ACCENT, border: `1px solid ${ACCENT_BORDER}` }}>
+                    {i + 1}
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+
         {/* HubSpot form card */}
         <div
           className="w-full max-w-md rounded-2xl border p-8"
@@ -153,6 +198,26 @@ export default function AuditPage() {
             </svg>
             No spam — we take your privacy seriously.
           </p>
+        </div>
+
+        {/* Trust line */}
+        <p className="mt-4 text-xs text-center" style={{ color: FAINT }}>
+          🔒 Read-only Stripe access · We never email your customers without you · No card required
+        </p>
+
+        {/* Rather talk first? */}
+        <div className="mt-6 w-full max-w-md text-center rounded-xl border p-6" style={{ background: '#0f172a', borderColor: BORDER_MED }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: TEXT }}>Rather talk first?</p>
+          <p className="text-sm mb-4" style={{ color: MUTED }}>
+            Book a 15-minute call and we&apos;ll walk through your churn numbers together — free, no pitch.
+          </p>
+          <Link
+            href="/book-demo"
+            className="inline-block text-sm font-medium px-5 py-2.5 rounded-lg"
+            style={{ background: ACCENT_BG, color: ACCENT, border: `1px solid ${ACCENT_BORDER}`, textDecoration: 'none' }}
+          >
+            Book a Call
+          </Link>
         </div>
 
         {/* Social proof */}
