@@ -75,7 +75,7 @@ export function email1(lead: AuditLeadData): { subject: string; html: string } {
     <p style="color:#cbd5e1;font-size:14px;line-height:1.7;margin:0 0 8px;">Here's the part most founders miss:</p>
     <ul style="color:#94a3b8;font-size:14px;line-height:1.8;margin:0 0 20px;padding-left:20px;">
       <li><strong style="color:#e2e8f0;">~78% of this is preventable</strong> — that's $${preventable.toLocaleString()}/mo you could keep</li>
-      <li>Most churn is <strong style="color:#e2e8f0;">predictable 30+ days before it happens</strong></li>
+      <li>Most churn is <strong style="color:#e2e8f0;">predictable while there's still time to act</strong></li>
       <li>The window to intervene closes fast — <strong style="color:#e2e8f0;">silence is not a retention strategy</strong></li>
     </ul>
 

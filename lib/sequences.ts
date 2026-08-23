@@ -486,15 +486,15 @@ async function executeStep(
     if (step === 0) {
       const ok = await sendEmail({
         to: customer.email,
-        subject: `We miss you — here's a special offer to come back`,
+        subject: `Here's what changed at ChurnGuard since you left`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-          <h2 style="color:#6366f1;margin:0 0 16px">Come back to ChurnGuard</h2>
+          <h2 style="color:#6366f1;margin:0 0 16px">A quick update from our team</h2>
           <p>Hi ${customer.name ?? 'there'},</p>
-          <p>We noticed you're no longer an active customer, and we'd love to earn your business back.</p>
-          <p>As a returning customer, we're offering you <strong>3 months at 40% off</strong> — no commitment required.</p>
-          <p>A lot has changed since you left: AI-powered risk scoring, 9 new automation triggers, and HubSpot sync now works out of the box.</p>
+          <p>We noticed you're no longer an active customer. Before we lose touch, we wanted to share what's changed — you might find it useful.</p>
+          <p>Since you left: AI-powered risk scoring runs hourly, HubSpot two-way sync ships out of the box, and we've added new automation triggers, including automatic failed-payment recovery.</p>
+          <p>If the timing is right, you can restart your subscription anytime from your billing page.</p>
           <p style="text-align:center;margin:28px 0">
-            <a href="${APP_URL}/pricing?promo=winback" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Claim Your 40% Discount</a>
+            <a href="${APP_URL}/pricing" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">See What's New</a>
           </p>
           <p>Questions? Just reply — we'd love to hear what would make ChurnGuard work for you.</p>
           <p>Best,<br>The ChurnGuard Team</p>
@@ -506,47 +506,46 @@ async function executeStep(
     }
 
     if (step === 1) {
-      // Day 7 — follow-up with social proof
+      // Day 7 — ask what went wrong
       const ok = await sendEmail({
         to: customer.email,
-        subject: `What our customers are saying about ChurnGuard`,
+        subject: `Honest question — what didn't work for you?`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-          <h2 style="color:#6366f1;margin:0 0 16px">Here's what you're missing</h2>
+          <h2 style="color:#6366f1;margin:0 0 16px">We'd love to know what fell short</h2>
           <p>Hi ${customer.name ?? 'there'},</p>
-          <p>Our customers are saving an average of <strong>$12,000/year</strong> in prevented churn using ChurnGuard's automation rules.</p>
-          <blockquote style="border-left:3px solid #6366f1;padding-left:16px;margin:20px 0;color:#374151;font-style:italic">
-            "ChurnGuard paid for itself in the first week. We caught a $2,400/month customer before they cancelled."
-          </blockquote>
-          <p>Your 40% discount offer is still active. It expires in 7 days.</p>
+          <p>We're not following up to push you back — we genuinely want to understand what didn't work.</p>
+          <p>Was it missing features? Didn't see the value early on? Something else? If you have two minutes to reply, it helps us build a better product.</p>
+          <p>If the timing just wasn't right, your account data is still here. You can restart your subscription anytime from your billing page.</p>
           <p style="text-align:center;margin:28px 0">
-            <a href="${APP_URL}/pricing?promo=winback" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Restart for 40% Off</a>
+            <a href="${APP_URL}/pricing" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Give ChurnGuard Another Look</a>
           </p>
           <p>Best,<br>The ChurnGuard Team</p>
         </div>`,
       });
       return ok
-        ? { status: 'success', message: 'Win-back step 1: social proof follow-up sent' }
+        ? { status: 'success', message: 'Win-back step 1: honest follow-up sent' }
         : { status: 'failed',  message: 'Win-back step 1: email failed' };
     }
 
     if (step === 2) {
-      // Day 14 — final offer
+      // Day 14 — data-still-here closer
       const ok = await sendEmail({
         to: customer.email,
-        subject: `Last chance — your discount expires today`,
+        subject: `Your ChurnGuard data is still here — no rush`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-          <h2 style="color:#6366f1;margin:0 0 16px">This is our last email</h2>
+          <h2 style="color:#6366f1;margin:0 0 16px">This is the last we'll reach out</h2>
           <p>Hi ${customer.name ?? 'there'},</p>
-          <p>We promised to respect your inbox, so this is the last we'll reach out. Your 40% discount expires today.</p>
+          <p>We promised to respect your inbox, so this is the last message from us.</p>
+          <p>Your account data is still saved. If you ever want to come back, you won't be starting from scratch — just sign in and pick up where you left off.</p>
           <p>If there's anything we could have done better, we genuinely want to hear it — just reply.</p>
           <p style="text-align:center;margin:28px 0">
-            <a href="${APP_URL}/pricing?promo=winback" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Accept the Offer</a>
+            <a href="${APP_URL}/pricing" style="background:#6366f1;color:#fff;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600">Come Back Anytime</a>
           </p>
           <p>Best,<br>The ChurnGuard Team</p>
         </div>`,
       });
       return ok
-        ? { status: 'success', message: 'Win-back step 2: final offer email sent', complete: true }
+        ? { status: 'success', message: 'Win-back step 2: final email sent', complete: true }
         : { status: 'failed',  message: 'Win-back step 2: email failed' };
     }
   }
@@ -564,7 +563,7 @@ async function executeStep(
           <p>We noticed you may be considering a change to your plan. Before you do, we'd love to offer a solution that keeps all your features at a price that works for you.</p>
           <p><strong>What we can offer:</strong></p>
           <ul style="line-height:1.9">
-            <li><strong>3 months at 25% off</strong> — keep your current plan, lower cost</li>
+            <li><strong>Pause for 30 days</strong> — put your subscription on hold, data and settings stay exactly as they are</li>
             <li><strong>A free strategy call</strong> — make sure you're using every feature that drives ROI</li>
             <li><strong>Annual billing</strong> — save 20% automatically</li>
           </ul>
