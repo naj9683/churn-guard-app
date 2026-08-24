@@ -765,9 +765,9 @@ export default function LandingPage() {
                   href="https://marketplace.stripe.com/apps/churnguard"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-slate-400 transition-colors"
-                  style={{ color: 'inherit', textDecoration: 'none' }}>
-                  Listed on the Stripe App Marketplace
+                  className="hover:underline"
+                  style={{ color: '#7A73FF', textDecoration: 'none' }}>
+                  Listed on the Stripe App Marketplace ↗
                 </a>
                 {' '}· Cancel anytime
               </p>
