@@ -44,7 +44,7 @@ I tested each tool against four criteria that matter to SaaS founders:
 
 ### 1. ChurnGuard — Best for Prediction + Automated Recovery
 
-**What it does:** ChurnGuard is built for founders who want churn prediction *and* automated intervention in one platform. It calculates risk scores from product usage, payment history, and support patterns, then automatically triggers dunning emails, SMS reminders, and Slack alerts.
+**What it does:** ChurnGuard is built for founders who want churn prediction *and* automated intervention in one platform. It calculates risk scores from your Stripe billing events and product usage (via an optional one-line widget), then runs the intervention — dunning emails, SMS reminders, and Slack alerts — once you activate a playbook.
 
 **Key features:**
 - Risk scoring engine with weighted behavioral signals
@@ -187,7 +187,7 @@ I tested each tool against four criteria that matter to SaaS founders:
 
 | Tool | Best For | Prediction Type | Alert Speed | Setup Time | Pricing | Recovery Loop |
 |------|----------|-----------------|-------------|------------|---------|---------------|
-| **ChurnGuard** | Founders needing prediction + automation | Behavioral risk scoring | 15 min | 1-2 weeks | Custom | ✅ Automated email, SMS, Slack |
+| **ChurnGuard** | Founders needing prediction + automation | Behavioral risk scoring | Hourly | 5 min | Flat, public | ✅ Automated email, SMS, Slack |
 | **Gainsight** | Enterprise CS teams | AI health scoring | 4 hours | 2-3 months | ~$2,500/mo | ✅ Playbook automation |
 | **ChurnZero** | Mid-market SaaS | Rule-based health score | 10-30 min | 2-4 weeks | ~$849/mo | ✅ In-app messaging |
 | **Pendo Predict** | PLG companies | ML behavioral model | 5-10 min | 1-2 weeks | Custom | ⚠️ Requires separate action tool |
@@ -219,7 +219,7 @@ The best tool depends on your stage. For founders who need prediction *and* auto
 
 ### How accurate is churn prediction software?
 
-Accuracy ranges from 75-92% on a 30-day prediction window. Rule-based tools (ChurnZero, Vitally) are only as good as the thresholds you set. ML-powered tools (Pendo Predict, Pecan AI, ChurnGuard) adapt automatically and typically achieve 80%+ accuracy.
+There's no published accuracy standard — it depends on your data volume and signal quality. Rule-based tools (ChurnZero, Vitally, ChurnGuard) are only as good as the thresholds you set, but they're transparent: you can see exactly why a customer was flagged. ML-powered tools (Pendo Predict, Pecan AI) adapt automatically but need meaningful historical data before their predictions are trustworthy. For most small SaaS, a well-tuned score on good signals beats a black-box model trained on thin data.
 
 ### What is the difference between churn prediction and customer health scoring?
 

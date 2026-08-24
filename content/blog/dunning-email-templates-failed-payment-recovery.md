@@ -27,7 +27,7 @@ Failed payments are the most under-addressed churn driver in SaaS.
 
 On average, 20–40% of monthly SaaS churn is involuntary — customers who didn't choose to cancel but simply had a card decline. A Visa expiry, a bank fraud flag, an insufficient funds error on a tight month. These customers wanted to stay. They just didn't notice the payment failed.
 
-A well-designed dunning sequence recovers 30–60% of these customers before their subscription lapses. That's typically a 10–25% reduction in total monthly churn without any product changes, without any CS effort, and without acquiring a single new customer.
+How much can a well-designed dunning sequence recover? The best-documented public case: a founder at $40K MRR went from 23% to 71% recovery — $2,400/month — by adding a Day 0/1/3/5/7/8/14 email cadence (documented on r/SaaS). Since these are customers who wanted to stay, even a modest lift compounds into a meaningful reduction in total monthly churn — without product changes, CS effort, or a single new customer.
 
 Here's the exact sequence — and the actual email copy — to build it.
 
@@ -201,7 +201,7 @@ Subject lines have the biggest impact on open rate — and open rate is the gati
 - `"Invoice #INV-2847 is overdue"` — formal/cold, triggers procrastination
 - `"Your subscription has been cancelled"` — inaccurate and alarming; creates unnecessary support tickets
 
-**Personalisation:** First name in the subject line improves open rates by an average of 26%. If your billing system passes the customer name, use it: `"[First Name], your payment didn't go through"`.
+**Personalisation:** If your billing system passes the customer name, use it: `"[First Name], your payment didn't go through"`. A personal-looking email reads like a service notification, not a collections notice.
 
 ---
 
@@ -213,9 +213,9 @@ Email-only dunning leaves recovery rates on the table. The full stack:
 
 **In-app payment banners:** Show a persistent payment failure banner inside your app when a customer is logged in with an overdue account. This catches customers who use the product but aren't reading billing emails.
 
-**SMS (high-value accounts only):** For accounts over a certain ACV threshold, adding an SMS on Day 7 typically increases recovery by 15–25%. Keep it short: *"Hi [Name] — quick note: your [Product] payment is overdue. Update here: [short link]"*
+**SMS (high-value accounts only):** For accounts over a certain ACV threshold, a short SMS on Day 7 cuts through a crowded inbox. Keep it short: *"Hi [Name] — quick note: your [Product] payment is overdue. Update here: [short link]"*
 
-**Phone call (enterprise):** For accounts over $500/mo, a personal call from a CS rep on Day 7 is almost always worth the time. Recovery rates on phone calls are 60–80%.
+**Phone call (enterprise):** For accounts over $500/mo, a personal call from a founder or CS rep on Day 7 is almost always worth the time — it's the hardest channel to ignore.
 
 ---
 
@@ -237,11 +237,7 @@ Email-only dunning leaves recovery rates on the table. The full stack:
 
 The only metric that matters for dunning is **recovery rate**: percentage of failed payment customers who successfully update their payment details before permanent cancellation.
 
-**Benchmark recovery rates:**
-- Email-only dunning: 30–45% recovery
-- Email + in-app banners: 40–55% recovery
-- Email + in-app + SMS: 50–65% recovery
-- Email + in-app + SMS + card updaters: 55–70% recovery
+What moves recovery rates: each added channel reaches customers the previous one missed — email lands in spam, in-app catches them while active, SMS cuts through, and Stripe's network card updater silently fixes some expired cards before an email is ever needed. The full stack outperforms email alone. The benchmark that matters most is your own baseline: measure recovery this month, add a channel, measure again. (One public reference point: a founder documented 23% → 71% recovery with a full sequence — r/SaaS.)
 
 **Track by cohort:** Measure recovery rate for each month's failed payment cohort. This lets you A/B test subject lines and copy without conflating results.
 

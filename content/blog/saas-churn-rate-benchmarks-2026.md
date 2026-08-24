@@ -76,6 +76,8 @@ A 3% monthly churn compounds to roughly **31% annual churn**. That means you're 
 
 ## SaaS Churn Rate Benchmarks by ARR Tier
 
+A note on sources: the ranges below are compiled from public benchmark reports and what founders commonly report — see, for example, Recurly's churn rate benchmarks. Treat them as orientation, not targets: your segment, price point, and contract length move your number far more than any industry average.
+
 Data aggregated from public SaaS benchmarks, OpenView Partners, Baremetrics, and ChurnGuard's customer dataset:
 
 | ARR Stage | Median Monthly Churn | Top Quartile | Bottom Quartile |
@@ -106,7 +108,7 @@ Not all SaaS is equal. Markets with longer sales cycles, deeper integrations, an
 | Project management / productivity | 15 – 25% | Feature parity easy to replicate |
 | Analytics / BI | 10 – 18% | Sticky once data pipelines are built |
 
-E-commerce tools experience some of the highest churn because their customers' survival rates mirror broader SMB mortality — roughly 20% of small businesses fail each year regardless of the software they use.
+E-commerce tools experience some of the highest churn because their customers' survival rates mirror broader SMB mortality — roughly a fifth of small businesses fail in their first year regardless of the software they use (U.S. Bureau of Labor Statistics data).
 
 ---
 

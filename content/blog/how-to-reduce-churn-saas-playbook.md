@@ -66,7 +66,7 @@ A four-email dunning sequence triggered by payment failure:
 
 Add in-app banners for customers who log in while in a past_due state. For accounts over ~$200/mo, add an SMS on Day 7.
 
-**Expected impact:** 30–60% of failed payment customers recovered before lapse. For most SaaS businesses, this translates to a 10–25% reduction in total monthly churn.
+**Expected impact:** the fastest win in this playbook. Involuntary churn typically runs 20–40% of total churn, and the documented founder case cited in this guide took recovery from 23% to 71% — this single fix often moves the total number more than everything else combined.
 
 **Time to implement:** 1–3 days with a tool like ChurnGuard or ProfitWell Retain. 1–2 weeks if building in-house with Customer.io + Stripe webhooks.
 
@@ -92,7 +92,7 @@ Compare 90-day retention for customers who hit the activation event within 14 da
 3. Add a triggered email at Day 3 for users who signed up but haven't hit the activation event: *"You haven't [done X] yet — here's a 2-minute guide to get started"*
 4. Consider an automated check-in sequence for high-value signups (invite to onboarding call or send a personalised video)
 
-**Expected impact:** A 10-point improvement in activation rate (from 50% to 60%) typically translates to a 5–15% reduction in 90-day churn, depending on your product.
+**Expected impact:** activation is the highest-leverage voluntary-churn lever — customers who reach the core value in week one rarely churn early. Improvements here show up in your 90-day churn within a quarter.
 
 ---
 
@@ -119,7 +119,7 @@ Build a simple risk scoring system. Customers who trigger 2+ signals in a rollin
 2. **If no response in 3 days:** Flag for manual CS outreach (or a second automated email with a specific offer)
 3. **For high-value at-risk accounts:** Auto-schedule a proactive CS check-in
 
-**Expected impact:** Proactive outreach to at-risk customers recovers 15–30% of those who would otherwise cancel. The key is timing — reaching out 30 days before likely churn is far more effective than at renewal.
+**Expected impact:** timing is everything — reaching out weeks before likely churn beats renewal-time saves, when the decision is already made. Plain-text founder emails get the best response rates (founders cite 10–30%, versus under 2% for cancel-flow surveys).
 
 **Tools:** ChurnGuard automates this for Stripe-billing SaaS. For custom behaviour, Segment + Customer.io is a flexible alternative.
 
@@ -144,7 +144,7 @@ A dropdown with 5–6 real options: "Too expensive", "Missing a feature", "Switc
 **Step 3 — Friction, not obstacles**
 Don't make cancellation impossible. Customers who can't cancel easily become chargebacks, negative reviews, and Twitter threads. Make the offer, accept the decision, and offboard gracefully.
 
-**Expected impact:** 10–25% of initiated cancellations convert into a save — either through a discount, downgrade, or pause. For every 100 customers who reach the cancellation flow, 10–25 stay.
+**Expected impact:** a pause or downgrade option gives the customer an alternative to the binary cancel. Even a minority conversion matters — a paused customer is far easier to win back than a churned one.
 
 **Implementation note:** This requires some engineering — but even a simple Google Form that triggers a Zapier workflow to pause the subscription buys you days to intervene manually.
 

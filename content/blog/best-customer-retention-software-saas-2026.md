@@ -48,7 +48,7 @@ Each category uses different data, targets different churn drivers, and delivers
 
 **The problem:** 20–40% of SaaS churn is involuntary — cards expire, payments fail, and customers unintentionally lapse. These customers didn't choose to leave; they just haven't updated their billing details.
 
-**What good looks like:** Automated retry logic, smart email sequences, in-app payment update prompts, and SMS for high-value accounts. A proper dunning system recovers 30–60% of failed payment customers before the subscription lapses.
+**What good looks like:** Automated retry logic, smart email sequences, in-app payment update prompts, and SMS for high-value accounts. The best-documented public case for what a proper dunning system can do: a founder at $40K MRR took payment recovery from 23% to 71% — $2,400/month — by adding a structured email cadence (documented on r/SaaS).
 
 **Who needs it:** Every subscription business with over ~50 active subscribers. This is the highest-ROI churn intervention because it requires no product changes and recovers customers who wanted to stay.
 
@@ -243,7 +243,7 @@ Not a traditional CS platform. Self-serve churn is better tackled with in-app en
 CRM is for pre-sale (pipeline management, prospecting, deal tracking). Customer retention software is for post-sale (health monitoring, churn prediction, renewal management). They're different tools solving different problems — though some CRMs are adding CS features.
 
 **How much of a difference does retention software actually make?**
-Properly implemented dunning typically recovers 30–60% of failed payment customers — that's often a 15–25% reduction in total churn with no other changes. Churn prediction + early intervention can reduce voluntary churn by another 10–20% with a well-designed playbook. Combined, the ROI on retention tooling is typically 10–30× the software cost.
+Dunning is usually the fastest win: involuntary churn typically runs 20–40% of total churn, and one documented founder case took recovery from 23% to 71% with a structured cadence (r/SaaS). Because these customers never chose to leave, the software cost is usually trivial next to one recovered month of MRR.
 
 ---
 

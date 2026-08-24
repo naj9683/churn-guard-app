@@ -145,7 +145,7 @@ Use this formula:
 
 **Recovered Revenue = At-Risk Revenue × Recovery Rate (%)**
 
-Example:
+Hypothetical example — plug in your own numbers from Stripe:
 
 - MRR: $50,000
 - Failed payment rate: ~15%
