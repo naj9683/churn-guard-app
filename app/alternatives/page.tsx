@@ -40,6 +40,51 @@ const comparisons = [
     bestFor: 'Reducing cancellations at the cancel button',
     cgBestFor: 'Catching at-risk customers before they reach the cancel button',
   },
+  {
+    slug: 'totango',
+    name: 'Totango',
+    tagline: 'Composable CS platform with a genuine free tier',
+    summary:
+      'A genuinely free CS platform tier vs automation that needs no configuration at all.',
+    bestFor: 'Teams ready to invest setup time in a CS system',
+    cgBestFor: 'Teams with no time to build or run one',
+  },
+  {
+    slug: 'baremetrics',
+    name: 'Baremetrics',
+    tagline: 'The analytics standard for Stripe-based SaaS',
+    summary:
+      'The analytics standard vs the tool that acts on the numbers.',
+    bestFor: 'Founders who want metrics clarity',
+    cgBestFor: 'Founders who want churn handled, not just measured',
+  },
+  {
+    slug: 'planhat',
+    name: 'Planhat',
+    tagline: 'Enterprise "agentic" customer platform',
+    summary:
+      'The enterprise "agentic" platform vs same-day churn automation for small teams.',
+    bestFor: 'Commercial teams with sales + CS + support',
+    cgBestFor: 'Founder-led SaaS, no CS hire',
+  },
+  {
+    slug: 'vitally',
+    name: 'Vitally',
+    tagline: 'Copilot for customer success managers',
+    summary:
+      'A copilot for your CSM vs the tool for teams with no CSM.',
+    bestFor: 'Scaling CS productivity',
+    cgBestFor: 'Replacing the need for CS headcount (for now)',
+  },
+  {
+    slug: 'custify',
+    name: 'Custify',
+    tagline: 'Churn-risk surfacing for CS teams',
+    summary:
+      'Churn-risk surfacing for CS teams vs automatic saves for founders.',
+    bestFor: 'Teams with someone owning renewals',
+    cgBestFor: 'Teams where nobody does',
+  },
 ];
 
 const howToChoose = [

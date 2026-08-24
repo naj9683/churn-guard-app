@@ -56,6 +56,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE}/alternatives/totango`,
+      lastModified: new Date('2026-08-25'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/alternatives/baremetrics`,
+      lastModified: new Date('2026-08-25'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/alternatives/planhat`,
+      lastModified: new Date('2026-08-25'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/alternatives/vitally`,
+      lastModified: new Date('2026-08-25'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/alternatives/custify`,
+      lastModified: new Date('2026-08-25'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
       url: `${BASE}/docs`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
