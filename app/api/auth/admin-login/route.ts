@@ -2,7 +2,6 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
-const ADMIN_CLERK_USER_ID = 'user_3AP7xokH0oin2NoqgK37ER9Y4su';
 
 /**
  * POST /api/auth/admin-login
@@ -19,8 +18,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const client = await clerkClient();
+    const { data: users } = await client.users.getUserList({ emailAddress: [ADMIN_EMAIL] });
+    const adminUser = users[0];
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Admin user not found in Clerk' }, { status: 404 });
+    }
     const { token } = await client.signInTokens.createSignInToken({
-      userId: ADMIN_CLERK_USER_ID,
+      userId: adminUser.id,
       expiresInSeconds: 120,
     });
     return NextResponse.json({ ticket: token });
