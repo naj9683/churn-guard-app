@@ -48,8 +48,7 @@ There's supporting evidence for the plain-text founder voice: cancel-flow survey
 
 **Template 1 — Day 0, payment failed:**
 
-```
-Subject: Quick heads-up — your payment didn't go through
+**Subject:** Quick heads-up — your payment didn't go through
 
 Hi {name},
 
@@ -60,12 +59,12 @@ Your card was declined when we tried to process this month's payment for {produc
 Your account is fully active in the meantime. If you hit any issues, just reply to this email.
 
 — {founder name}, founder of {product}
-```
+
+---
 
 **Template 2 — Pre-dunning, card expiring soon:**
 
-```
-Subject: Your card on file expires soon
+**Subject:** Your card on file expires soon
 
 Hi {name},
 
@@ -76,12 +75,12 @@ The card we have for your {product} subscription expires at the end of this mont
 Takes under a minute. Thanks for being a customer.
 
 — {founder name}
-```
+
+---
 
 **Template 3 — Day 7, final notice before cancellation:**
 
-```
-Subject: Your {product} subscription will cancel on {date}
+**Subject:** Your {product} subscription will cancel on {date}
 
 Hi {name},
 
@@ -92,7 +91,6 @@ Update your card here (30 seconds): {card-update link}
 If you've decided to move on, no hard feelings — you don't need to do anything. And if something's broken on our side, reply and I'll fix it personally.
 
 — {founder name}
-```
 
 ## What NOT to do
 
