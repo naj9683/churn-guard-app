@@ -2,7 +2,7 @@
 title: "5 Customer Churn Warning Signs (And How to Catch Them Before It's Too Late)"
 description: "Most churn is invisible until it's too late. Learn the five behavioral signals that predict cancellation 30–60 days in advance — and the interventions that actually work."
 date: "2026-04-28"
-author: "Najwa Saadi"
+author: "Naj"
 authorRole: "Founder, ChurnGuard"
 tags: ["churn signals", "customer health", "early warning"]
 readTime: "6 min read"

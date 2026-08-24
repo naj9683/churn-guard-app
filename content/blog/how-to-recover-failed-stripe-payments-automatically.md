@@ -8,7 +8,7 @@ authorRole: "Founder, ChurnGuard"
 authorBio: "Naj is the founder of ChurnGuard, a retention automation platform for subscription SaaS businesses. He writes about dunning, churn reduction, and the systems that keep revenue from slipping through the cracks."
 tags: ["Stripe", "payment recovery", "dunning", "SaaS revenue"]
 readTime: "8 min read"
-featured: true
+featured: false
 ---
 
 ## Table of Contents
