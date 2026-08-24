@@ -759,7 +759,18 @@ export default function LandingPage() {
                   See the Playbooks
                 </a>
               </div>
-              <p className="text-sm text-slate-500">5-minute setup · Works with Stripe · Cancel anytime</p>
+              <p className="text-sm text-slate-500">
+                5-minute setup ·{' '}
+                <a
+                  href="https://marketplace.stripe.com/apps/churnguard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-slate-400 transition-colors"
+                  style={{ color: 'inherit', textDecoration: 'none' }}>
+                  Listed on the Stripe App Marketplace
+                </a>
+                {' '}· Cancel anytime
+              </p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.65, ease: 'easeOut', delay: 0.15 }}>

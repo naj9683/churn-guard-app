@@ -27,7 +27,7 @@ const FOOTER_COMPANY: [string, string][] = [
   ['/privacy',   'Privacy'],
   ['/terms',     'Terms'],
   ['/book-demo', 'Book a call'],
-  ['https://marketplace.stripe.com/apps/churnguard', 'Stripe Marketplace'],
+  ['https://marketplace.stripe.com/apps/churnguard', 'Stripe App Marketplace'],
   ['https://alternativeto.net/software/churnguardapp/',  'AlternativeTo'],
   ['/alternatives', 'Alternatives'],
 ];
@@ -201,6 +201,7 @@ export default function PublicShell({ children, activeHref }: PublicShellProps) 
               <div style={{ fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: FAINT, marginBottom: '14px' }}>Company</div>
               {FOOTER_COMPANY.map(([href, label]) => (
                 <a key={label} href={href}
+                  {...(href.startsWith('https://') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   style={{ display: 'block', fontSize: '13px', color: MUTED, textDecoration: 'none', marginBottom: '9px' }}
                   onMouseEnter={e => (e.currentTarget.style.color = TEXT)}
                   onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
