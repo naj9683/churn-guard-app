@@ -104,3 +104,8 @@ This is why the signal-monitoring approach matters so much. By the time a custom
 The goal is to never get to that conversation. The goal is to see the warning signs early enough to re-engage the customer while you still have their attention.
 
 That's the foundation of every churn prevention system that actually works.
+
+## Related reading
+
+- [How to Spot At-Risk Customers Before They Cancel (Without a CS Team)](/blog/spot-at-risk-customers)
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)

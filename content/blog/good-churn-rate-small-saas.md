@@ -94,6 +94,11 @@ The common mistake is treating "churn" as one number to grind down with one tact
 
 ---
 
+## Related reading
+
+- [SaaS Churn Rate Benchmarks 2026: What's Normal — and What Isn't](/blog/saas-churn-rate-benchmarks-2026)
+- [How to Reduce SaaS Churn Rate: The 90-Day Playbook (2026)](/blog/reduce-saas-churn-rate)
+
 ## FAQ
 
 **Is 5% monthly churn bad for a SaaS?**

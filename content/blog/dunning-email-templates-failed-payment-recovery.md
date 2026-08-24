@@ -245,6 +245,11 @@ What moves recovery rates: each added channel reaches customers the previous one
 
 ---
 
+## Related reading
+
+- [The Dunning Email Sequence That Recovers Failed Payments (Timing + Templates)](/blog/dunning-email-sequence)
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)
+
 ## FAQ
 
 **How soon should I send the first dunning email?**

@@ -87,6 +87,11 @@ The basics — billing events, usage drop detection, triggered emails, pause off
 
 ---
 
+## Related reading
+
+- [5 Customer Churn Warning Signs (And How to Catch Them Before It's Too Late)](/blog/saas-churn-warning-signs)
+- [How to Reduce Churn in SaaS: A Practical Playbook for 2026](/blog/how-to-reduce-churn-saas-playbook)
+
 ## FAQ
 
 **What are the early warning signs of churn?**

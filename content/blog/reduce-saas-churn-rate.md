@@ -190,6 +190,11 @@ The 90-day playbook above works. It works even faster when it runs automatically
 
 ---
 
+## Related reading
+
+- [What Is a Good Churn Rate for a Small SaaS? (Benchmarks by Stage)](/blog/good-churn-rate-small-saas)
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)
+
 ## FAQ
 
 ### What is a good SaaS churn rate in 2026?

@@ -134,3 +134,8 @@ Building this sequence manually is possible but operationally intensive. You nee
 ChurnGuard's dunning playbook handles all of this automatically. When a payment fails in Stripe, ChurnGuard detects it, launches the recovery sequence across email and SMS, and tracks outcomes — once you activate the playbook. Stripe's Smart Retries handle the bank side; ChurnGuard adds the customer-communication layer on top.
 
 The math is simple: if you're leaving 25% of recoverable payments on the table, you're funding your competitors with your own lost revenue.
+
+## Related reading
+
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)
+- [The Dunning Email Sequence That Recovers Failed Payments (Timing + Templates)](/blog/dunning-email-sequence)

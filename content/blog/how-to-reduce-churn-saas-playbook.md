@@ -211,6 +211,11 @@ A 5-minute call with 5 churned customers every month is worth more than any anal
 
 ---
 
+## Related reading
+
+- [What Is a Good Churn Rate for a Small SaaS? (Benchmarks by Stage)](/blog/good-churn-rate-small-saas)
+- [How to Spot At-Risk Customers Before They Cancel (Without a CS Team)](/blog/spot-at-risk-customers)
+
 ## FAQ
 
 **What's the fastest way to reduce churn?**

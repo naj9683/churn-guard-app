@@ -196,6 +196,11 @@ Login frequency drops, feature disengagement, payment failures, and support sent
 
 ---
 
+## Related reading
+
+- [What Is a Good Churn Rate for a Small SaaS? (Benchmarks by Stage)](/blog/good-churn-rate-small-saas)
+- [How to Reduce SaaS Churn Rate: The 90-Day Playbook (2026)](/blog/reduce-saas-churn-rate)
+
 ## FAQ
 
 **What is a good SaaS churn rate?**

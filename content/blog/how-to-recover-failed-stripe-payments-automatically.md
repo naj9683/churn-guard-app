@@ -159,6 +159,11 @@ At scale, that gap funds a full-time hire. Automation is not a nice-to-have. It 
 
 ---
 
+## Related reading
+
+- [Are Stripe Smart Retries Enough? What the Defaults Actually Recover](/blog/stripe-smart-retries-enough)
+- [The Dunning Email Sequence That Recovers Failed Payments (Timing + Templates)](/blog/dunning-email-sequence)
+
 ## FAQ
 
 ### How do I automatically retry failed payments in Stripe?

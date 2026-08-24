@@ -231,6 +231,11 @@ Early-stage (< $500K ARR) teams almost never need an enterprise CS platform. The
 
 ---
 
+## Related reading
+
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)
+- [The Dunning Email Sequence That Recovers Failed Payments (Timing + Templates)](/blog/dunning-email-sequence)
+
 ## FAQ
 
 **What's the best churn prevention tool for early-stage SaaS?**

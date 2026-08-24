@@ -211,6 +211,11 @@ I tested each tool against four criteria that matter to SaaS founders:
 
 ---
 
+## Related reading
+
+- [How to Spot At-Risk Customers Before They Cancel (Without a CS Team)](/blog/spot-at-risk-customers)
+- [5 Customer Churn Warning Signs (And How to Catch Them Before It's Too Late)](/blog/saas-churn-warning-signs)
+
 ## FAQ
 
 ### What is the best churn prediction software for SaaS?

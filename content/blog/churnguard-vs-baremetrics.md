@@ -80,3 +80,8 @@ Yes. There's no data migration needed — ChurnGuard reads your Stripe data dire
 **Stop guessing which customers are about to leave.** Run the free churn audit — see your churn rate, revenue at risk, and highest-risk customers in about 10 minutes. No credit card.
 
 👉 **[Get your free churn audit →](/audit)**
+
+## Related reading
+
+- [Are Stripe Smart Retries Enough? What the Defaults Actually Recover](/blog/stripe-smart-retries-enough)
+- [What Is Involuntary Churn? The Revenue You're Losing Without Knowing It](/blog/what-is-involuntary-churn)
