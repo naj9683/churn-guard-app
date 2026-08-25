@@ -11,7 +11,7 @@ import OnboardingChecklist from '@/app/components/OnboardingChecklist';
 import { track, page, identify } from '@/lib/analytics';
 import { mpIdentify, mpRegister, MP } from '@/lib/mixpanel';
 
-const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
+const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
 
 const DEMO_STATS = {
   totalCustomers: 47,
@@ -93,7 +93,7 @@ export default function Dashboard() {
   const [widgetInstalled, setWidgetInstalled] = useState<boolean | null>(null);
   const [stripeBannerDismissed, setStripeBannerDismissed] = useState(false);
 
-  const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
+  const isAdmin = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Fire trial_started once when user arrives at dashboard after signup
   useEffect(() => {

@@ -7,7 +7,6 @@ import Sidebar from '@/app/components/Sidebar';
 import Link from 'next/link';
 
 const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
-const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
 
 export default function AdminDashboardPage() {
   const { user, isLoaded } = useUser();
@@ -16,7 +15,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const email = user?.emailAddresses?.[0]?.emailAddress;
-  const isAdmin = user && (ADMIN_USER_IDS.includes(user.id) || email === ADMIN_EMAIL);
+  const isAdmin = user && email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
     if (!isLoaded) return;

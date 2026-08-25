@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser, useClerk } from '@clerk/nextjs';
 
-const ADMIN_USER_IDS = ['user_3AP7xokH0oin2NoqgK37ER9Y4su'];
+const ADMIN_EMAIL = 'najwa.saadi1@hotmail.com';
 
 // Simple SVG icons
 const Icons = {
@@ -28,7 +28,7 @@ export default function Sidebar() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
 
-  const isAdmin = user && ADMIN_USER_IDS.includes(user.id);
+  const isAdmin = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const mainItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Icons.dashboard },
