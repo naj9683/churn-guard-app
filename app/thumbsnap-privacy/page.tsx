@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import DarkShell from '@/app/components/ui/DarkShell';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — ThumbSnap',
@@ -15,8 +14,11 @@ const DK_ACCENT = '#6366f1';
 
 export default function ThumbSnapPrivacyPage() {
   return (
-    <DarkShell>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 96px' }}>
+    <div style={{ minHeight: '100vh', background: '#020617', color: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ padding: '16px 24px', borderBottom: '1px solid #1e293b' }}>
+        <span style={{ fontWeight: 600, color: '#f1f5f9' }}>ThumbSnap — by SAADI LLC</span>
+      </header>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 96px', flex: 1 }}>
 
         <h1 style={{ fontSize: '2rem', fontWeight: 500, color: DK_TEXT, marginBottom: '8px', letterSpacing: '-0.02em' }}>
           Privacy Policy — ThumbSnap
@@ -155,6 +157,9 @@ export default function ThumbSnapPrivacyPage() {
 
         </div>
       </div>
-    </DarkShell>
+      <footer style={{ padding: '16px 24px', borderTop: '1px solid #1e293b', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+        © 2026 SAADI LLC — Contact: najwasaadi1@gmail.com
+      </footer>
+    </div>
   );
 }
