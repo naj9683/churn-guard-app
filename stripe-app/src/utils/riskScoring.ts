@@ -9,6 +9,12 @@ export interface RiskResult {
   mrr: number; // monthly dollars
 }
 
+// Canonical thresholds — must match serverRiskLevel() in
+// app/api/stripe-app/customer/route.ts so all surfaces agree.
+export function riskLevelFromScore(score: number): RiskLevel {
+  return score >= 70 ? 'high' : score >= 50 ? 'medium' : 'low';
+}
+
 /**
  * Calculates a 0–100 churn risk score from Stripe objects.
  * Scoring:
@@ -16,6 +22,8 @@ export interface RiskResult {
  *   cancellation scheduled          → +25
  *   each failed charge (max 3)      → +10 each (max +30)
  *   no successful charge in 30 days → +20
+ *   subscription paused             → +30  (matches authoritative formula weight)
+ *   refund issued in last 30 days   → +20, capped at 20 (matches authoritative formula)
  */
 export function calculateRisk(
   subscription: Stripe.Subscription | null,
@@ -34,6 +42,17 @@ export function calculateRisk(
     factors.push('Cancellation scheduled at period end');
   }
 
+  // Paused subscription: status field is authoritative; pause_collection is the
+  // legacy signal used before Stripe added the 'paused' status value.
+  const isSubscriptionPaused =
+    subscription?.status === 'paused' || subscription?.pause_collection != null;
+  if (isSubscriptionPaused) {
+    score += 30;
+    factors.push('Subscription is paused');
+  }
+
+  const thirtyDaysAgo = Date.now() / 1000 - 30 * 24 * 60 * 60;
+
   const failedCharges = charges.filter(c => c.status === 'failed');
   if (failedCharges.length > 0) {
     const points = Math.min(failedCharges.length * 10, 30);
@@ -41,11 +60,16 @@ export function calculateRisk(
     factors.push(`${failedCharges.length} failed payment attempt${failedCharges.length > 1 ? 's' : ''}`);
   }
 
-  const thirtyDaysAgo = Date.now() / 1000 - 30 * 24 * 60 * 60;
   const hasRecentSuccess = charges.some(c => c.status === 'succeeded' && c.created > thirtyDaysAgo);
   if (!hasRecentSuccess && charges.length > 0) {
     score += 20;
     factors.push('No successful payment in the past 30 days');
+  }
+
+  const refundedCharges = charges.filter(c => c.refunded && c.created > thirtyDaysAgo);
+  if (refundedCharges.length > 0) {
+    score += Math.min(refundedCharges.length * 20, 20);
+    factors.push(`${refundedCharges.length} refund${refundedCharges.length > 1 ? 's' : ''} issued in the past 30 days`);
   }
 
   if (factors.length === 0) {
@@ -56,7 +80,7 @@ export function calculateRisk(
 
   return {
     score: finalScore,
-    level: finalScore >= 70 ? 'high' : finalScore >= 40 ? 'medium' : 'low',
+    level: riskLevelFromScore(finalScore),
     factors,
     mrr: getSubscriptionMrr(subscription),
   };
