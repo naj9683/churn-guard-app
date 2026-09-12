@@ -21,6 +21,7 @@ export interface CustomerRiskInput {
   featuresUsed: string[];
   recentEvents: Array<{ event: string; timestamp: number }>;
   activeInterventions: number;
+  subscriptionStatus?: string | null;
 }
 
 export async function analyzeCustomerRisk(
@@ -33,10 +34,13 @@ export async function analyzeCustomerRisk(
     failedPayments30d,
     hasEngagementData,
     uniqueDaysLast30d,
+    isSubscriptionPaused,
+    refundsIssued30d,
   } = computeRiskScore({
     lastLoginAt: input.lastLoginAt,
     loginCountThisMonth: input.loginCountThisMonth,
     recentEvents: input.recentEvents,
+    subscriptionStatus: input.subscriptionStatus,
   });
 
   // ── Step 2: ask AI for qualitative analysis only (no number) ───────────────
@@ -46,6 +50,8 @@ export async function analyzeCustomerRisk(
     days_since_last_login: hasEngagementData ? (daysSinceLogin ?? 'never logged in') : 'no widget data',
     active_days_last_30d: hasEngagementData ? uniqueDaysLast30d : 'no widget data',
     failed_payments_last_30_days: failedPayments30d,
+    subscription_paused: isSubscriptionPaused,
+    refunds_issued_last_30_days: refundsIssued30d,
     features_used: input.featuresUsed.length ? input.featuresUsed : ['none recorded'],
     recent_events: input.recentEvents.slice(0, 10).map(e => e.event),
     active_interventions: input.activeInterventions,

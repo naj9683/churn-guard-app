@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { analyzeCustomerRisk } from '@/lib/risk-analyzer';
 import { enrollInSequence } from '@/lib/sequences';
+import Stripe from 'stripe';
 
 // Max customers to process per cron run to avoid Vercel function timeout (60s)
 const BATCH_SIZE = 50;
@@ -40,23 +41,60 @@ export async function GET(req: NextRequest) {
   try {
     const thirtyDaysAgo = BigInt(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // Fetch the most-recently-analyzed customers last (prioritise stale records)
+    // Fetch the most-recently-analyzed customers last (prioritise stale records).
+    // Event filter: billing/engagement events within 30 days, but subscription
+    // pause-state events loaded for all time so the formula can determine current
+    // pause status even when the pause happened more than 30 days ago.
     const customers = await prisma.customer.findMany({
       orderBy: { updatedAt: 'asc' },
       take: BATCH_SIZE,
       include: {
         events: {
-          where: { timestamp: { gte: thirtyDaysAgo } },
+          where: {
+            OR: [
+              { timestamp: { gte: thirtyDaysAgo } },
+              { event: { in: ['subscription_paused', 'subscription_resumed'] } },
+            ],
+          },
           orderBy: { timestamp: 'desc' },
         },
         interventions: { where: { status: 'pending' } },
       },
     });
 
+    // Pre-fetch Stripe API keys for each user in this batch (one DB query).
+    // Used below to read live subscription status from Stripe, which self-heals
+    // missed webhooks and handles customers paused before this code was deployed.
+    const userIds = [...new Set(customers.map(c => c.userId))];
+    const stripeIntegrations = await prisma.crmIntegration.findMany({
+      where: { userId: { in: userIds }, type: 'stripe', enabled: true, accessToken: { not: null } },
+      select: { userId: true, accessToken: true },
+    });
+    const stripeKeyByUserId = new Map(stripeIntegrations.map(i => [i.userId, i.accessToken!]));
+
     let updated = 0;
     let failed = 0;
 
     const results = await processInBatches(customers, CONCURRENCY, async (customer) => {
+      // Fetch live subscription status from the user's Stripe account.
+      // Only attempted for customers whose externalId is a Stripe customer ID (cus_*).
+      // On failure, falls back to event-based pause detection in the formula.
+      let liveSubscriptionStatus: string | null = null;
+      const stripeKey = stripeKeyByUserId.get(customer.userId);
+      if (stripeKey && customer.externalId?.startsWith('cus_')) {
+        try {
+          const userStripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+          const subs = await userStripe.subscriptions.list({
+            customer: customer.externalId,
+            limit: 1,
+            status: 'all',
+          });
+          liveSubscriptionStatus = subs.data[0]?.status ?? null;
+        } catch {
+          // Stripe unavailable or customer not found — event-based fallback applies
+        }
+      }
+
       const previousScore = customer.riskScore;
       const result = await analyzeCustomerRisk({
         email: customer.email,
@@ -70,6 +108,7 @@ export async function GET(req: NextRequest) {
           : [],
         recentEvents: customer.events.map(e => ({ event: e.event, timestamp: Number(e.timestamp) })),
         activeInterventions: customer.interventions.length,
+        subscriptionStatus: liveSubscriptionStatus,
       });
 
       await prisma.customer.update({

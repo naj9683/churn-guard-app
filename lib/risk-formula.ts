@@ -6,17 +6,24 @@ export interface FormulaInput {
   lastLoginAt: Date | null;
   loginCountThisMonth?: number; // retained for backward compat; not used by scoring
   recentEvents: Array<{ event: string; timestamp: number }>;
+  // Live subscription status from Stripe API, fetched at analysis time.
+  // When present, takes priority over event-based pause inference so the cron
+  // self-heals missed webhooks and handles customers paused before this code deployed.
+  // null/undefined = Stripe not available for this customer; fall back to events.
+  subscriptionStatus?: string | null;
 }
 
 export interface FormulaResult {
   daysSinceLogin: number | null; // null = no widget data (lastLoginAt never set)
-  billingPts: number;            // 0–40: payment failures + downgrade, capped at 40
+  billingPts: number;            // 0–50: payment failures + downgrade + refunds + pause, capped at 50
   recencyPts: number;            // 0–35, login recency (0 when no engagement data)
   activityPts: number;           // 0–25, login frequency (0 when no engagement data)
   uniqueDaysLast30d: number;     // distinct calendar days with page_view in last 30d
   hasEngagementData: boolean;    // false when lastLoginAt is null — absent data ≠ risk
-  failedPayments30d: number;     // raw count driving billing pts
+  failedPayments30d: number;     // raw count of payment_failed events in 30d
   hasDowngrade30d: boolean;      // true if downgrade_detected event in last 30 days
+  refundsIssued30d: number;      // raw count of refund_issued events in 30d
+  isSubscriptionPaused: boolean; // true when most recent pause-state event is subscription_paused
   score: number;                 // 0–100, clamped
 }
 
@@ -25,10 +32,14 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
   const msPerDay = 1000 * 60 * 60 * 24;
   const ms30Days = 30 * msPerDay;
 
-  // ── Billing: payment failures + downgrade in last 30 days (max 40 pts) ─────
-  // payment_failed: written automatically by Stripe webhook (20 pts each, cap 40)
-  // downgrade_detected: written by Stripe webhook when quantity/amount reduces (15 pts)
-  // Combined cap at 40 — cannot exceed billing ceiling regardless of combination.
+  // ── Billing signals (max 50 pts) ─────────────────────────────────────────
+  // payment_failed (30d):        +20 each  — from invoice.payment_failed webhook
+  // downgrade_detected (30d):    +15       — from subscription.updated webhook
+  // refund_issued (30d):         +20 each, capped at 20 — from charge.refunded webhook
+  // subscription_paused (state): +30       — pause suppresses invoice.payment_failed so
+  //   the formula reads current state instead of inferring from failure events.
+  //   The event query loads subscription_paused/resumed without a 30-day limit so
+  //   this correctly reflects pauses older than 30 days.
   const failedPayments30d = input.recentEvents.filter(
     e => e.event === 'payment_failed' && (now - e.timestamp) <= ms30Days
   ).length;
@@ -37,7 +48,33 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
     e => e.event === 'downgrade_detected' && (now - e.timestamp) <= ms30Days
   );
 
-  const billingPts = Math.min(failedPayments30d * 20 + (hasDowngrade30d ? 15 : 0), 40);
+  const refundsIssued30d = input.recentEvents.filter(
+    e => e.event === 'refund_issued' && (now - e.timestamp) <= ms30Days
+  ).length;
+  // TODO: weight refund pts by amountRefunded ratio so a small partial refund
+  // (e.g. 10% courtesy credit) doesn't score the same as a full same-day reversal.
+  // Suggested formula: pts = Math.round((amountRefunded / chargeAmount) * 20), cap 20.
+  // Requires storing amountRefunded and chargeAmount in the refund_issued Event metadata
+  // and threading them through FormulaInput.
+
+  // Pause detection: prefer live Stripe status (self-healing) over event inference.
+  // subscriptionStatus is populated by the cron and per-customer route from the Stripe API;
+  // falls back to the most recent subscription_paused/resumed event for non-Stripe customers
+  // or when the Stripe call fails.
+  const pauseStatusEvents = input.recentEvents
+    .filter(e => e.event === 'subscription_paused' || e.event === 'subscription_resumed')
+    .sort((a, b) => b.timestamp - a.timestamp);
+  const isSubscriptionPaused =
+    input.subscriptionStatus === 'paused' ||
+    (input.subscriptionStatus == null && pauseStatusEvents[0]?.event === 'subscription_paused');
+
+  const billingPts = Math.min(
+    failedPayments30d * 20
+    + (hasDowngrade30d ? 15 : 0)
+    + Math.min(refundsIssued30d * 20, 20)
+    + (isSubscriptionPaused ? 30 : 0),
+    50,
+  );
 
   // ── Engagement signals — only scored when the widget has fired at least once
   // lastLoginAt === null means the widget is not installed or has never fired.
@@ -77,6 +114,8 @@ export function computeRiskScore(input: FormulaInput): FormulaResult {
     hasEngagementData,
     failedPayments30d,
     hasDowngrade30d,
+    refundsIssued30d,
+    isSubscriptionPaused,
     score,
   };
 }

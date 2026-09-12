@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       'invoice.payment_failed',
       'invoice.payment_succeeded',
       'checkout.session.completed',
+      'charge.refunded',
     ];
     const reqBody = new URLSearchParams({ url: 'https://churnguardapp.com/api/webhooks/stripe' });
     webhookEvents.forEach((e, i) => reqBody.append(`enabled_events[${i}]`, e));

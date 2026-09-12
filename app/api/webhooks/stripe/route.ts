@@ -134,13 +134,34 @@ export async function POST(req: Request) {
       }
     }
 
-    // Subscription status changes (upgrades, downgrades, reactivations) — keep DB in sync.
+    // Subscription status changes (upgrades, downgrades, reactivations, pauses) — keep DB in sync.
     if (event.type === 'customer.subscription.updated') {
       const sub = event.data.object as Stripe.Subscription;
       const prev = event.data.previous_attributes as Record<string, unknown> | undefined;
       await syncSubscriptionStatus(sub);
       if (prev) await maybeRecordDowngrade(sub, prev, verifiedUserId);
+      if (prev) await maybeRecordPauseChange(sub, prev, verifiedUserId);
       if (prev && !verifiedUserId) await maybeFirePlanUpgrade(sub, prev);
+    }
+
+    // Refund issued — record as a risk signal so the formula can score on it.
+    // A same-day refund on a new subscription is a strong churn indicator.
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object as Stripe.Charge;
+      const stripeCustomerId = typeof charge.customer === 'string' ? charge.customer : null;
+      if (stripeCustomerId) {
+        const customer = await resolveCustomerByStripeId(stripeCustomerId, verifiedUserId);
+        if (customer) {
+          await prisma.event.create({
+            data: {
+              customerId: customer.id,
+              event: 'refund_issued',
+              metadata: { chargeId: charge.id, amountRefunded: charge.amount_refunded },
+              timestamp: BigInt(Date.now()),
+            },
+          });
+        }
+      }
     }
 
     // Handle payment failure — record event + fire automation rules
@@ -423,6 +444,43 @@ async function maybeRecordDowngrade(
     console.log(`✅ downgrade_detected recorded for customer ${customer.id}`);
   } catch (error) {
     console.error('Error recording downgrade:', error);
+  }
+}
+
+// ── Detect and record subscription pause/resume transitions ──────────────────
+// Writes subscription_paused or subscription_resumed so the risk formula can
+// determine current pause state without a 30-day window constraint.
+
+async function maybeRecordPauseChange(
+  sub: Stripe.Subscription,
+  prev: Record<string, unknown>,
+  verifiedUserId: string | null = null,
+) {
+  try {
+    const prevStatus = prev.status as string | undefined;
+    const newStatus = sub.status;
+
+    const becamePaused = newStatus === 'paused' && prevStatus !== 'paused';
+    const resumedFromPause = prevStatus === 'paused' && newStatus !== 'paused';
+
+    if (!becamePaused && !resumedFromPause) return;
+
+    const stripeCustomerId = sub.customer as string;
+    const customer = await resolveCustomerByStripeId(stripeCustomerId, verifiedUserId);
+    if (!customer) return;
+
+    await prisma.event.create({
+      data: {
+        customerId: customer.id,
+        event: becamePaused ? 'subscription_paused' : 'subscription_resumed',
+        metadata: { previousStatus: prevStatus, newStatus },
+        timestamp: BigInt(Date.now()),
+      },
+    });
+
+    console.log(`✅ ${becamePaused ? 'subscription_paused' : 'subscription_resumed'} recorded for customer ${customer.id}`);
+  } catch (error) {
+    console.error('Error recording pause change:', error);
   }
 }
 

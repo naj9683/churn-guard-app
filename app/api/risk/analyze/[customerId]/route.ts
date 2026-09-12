@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeCustomerRisk } from '@/lib/risk-analyzer';
 import { enrollInSequence } from '@/lib/sequences';
+import Stripe from 'stripe';
 
 export async function GET(
   req: NextRequest,
@@ -25,7 +26,12 @@ export async function GET(
       where: { id: params.customerId, userId: user.id },
       include: {
         events: {
-          where: { timestamp: { gte: thirtyDaysAgo } },
+          where: {
+            OR: [
+              { timestamp: { gte: thirtyDaysAgo } },
+              { event: { in: ['subscription_paused', 'subscription_resumed'] } },
+            ],
+          },
           orderBy: { timestamp: 'desc' },
         },
         interventions: { where: { status: 'pending' } },
@@ -33,6 +39,29 @@ export async function GET(
     });
 
     if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+
+    // Fetch live subscription status from the user's Stripe account so the formula
+    // self-heals missed webhooks and handles pauses that pre-date event recording.
+    let liveSubscriptionStatus: string | null = null;
+    if (customer.externalId?.startsWith('cus_')) {
+      try {
+        const stripeIntegration = await prisma.crmIntegration.findFirst({
+          where: { userId: user.id, type: 'stripe', enabled: true, accessToken: { not: null } },
+          select: { accessToken: true },
+        });
+        if (stripeIntegration?.accessToken) {
+          const userStripe = new Stripe(stripeIntegration.accessToken, { apiVersion: '2023-10-16' });
+          const subs = await userStripe.subscriptions.list({
+            customer: customer.externalId,
+            limit: 1,
+            status: 'all',
+          });
+          liveSubscriptionStatus = subs.data[0]?.status ?? null;
+        }
+      } catch {
+        // Stripe unavailable — event-based pause detection applies
+      }
+    }
 
     const result = await analyzeCustomerRisk({
       email: customer.email,
@@ -44,6 +73,7 @@ export async function GET(
       featuresUsed: Array.isArray(customer.featuresUsed) ? (customer.featuresUsed as string[]) : [],
       recentEvents: customer.events.map(e => ({ event: e.event, timestamp: Number(e.timestamp) })),
       activeInterventions: customer.interventions.length,
+      subscriptionStatus: liveSubscriptionStatus,
     });
 
     const previousScore = customer.riskScore;
