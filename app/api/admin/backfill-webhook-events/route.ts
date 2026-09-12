@@ -170,7 +170,7 @@ export async function GET(req: NextRequest) {
 
       // Patch the endpoint: send the full merged event list.
       // Stripe replaces the entire enabled_events array on update.
-      const mergedEvents = [...new Set([...endpoint.enabled_events, ...REQUIRED_EVENTS])];
+      const mergedEvents = Array.from(new Set(endpoint.enabled_events.concat(REQUIRED_EVENTS)));
       const body = new URLSearchParams();
       mergedEvents.forEach((e, i) => body.append(`enabled_events[${i}]`, e));
 

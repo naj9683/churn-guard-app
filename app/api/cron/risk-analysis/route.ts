@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     // Pre-fetch Stripe API keys for each user in this batch (one DB query).
     // Used below to read live subscription status from Stripe, which self-heals
     // missed webhooks and handles customers paused before this code was deployed.
-    const userIds = [...new Set(customers.map(c => c.userId))];
+    const userIds = Array.from(new Set(customers.map(c => c.userId)));
     const stripeIntegrations = await prisma.crmIntegration.findMany({
       where: { userId: { in: userIds }, type: 'stripe', enabled: true, accessToken: { not: null } },
       select: { userId: true, accessToken: true },
