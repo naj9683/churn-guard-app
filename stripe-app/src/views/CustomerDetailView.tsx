@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Stripe from 'stripe';
 import {
   Badge,
@@ -15,6 +15,7 @@ import { createHttpClient, STRIPE_API_KEY } from '@stripe/ui-extension-sdk/http_
 import { fetchStripeSignature } from '@stripe/ui-extension-sdk/utils';
 import {
   calculateRisk,
+  riskLevelFromScore,
   riskBadgeType,
   subscriptionBadgeType,
   subscriptionLabel,
@@ -38,6 +39,11 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
   const accountId = userContext?.account?.id ?? '';
   const apiBase = (environment?.constants as Record<string, string> | undefined)?.API_BASE
     ?? `${APP_URL}/api/stripe-app`;
+
+  // Tracks the most recently rendered customerId so in-flight fetches for a
+  // previous customer cannot overwrite state after the user has switched.
+  const currentIdRef = useRef(customerId);
+  currentIdRef.current = customerId;
 
   const [risk, setRisk] = useState<RiskResult | null>(null);
   const [customerName, setCustomerName] = useState('');
@@ -88,15 +94,34 @@ export default function CustomerDetailView({ userContext, environment }: Extensi
         setDaysSince(Math.floor((Date.now() / 1000 - lastSuccess.created) / 86400));
       }
 
-      // Fetch enhanced ChurnGuard data in background — non-blocking
+      // Fetch authoritative ChurnGuard score; replaces local score only for
+      // linked accounts where analysis has actually run (analyzed: true).
+      // Falls back silently to the local riskScoring.ts result otherwise.
       try {
+        const cidForThisFetch = customerId;
         const sig = await fetchStripeSignature();
-        await fetch(
+        const res = await fetch(
           `${apiBase}/customer?account_id=${accountId}&customer_id=${customerId}`,
           { headers: { 'stripe-signature': sig } }
         );
+        if (res.ok) {
+          const data = await res.json();
+          if (
+            data.linked &&
+            data.analyzed &&
+            typeof data.riskScore === 'number' &&
+            currentIdRef.current === cidForThisFetch
+          ) {
+            setRisk(prev => prev ? {
+              ...prev,
+              score: data.riskScore,
+              level: data.riskLevel ?? riskLevelFromScore(data.riskScore),
+              factors: data.riskReason ? [data.riskReason] : prev.factors,
+            } : prev);
+          }
+        }
       } catch {
-        // Backend unavailable — Stripe-native scores shown
+        // Backend unavailable — local Stripe-native score shown as fallback
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load customer data');

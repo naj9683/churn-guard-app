@@ -23,6 +23,11 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
+// Must stay in sync with riskLevelFromScore() in stripe-app/src/utils/riskScoring.ts.
+function serverRiskLevel(score: number): 'high' | 'medium' | 'low' {
+  return score >= 70 ? 'high' : score >= 50 ? 'medium' : 'low';
+}
+
 export async function GET(req: NextRequest) {
   // ── 1. Verify Stripe App signature ─────────────────────────────────────
   const signature = req.headers.get('stripe-signature');
@@ -83,7 +88,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       linked: true,
+      analyzed: customer.riskReason !== null,
       riskScore: customer.riskScore,
+      riskLevel: serverRiskLevel(customer.riskScore),
       riskReason: customer.riskReason,
       mrr: customer.mrr,
       healthScore: customer.healthScore,
