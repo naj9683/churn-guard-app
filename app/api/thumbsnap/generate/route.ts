@@ -407,10 +407,12 @@ export async function POST(req: NextRequest) {
     );
   }
   if (
-    !prompt ||
-    typeof prompt !== 'string' ||
-    prompt.length < 5 ||
-    prompt.length > 1_000
+    face_image == null && (
+      !prompt ||
+      typeof prompt !== 'string' ||
+      prompt.length < 5 ||
+      prompt.length > 1_000
+    )
   ) {
     return NextResponse.json(
       { error: 'invalid_input', detail: 'prompt must be 5–1000 characters' },
