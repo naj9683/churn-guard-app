@@ -90,6 +90,19 @@ class LimitReachedError extends Error {
   }
 }
 
+// Carries the full Gemini response body so call sites can surface it verbatim.
+class GeminiSwapError extends Error {
+  constructor(
+    public readonly geminiBody: unknown,
+  ) {
+    const msg =
+      (geminiBody as any)?.error?.message ??
+      (geminiBody as any)?.message ??
+      'generation failed';
+    super(msg);
+  }
+}
+
 async function atomicConsumeCredit(
   appUserId: string,
   product: Product,
@@ -331,20 +344,27 @@ async function callGeminiFaceSwap(
         responseModalities: ['IMAGE'],
         imageConfig: { aspectRatio: '16:9' },
       },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
     }),
     signal: AbortSignal.timeout(60_000),
   });
 
-  if (!res.ok) {
-    const err: any = await res.json().catch(() => ({}));
-    throw new Error(`Gemini ${res.status}: ${err?.error?.message ?? 'generation failed'}`);
-  }
+  // Parse body first so it's available for both error paths.
+  const data: any = await res.json().catch(() => ({}));
+  if (!res.ok) throw new GeminiSwapError(data);
 
-  const data: any = await res.json();
   const imagePart = data?.candidates?.[0]?.content?.parts?.find(
     (p: any) => p.inlineData?.data,
   );
-  if (!imagePart) throw new Error('No image in Gemini response');
+  if (!imagePart) {
+    // Blocked or empty response — surface candidates (finishReason / safetyRatings).
+    throw new GeminiSwapError({ message: 'No image in Gemini response', raw: data });
+  }
   return imagePart.inlineData.data as string;
 }
 
@@ -447,6 +467,10 @@ export async function POST(req: NextRequest) {
   const baseBase64 = base_image != null ? extractBase64(base_image as string) : undefined;
   const swapMode = (mode as 'swap' | 'insert' | undefined) ?? 'swap';
 
+  if (faceBase64) {
+    console.log('[thumbsnap/face-swap] body bytes:', rawBody.length);
+  }
+
   const uid = appUserId.trim();
 
   // Tester bypass — unlimited generations, no credit/entitlement check
@@ -457,6 +481,10 @@ export async function POST(req: NextRequest) {
         ? await callGeminiFaceSwap(baseBase64!, faceBase64, swapMode)
         : await callGemini(prompt, 'gemini-3.1-flash-image', refBase64);
     } catch (e) {
+      if (e instanceof GeminiSwapError) {
+        console.error('[thumbsnap/face-swap] Gemini error:', JSON.stringify(e.geminiBody));
+        return NextResponse.json({ error: e.message, detail: e.geminiBody }, { status: 502 });
+      }
       console.error('[thumbsnap] Gemini error:', (e as Error).message);
       return NextResponse.json({ error: 'generation_failed' }, { status: 502 });
     }
@@ -491,6 +519,11 @@ export async function POST(req: NextRequest) {
       ? await callGeminiFaceSwap(baseBase64!, faceBase64, swapMode)
       : await callGemini(prompt, model, refBase64);
   } catch (e) {
+    if (e instanceof GeminiSwapError) {
+      console.error('[thumbsnap/face-swap] Gemini error:', JSON.stringify(e.geminiBody));
+      await decrementCredit(uid, creditResult.source);
+      return NextResponse.json({ error: e.message, detail: e.geminiBody }, { status: 502 });
+    }
     console.error('[thumbsnap] Gemini error:', (e as Error).message);
     await decrementCredit(uid, creditResult.source);
     return NextResponse.json({ error: 'generation_failed' }, { status: 502 });
