@@ -481,7 +481,7 @@ export async function POST(req: NextRequest) {
     try {
       imageBase64 = faceBase64
         ? await callGeminiFaceSwap(baseBase64!, faceBase64, swapMode)
-        : await callGemini(prompt, 'gemini-3.1-flash-image', refBase64);
+        : await callGemini(prompt as string, 'gemini-3.1-flash-image', refBase64);
     } catch (e) {
       if (e instanceof GeminiSwapError) {
         console.error('[thumbsnap/face-swap] Gemini error:', JSON.stringify(e.geminiBody));
@@ -519,7 +519,7 @@ export async function POST(req: NextRequest) {
   try {
     imageBase64 = faceBase64
       ? await callGeminiFaceSwap(baseBase64!, faceBase64, swapMode)
-      : await callGemini(prompt, model, refBase64);
+      : await callGemini(prompt as string, model, refBase64);
   } catch (e) {
     if (e instanceof GeminiSwapError) {
       console.error('[thumbsnap/face-swap] Gemini error:', JSON.stringify(e.geminiBody));
