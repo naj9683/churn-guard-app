@@ -36,6 +36,7 @@ interface CreditsRow {
   period_used: number;
   product: string | null;
   pack_credits: number;
+  device_id: string | null;
 }
 
 // ── RevenueCat ────────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ class GeminiSwapError extends Error {
 async function atomicConsumeCredit(
   appUserId: string,
   product: Product,
+  deviceId?: string,
 ): Promise<{ remaining: number; resetsAt: Date | null; source: CreditSource }> {
   const limit = LIMITS[product];
   const now = new Date();
@@ -123,6 +125,9 @@ async function atomicConsumeCredit(
   `;
   await prisma.$executeRaw`
     ALTER TABLE thumbsnap_credits ADD COLUMN IF NOT EXISTS pack_credits INTEGER NOT NULL DEFAULT 0
+  `;
+  await prisma.$executeRaw`
+    ALTER TABLE thumbsnap_credits ADD COLUMN IF NOT EXISTS device_id TEXT
   `;
 
   return await prisma.$transaction(async (tx) => {
@@ -146,6 +151,13 @@ async function atomicConsumeCredit(
           SET free_used = free_used + 1, product = ${product}
           WHERE app_user_id = ${appUserId}
         `;
+        if (deviceId) {
+          await tx.$executeRaw`
+            UPDATE thumbsnap_credits
+            SET device_id = COALESCE(device_id, ${deviceId})
+            WHERE app_user_id = ${appUserId}
+          `;
+        }
         return { remaining: limit.total - used - 1 + packCredits, resetsAt: null, source: 'free' as CreditSource };
       }
       if (packCredits > 0) {
@@ -224,6 +236,82 @@ async function decrementCredit(appUserId: string, source: CreditSource): Promise
   } catch {
     // Best effort — Gemini already failed, no need to surface a DB error too
   }
+}
+
+// ── Free-tier anti-abuse (device re-grant + IP grant limit) ──────────────────
+
+async function ensureAbuseSchema(): Promise<void> {
+  await prisma.$executeRaw`
+    ALTER TABLE thumbsnap_credits ADD COLUMN IF NOT EXISTS device_id TEXT
+  `;
+  await prisma.$executeRaw`
+    CREATE INDEX IF NOT EXISTS thumbsnap_credits_device_id_idx ON thumbsnap_credits (device_id)
+  `;
+  await prisma.$executeRaw`
+    CREATE TABLE IF NOT EXISTS thumbsnap_ip_grants (
+      ip           TEXT        NOT NULL,
+      app_user_id  TEXT        NOT NULL,
+      granted_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (ip, app_user_id)
+    )
+  `;
+}
+
+// Returns 'device_exhausted' when the physical device has already consumed all
+// free credits across any account (catches reinstall abuse). Returns 'ip_limited'
+// when 5 distinct accounts have already received free grants from this IP in the
+// last 7 days. Returns 'ok' otherwise.
+async function checkFreeGrantEligibility(
+  appUserId: string,
+  deviceId: string | undefined,
+  ip: string,
+): Promise<'ok' | 'device_exhausted' | 'ip_limited'> {
+  try {
+    await ensureAbuseSchema();
+  } catch {
+    return 'ok'; // Schema hiccup — don't block legitimate users
+  }
+
+  if (deviceId) {
+    try {
+      // Sum free_used across ALL rows tied to this device (handles reinstalls).
+      const rows = await prisma.$queryRaw<{ total_used: bigint }[]>`
+        SELECT COALESCE(SUM(free_used), 0)::bigint AS total_used
+        FROM thumbsnap_credits
+        WHERE device_id = ${deviceId}
+      `;
+      if (Number(rows[0].total_used) >= LIMITS.free.total) return 'device_exhausted';
+    } catch {
+      // thumbsnap_credits may not exist on the very first ever request — non-fatal
+    }
+  }
+
+  try {
+    // If this (ip, appUserId) pair has never been granted before, check the weekly cap.
+    const existing = await prisma.$queryRaw<{ cnt: bigint }[]>`
+      SELECT COUNT(*) AS cnt FROM thumbsnap_ip_grants
+      WHERE ip = ${ip} AND app_user_id = ${appUserId}
+    `;
+    if (Number(existing[0].cnt) === 0) {
+      const weekly = await prisma.$queryRaw<{ cnt: bigint }[]>`
+        SELECT COUNT(DISTINCT app_user_id) AS cnt FROM thumbsnap_ip_grants
+        WHERE ip = ${ip} AND granted_at > now() - interval '7 days'
+      `;
+      if (Number(weekly[0].cnt) >= 5) return 'ip_limited';
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  return 'ok';
+}
+
+async function recordIpGrant(appUserId: string, ip: string): Promise<void> {
+  await prisma.$executeRaw`
+    INSERT INTO thumbsnap_ip_grants (ip, app_user_id)
+    VALUES (${ip}, ${appUserId})
+    ON CONFLICT DO NOTHING
+  `;
 }
 
 // ── Gemini helpers ────────────────────────────────────────────────────────────
@@ -390,7 +478,7 @@ export async function POST(req: NextRequest) {
   // Parse + validate body
   let body: {
     appUserId?: unknown; prompt?: unknown; referenceImageBase64?: unknown;
-    face_image?: unknown; base_image?: unknown; mode?: unknown;
+    face_image?: unknown; base_image?: unknown; mode?: unknown; deviceId?: unknown;
   };
   try {
     body = JSON.parse(rawBody);
@@ -398,7 +486,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  const { appUserId, prompt, referenceImageBase64, face_image, base_image, mode } = body;
+  const { appUserId, prompt, referenceImageBase64, face_image, base_image, mode, deviceId: deviceIdRaw } = body;
 
   if (!appUserId || typeof appUserId !== 'string' || !appUserId.trim()) {
     return NextResponse.json(
@@ -406,6 +494,14 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  // deviceId is the SHA-256 hash of the Android ID sent by newer builds.
+  // Absent in build 35 and below — treat as undefined for backward compat.
+  const deviceId =
+    typeof deviceIdRaw === 'string' && deviceIdRaw.trim().length > 0
+      ? deviceIdRaw.trim().slice(0, 128)
+      : undefined;
+
   if (
     face_image == null && (
       !prompt ||
@@ -496,10 +592,18 @@ export async function POST(req: NextRequest) {
   // Determine subscription tier (errors → free)
   const product = await getActiveProduct(uid);
 
+  // Anti-abuse checks for free tier only (device re-grant + IP grant limit)
+  if (product === 'free') {
+    const eligibility = await checkFreeGrantEligibility(uid, deviceId, ip);
+    if (eligibility !== 'ok') {
+      return NextResponse.json({ error: 'limit_reached', remaining: 0, resetsAt: null }, { status: 429 });
+    }
+  }
+
   // Atomically consume one credit (throws if limit hit)
   let creditResult: { remaining: number; resetsAt: Date | null; source: CreditSource };
   try {
-    creditResult = await atomicConsumeCredit(uid, product);
+    creditResult = await atomicConsumeCredit(uid, product, deviceId);
   } catch (e) {
     if (e instanceof LimitReachedError) {
       return NextResponse.json(
@@ -529,6 +633,11 @@ export async function POST(req: NextRequest) {
     console.error('[thumbsnap] Gemini error:', (e as Error).message);
     await decrementCredit(uid, creditResult.source);
     return NextResponse.json({ error: 'generation_failed' }, { status: 502 });
+  }
+
+  // Record IP grant for free-tier users so the weekly per-IP cap stays accurate
+  if (creditResult.source === 'free') {
+    recordIpGrant(uid, ip).catch(() => {});
   }
 
   return NextResponse.json({
